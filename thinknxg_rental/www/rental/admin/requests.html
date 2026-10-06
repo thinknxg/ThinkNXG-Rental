@@ -1,0 +1,44 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, date, pill %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<div><h1>{{ _("Customer requests") }}</h1>
+		<p class="rp-muted">{{ _("Raised from the customer portal. Oldest first, so the longest wait is at the top.") }}</p></div>
+</div>
+<div class="rp-msg" id="ra-msg" role="status" hidden></div>
+<div class="rp-filter">
+	<div class="rp-tabs">
+		<a href="/rental/admin/requests" aria-current="{{ 'true' if view == 'open' else 'false' }}">{{ _("Waiting") }}</a>
+		<a href="/rental/admin/requests?view=closed" aria-current="{{ 'true' if view == 'closed' else 'false' }}">{{ _("Closed") }}</a>
+	</div>
+</div>
+{% if requests %}
+<table class="rp-table">
+	<thead><tr><th>{{ _("Request") }}</th><th>{{ _("Customer") }}</th><th>{{ _("Asking for") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
+	<tbody>
+	{% for r in requests %}
+	<tr>
+		<td class="rp-first"><a href="{{ desk('Rental Portal Request', r.name) }}">{{ r.name | e }}</a>
+			<span class="rp-sub {% if view == 'open' and r.age_days >= 2 %}rp-due{% endif %}">{{ date(r.request_date) }}{% if view == "open" %}, {{ _("{0} days ago").format(r.age_days) if r.age_days else _("today") }}{% endif %}</span></td>
+		<td data-label="{{ _('Customer') }}">{{ r.customer_name | e }}<span class="rp-sub">{{ r.raised_by | e }}</span></td>
+		<td data-label="{{ _('Asking for') }}"><strong>{{ _(r.request_type) }}</strong>
+			{% if r.hire_contract %}<span class="rp-sub"><a href="{{ desk('Hire Order Contract', r.hire_contract) }}">{{ r.hire_contract | e }}</a>{% if r.rental_site %}, {{ r.rental_site | e }}{% endif %}</span>{% endif %}
+			{% if r.request_type == "Extension Request" %}<span class="rp-sub">{{ _("Extend to {0}").format(date(r.new_end_date)) }}</span>
+			{% else %}<span class="rp-sub">{% for l in r.lines %}{{ qty(l.qty) }} &times; {{ (l.item_name or l.item_code) | e }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+				{% if r.required_date %}<span class="rp-sub">{{ _("From {0}").format(date(r.required_date)) }}{% if r.site_location %}, {{ r.site_location | e }}{% endif %}</span>{% endif %}
+			{% endif %}
+			{% if r.remarks %}<span class="rp-sub">&ldquo;{{ r.remarks | e }}&rdquo;</span>{% endif %}</td>
+		<td data-label="{{ _('Status') }}">{{ pill(r.status) }}</td>
+		<td class="rp-act">
+			{% if r.status == "Open" %}<button class="rp-btn rp-btn--small" type="button" data-start="{{ r.name | e }}">{{ _("Start") }}</button>{% endif %}
+			{% if view == "open" %}<a class="rp-btn rp-btn--small rp-btn--main" href="{{ desk('Rental Portal Request', r.name) }}">{{ _("Handle in desk") }}</a>{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("No requests are waiting.") if view == "open" else _("No closed requests yet.") }}</p>
+{% endif %}
+{% endblock %}

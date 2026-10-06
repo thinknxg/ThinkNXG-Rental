@@ -1,0 +1,121 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "uom",
+  "cb_112",
+  "on_hire_qty",
+  "at_customer_site_qty",
+  "qty",
+  "sb_113",
+  "batch_no",
+  "cb_114",
+  "serial_no",
+  "sb_115",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "fetch_from": "item_code.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "fetch_from": "item_code.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_112",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "on_hire_qty",
+   "fieldtype": "Float",
+   "label": "On Hire from Supplier",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "at_customer_site_qty",
+   "fieldtype": "Float",
+   "label": "Still at Customer Site",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Off-Hire Qty",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "bold": 1
+  },
+  {
+   "fieldname": "sb_113",
+   "fieldtype": "Section Break",
+   "label": "Serial / Batch",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "cb_114",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Small Text",
+   "label": "Serial Nos"
+  },
+  {
+   "fieldname": "sb_115",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Cross Hire Off-Hire Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

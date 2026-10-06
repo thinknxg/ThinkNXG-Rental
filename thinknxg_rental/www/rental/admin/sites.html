@@ -1,0 +1,42 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<div><h1>{{ _("Material at site") }}</h1>
+		<p class="rp-muted">{{ _("{0} units out, of which {1} cross-hired. Replacement value {2}.").format(qty(totals.total), qty(totals.cross), money(totals.value)) }}</p></div>
+	<div class="rp-actions"><button class="rp-btn" type="button" onclick="window.print()">{{ _("Print") }}</button></div>
+</div>
+<form class="rp-filter" method="get">
+	<input type="search" name="q" value="{{ q | e }}" placeholder="{{ _('Customer, site, contract or item') }}" aria-label="{{ _('Search') }}">
+	<button class="rp-btn" type="submit">{{ _("Search") }}</button>
+</form>
+{% if groups %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Item") }}</th><th>{{ _("Ownership") }}</th><th>{{ _("On site since") }}</th>
+		<th class="rp-num">{{ _("Days") }}</th><th class="rp-num">{{ _("Qty at site") }}</th><th class="rp-num">{{ _("Replacement value") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for g in groups %}
+	<tr class="rp-group"><td colspan="6">{{ g.customer_name | e }}, {{ g.site | e }},
+		<a href="{{ desk('Hire Order Contract', g.contract) }}">{{ g.contract | e }}</a>
+		({{ _("{0} units").format(qty(g.total)) }})
+		<a href="/rental/contract?name={{ g.contract | urlencode }}&customer={{ g.customer | urlencode }}" style="font-weight: 400; margin-inline-start: 0.75rem">{{ _("Customer's view") }}</a></td></tr>
+	{% for r in g.rows %}
+	<tr>
+		<td class="rp-first">{{ r.item_name | e }}<span class="rp-sub">{{ r.item_code | e }}</span></td>
+		<td data-label="{{ _('Ownership') }}">{% if r.ownership == "Cross Hire" %}{{ _("Cross hire") }}<span class="rp-sub">{{ r.supplier | e }}, <a href="{{ desk('Cross Hire Order', r.cross_hire_order) }}">{{ r.cross_hire_order | e }}</a></span>{% else %}{{ _("Own") }}{% endif %}</td>
+		<td data-label="{{ _('On site since') }}">{{ date(r.first_dispatch) }}</td>
+		<td data-label="{{ _('Days') }}" class="rp-num">{{ r.days_at_site }}</td>
+		<td data-label="{{ _('Qty at site') }}" class="rp-num rp-strong">{{ qty(r.qty) }} {{ r.uom | e }}</td>
+		<td data-label="{{ _('Replacement value') }}" class="rp-num">{{ money(r.replacement_value) }}</td>
+	</tr>
+	{% endfor %}
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("Nothing matches. No material is at customer sites for this search.") }}</p>
+{% endif %}
+{% endblock %}

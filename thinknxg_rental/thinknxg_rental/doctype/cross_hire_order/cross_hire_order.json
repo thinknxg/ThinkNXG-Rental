@@ -1,0 +1,356 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "supplier",
+  "supplier_name",
+  "supplier_reference",
+  "cb_103",
+  "order_date",
+  "status",
+  "purchase_order",
+  "sb_104",
+  "hire_contract",
+  "customer",
+  "rental_site",
+  "cb_105",
+  "project",
+  "material_reservation",
+  "sb_106",
+  "hire_from",
+  "expected_return_date",
+  "expected_hire_days",
+  "rate_basis",
+  "cb_107",
+  "receive_at",
+  "receipt_warehouse",
+  "taxes_and_charges",
+  "sb_108",
+  "items",
+  "sb_109",
+  "total_qty",
+  "estimated_amount",
+  "cb_110",
+  "last_billed_upto",
+  "billed_amount",
+  "sb_111",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CHO-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "CHO-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "fetch_from": "supplier.supplier_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_reference",
+   "fieldtype": "Data",
+   "label": "Supplier Quotation / Reference"
+  },
+  {
+   "fieldname": "cb_103",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "label": "Order Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nTo Receive\nOn Hire\nPartially Returned\nReturned\nCompleted\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_104",
+   "fieldtype": "Section Break",
+   "label": "Back-to-Back Customer Hire"
+  },
+  {
+   "fieldname": "hire_contract",
+   "fieldtype": "Link",
+   "label": "Hire Contract",
+   "options": "Hire Order Contract",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "hire_contract.customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site",
+   "fetch_from": "hire_contract.rental_site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_105",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "fetch_from": "hire_contract.project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "material_reservation",
+   "fieldtype": "Link",
+   "label": "Material Reservation",
+   "options": "Rental Material Reservation"
+  },
+  {
+   "fieldname": "sb_106",
+   "fieldtype": "Section Break",
+   "label": "Hire Terms"
+  },
+  {
+   "fieldname": "hire_from",
+   "fieldtype": "Date",
+   "label": "Hire From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expected_return_date",
+   "fieldtype": "Date",
+   "label": "Expected Return Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expected_hire_days",
+   "fieldtype": "Int",
+   "label": "Expected Hire Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_basis",
+   "fieldtype": "Select",
+   "label": "Default Rate Basis",
+   "options": "Monthly\nWeekly\nDaily",
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "cb_107",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "receive_at",
+   "fieldtype": "Select",
+   "label": "Receive At",
+   "options": "Cross Hire Yard\nDirect to Site",
+   "reqd": 1,
+   "default": "Cross Hire Yard"
+  },
+  {
+   "fieldname": "receipt_warehouse",
+   "fieldtype": "Link",
+   "label": "Receipt Warehouse",
+   "options": "Warehouse",
+   "read_only": 1,
+   "description": "Set automatically from Receive At"
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Purchase Taxes Template",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "sb_108",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Cross Hire Order Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_109",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "estimated_amount",
+   "fieldtype": "Currency",
+   "label": "Estimated Hire Cost",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb_110",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_billed_upto",
+   "fieldtype": "Date",
+   "label": "Supplier Billed Upto",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "billed_amount",
+   "fieldtype": "Currency",
+   "label": "Supplier Billed Amount",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_111",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Cross Hire Order",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Purchase Receipt",
+   "link_fieldname": "nxg_cross_hire_order"
+  },
+  {
+   "link_doctype": "Cross Hire Off-Hire Note",
+   "link_fieldname": "cross_hire_order"
+  },
+  {
+   "link_doctype": "Purchase Invoice",
+   "link_fieldname": "nxg_cross_hire_order"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Cross Hire Order",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "supplier_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "supplier_name,hire_contract,status",
+ "track_changes": 1
+}

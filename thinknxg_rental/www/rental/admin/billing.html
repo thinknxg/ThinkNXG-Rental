@@ -1,0 +1,75 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<div><h1>{{ _("Billing") }}</h1>
+		<p class="rp-muted">{{ _("Accrued to yesterday and not yet on a billing schedule.") }}</p></div>
+	{% if ra.can_bill and g.due %}
+	<div class="rp-actions"><button class="rp-btn rp-btn--main" type="button" id="ra-bill-all">{{ _("Bill all {0} due contracts").format(g.due | length) }}</button></div>
+	{% endif %}
+</div>
+<div class="rp-msg" id="ra-msg" role="status" hidden></div>
+
+<dl class="rp-facts">
+	<div><dt>{{ _("Accrued, unbilled") }}</dt><dd>{{ money(g.accrued_total) }}</dd></div>
+	<div><dt>{{ _("Contracts due for billing") }}</dt><dd>{{ g.due | length }}</dd></div>
+	<div><dt>{{ _("Rental receivable") }}</dt><dd>{{ money(g.receivable) }}
+		{% if g.late_total %}<span class="rp-flag">{{ _("{0} past due").format(money(g.late_total)) }}</span>{% endif %}</dd></div>
+	<a href="{{ desk('Sales Invoice', docstatus=0) }}"><dt>{{ _("Rental invoices in draft") }}</dt><dd>{{ g.drafts }}</dd></a>
+</dl>
+
+<section class="rp-section">
+	<h2>{{ _("Unbilled rental") }}</h2>
+	{% if g.accrued %}
+	<table class="rp-table">
+		<thead><tr>
+			<th>{{ _("Contract") }}</th><th>{{ _("Customer and site") }}</th><th>{{ _("Cycle") }}</th>
+			<th>{{ _("Unbilled from") }}</th><th>{{ _("Next billing date") }}</th>
+			<th class="rp-num">{{ _("At site") }}</th><th class="rp-num">{{ _("Accrued") }}</th><th></th>
+		</tr></thead>
+		<tbody>
+		{% for r in g.accrued %}
+		<tr>
+			<td class="rp-first"><a href="{{ desk('Hire Order Contract', r.hire_contract) }}">{{ r.hire_contract | e }}</a></td>
+			<td data-label="{{ _('Customer and site') }}">{{ r.customer_name | e }}<span class="rp-sub">{{ r.rental_site | e }}</span></td>
+			<td data-label="{{ _('Cycle') }}">{{ _(r.billing_cycle) }}</td>
+			<td data-label="{{ _('Unbilled from') }}">{{ date(r.unbilled_from) }}</td>
+			<td data-label="{{ _('Next billing date') }}" {% if r.overdue %}class="rp-due"{% endif %}>{{ date(r.next_billing_date) }}</td>
+			<td data-label="{{ _('At site') }}" class="rp-num">{{ qty(r.at_site_qty) }}</td>
+			<td data-label="{{ _('Accrued') }}" class="rp-num rp-strong">{{ money(r.unbilled_amount) }}</td>
+			<td class="rp-act">{% if ra.can_bill and r.overdue %}<button class="rp-btn rp-btn--small" type="button" data-bill="{{ r.hire_contract | e }}">{{ _("Bill now") }}</button>{% endif %}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	<p class="rp-muted" style="margin-block-start: 0.75rem">{{ _("Bill now creates billing schedules and Sales Invoices for every completed period, exactly as the nightly job does.") }}</p>
+	{% else %}
+	<p class="rp-none">{{ _("Every contract is billed up to date.") }}</p>
+	{% endif %}
+</section>
+
+<section class="rp-section">
+	<h2>{{ _("Unpaid rental invoices") }}</h2>
+	{% if g.invoices %}
+	<table class="rp-table">
+		<thead><tr><th>{{ _("Invoice") }}</th><th>{{ _("Customer") }}</th><th>{{ _("Contract") }}</th><th>{{ _("Due") }}</th>
+			<th class="rp-num">{{ _("Amount") }}</th><th class="rp-num">{{ _("Outstanding") }}</th></tr></thead>
+		<tbody>
+		{% for i in g.invoices %}
+		<tr>
+			<td class="rp-first"><a href="{{ desk('Sales Invoice', i.name) }}">{{ i.name | e }}</a></td>
+			<td data-label="{{ _('Customer') }}">{{ i.customer_name | e }}</td>
+			<td data-label="{{ _('Contract') }}"><a href="{{ desk('Hire Order Contract', i.nxg_hire_contract) }}">{{ i.nxg_hire_contract | e }}</a></td>
+			<td data-label="{{ _('Due') }}">{{ date(i.due_date) }}{% if i.days_late > 0 %}<span class="rp-sub rp-due">{{ _("{0} days late").format(i.days_late) }}</span>{% endif %}</td>
+			<td data-label="{{ _('Amount') }}" class="rp-num">{{ money(i.grand_total, i.currency) }}</td>
+			<td data-label="{{ _('Outstanding') }}" class="rp-num rp-strong">{{ money(i.outstanding_amount, i.currency) }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+	<p class="rp-none">{{ _("No rental invoices are outstanding.") }}</p>
+	{% endif %}
+</section>
+{% endblock %}

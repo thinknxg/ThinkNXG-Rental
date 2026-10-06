@@ -1,0 +1,112 @@
+{% extends "templates/rental_portal/base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date, pill, tube %}
+
+{% block portal_content %}
+{% set d = c.doc %}
+{% set live = d.status in ("Active", "On Hire") %}
+<div class="rp-head">
+	<div>
+		<h1>{{ d.name | e }}</h1>
+		<p>{{ pill(d.status) }} <span class="rp-muted">{{ d.rental_site | e }}{% if c.site.location %}, {{ c.site.location | e }}{% endif %}</span></p>
+	</div>
+	{% if rp.allow_requests and live %}
+	<div class="rp-actions">
+		{% if d.total_at_site_qty %}<a class="rp-btn rp-btn--main" href="/rental/requests?new=off-hire&contract={{ d.name | urlencode }}{{ rp.qs_amp | e }}">{{ _("Request a collection") }}</a>{% endif %}
+		<a class="rp-btn" href="/rental/requests?new=extension&contract={{ d.name | urlencode }}{{ rp.qs_amp | e }}">{{ _("Extend the hire") }}</a>
+	</div>
+	{% endif %}
+</div>
+
+<dl class="rp-terms">
+	<div><dt>{{ _("Hire period") }}</dt><dd>{{ date(d.start_date) }} {{ _("to") }} {{ date(d.end_date) }}
+		{% if live and c.days_left < 0 %}<span class="rp-sub rp-due">{{ _("{0} days past the end date").format(-c.days_left) }}</span>
+		{% elif live %}<span class="rp-sub">{{ _("{0} days left").format(c.days_left) }}</span>{% endif %}</dd></div>
+	<div><dt>{{ _("Billing") }}</dt><dd>{{ _(d.billing_cycle) }}{% if d.last_billed_upto %}<span class="rp-sub">{{ _("Billed up to {0}").format(date(d.last_billed_upto)) }}</span>{% endif %}</dd></div>
+	<div><dt>{{ _("Off-hire grace") }}</dt><dd>{{ _("{0} days").format(d.grace_days or 0) }}</dd></div>
+	{% if d.minimum_hire_days %}<div><dt>{{ _("Minimum hire") }}</dt><dd>{{ _("{0} days").format(d.minimum_hire_days) }}</dd></div>{% endif %}
+	{% if d.security_deposit %}<div><dt>{{ _("Security deposit") }}</dt><dd>{{ money(d.security_deposit) }}<span class="rp-sub">{{ _("{0} received").format(money(d.deposit_received)) }}</span></dd></div>{% endif %}
+</dl>
+
+<section class="rp-section">
+	<h2>{{ _("Material") }}</h2>
+	<table class="rp-table">
+		<thead><tr>
+			<th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th>
+			<th class="rp-num">{{ _("Contracted") }}</th><th class="rp-num">{{ _("Delivered") }}</th>
+			<th class="rp-num">{{ _("Returned") }}</th><th class="rp-num">{{ _("At site") }}</th>
+			<th class="rp-num">{{ _("Hire rate") }}</th>
+		</tr></thead>
+		<tbody>
+		{% for i in c.lines %}
+		<tr>
+			<td class="rp-first">{{ i.item_name | e }}<span class="rp-sub">{{ i.item_code | e }}</span></td>
+			<td data-label="{{ _('Where it is') }}">{{ tube(i.pct_site, i.pct_back, _("{0} at site, {1} returned, {2} still to deliver").format(qty(i.at_site_qty), qty(i.returned_qty), qty(i.pending_qty))) }}</td>
+			<td data-label="{{ _('Contracted') }}" class="rp-num">{{ qty(i.qty) }} {{ i.uom | e }}</td>
+			<td data-label="{{ _('Delivered') }}" class="rp-num">{{ qty(i.dispatched_qty) }}</td>
+			<td data-label="{{ _('Returned') }}" class="rp-num">{{ qty(i.returned_qty) }}{% if i.lost_qty %}<span class="rp-sub rp-due">{{ _("{0} lost").format(qty(i.lost_qty)) }}</span>{% endif %}</td>
+			<td data-label="{{ _('At site') }}" class="rp-num rp-strong">{{ qty(i.at_site_qty) }}</td>
+			<td data-label="{{ _('Hire rate') }}" class="rp-num">{{ money(i.rate) }}<span class="rp-sub">{{ _(i.rate_basis) }}</span></td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	<ul class="rp-key" aria-hidden="true">
+		<li><i class="k-site"></i>{{ _("At your site") }}</li>
+		<li><i class="k-back"></i>{{ _("Returned") }}</li>
+		<li><i></i>{{ _("Still to deliver") }}</li>
+	</ul>
+</section>
+
+<div class="rp-split">
+	<section class="rp-section">
+		<h2>{{ _("Deliveries and returns") }}</h2>
+		{% if c.movements %}
+		<table class="rp-table">
+			<thead><tr><th>{{ _("Date") }}</th><th>{{ _("Movement") }}</th><th>{{ _("Reference") }}</th><th class="rp-num">{{ _("Units") }}</th></tr></thead>
+			<tbody>
+			{% for m in c.movements %}
+			<tr>
+				<td class="rp-first">{{ date(m.date) }}</td>
+				<td data-label="{{ _('Movement') }}">{{ m.label | e }}
+					{% if m.kind == "in" and m.last_billable_date %}<span class="rp-sub">{{ _("Billed up to {0}").format(date(m.last_billable_date)) }}</span>{% endif %}
+					{% if m.lost_qty %}<span class="rp-sub rp-due">{{ _("{0} reported lost").format(qty(m.lost_qty)) }}</span>{% endif %}</td>
+				<td data-label="{{ _('Reference') }}">{{ m.name | e }}{% if m.vehicle_no %}<span class="rp-sub">{{ _("Vehicle {0}").format(m.vehicle_no | e) }}</span>{% endif %}</td>
+				<td data-label="{{ _('Units') }}" class="rp-num">{{ qty(m.qty) }}</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+		{% else %}<p class="rp-none">{{ _("Nothing has been delivered on this contract yet.") }}</p>{% endif %}
+	</section>
+
+	<section class="rp-section">
+		<h2>{{ _("Invoices") }}</h2>
+		{% if c.invoices %}
+		<table class="rp-table">
+			<thead><tr><th>{{ _("Invoice") }}</th><th>{{ _("For") }}</th><th class="rp-num">{{ _("Amount") }}</th></tr></thead>
+			<tbody>
+			{% for i in c.invoices %}
+			<tr>
+				<td class="rp-first"><a href="/invoices/{{ i.name | urlencode }}">{{ i.name | e }}</a><span class="rp-sub">{{ date(i.posting_date) }}</span></td>
+				<td data-label="{{ _('For') }}">{{ i.kind | e }}{% if i.period_from %}<span class="rp-sub">{{ date(i.period_from) }} {{ _("to") }} {{ date(i.period_to) }}</span>{% endif %}</td>
+				<td data-label="{{ _('Amount') }}" class="rp-num">{{ money(i.grand_total, i.currency) }}
+					{% if i.unpaid %}<span class="rp-sub {% if i.overdue %}rp-due{% endif %}">{{ _("{0} outstanding").format(money(i.outstanding_amount, i.currency)) }}</span>{% endif %}</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+		{% else %}<p class="rp-none">{{ _("No invoices have been raised on this contract yet.") }}</p>{% endif %}
+	</section>
+</div>
+
+{% if d.extensions %}
+<section class="rp-section">
+	<h2>{{ _("Extensions") }}</h2>
+	<ul class="rp-log">
+		{% for e in d.extensions %}
+		<li><time>{{ date(e.extension_date) }}</time><span>{{ _("End date moved from {0} to {1}").format(date(e.previous_end_date), date(e.new_end_date)) }}</span><span></span></li>
+		{% endfor %}
+	</ul>
+</section>
+{% endif %}
+{% endblock %}

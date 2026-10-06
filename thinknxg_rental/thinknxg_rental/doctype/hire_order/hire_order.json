@@ -1,0 +1,334 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "customer",
+  "customer_name",
+  "rental_site",
+  "project",
+  "cb_24",
+  "order_date",
+  "status",
+  "customer_reference",
+  "quotation",
+  "portal_request",
+  "sales_person",
+  "sb_25",
+  "required_from",
+  "expected_return_date",
+  "expected_hire_days",
+  "cb_26",
+  "rate_basis",
+  "billing_cycle",
+  "payment_terms_template",
+  "sb_27",
+  "items",
+  "sb_28",
+  "total_qty",
+  "total_shortfall_qty",
+  "cb_29",
+  "estimated_amount",
+  "total_security_deposit",
+  "total_replacement_value",
+  "sb_30",
+  "terms",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HO-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "HO-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "customer.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "fetch_from": "rental_site.project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_24",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "label": "Order Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nOpen\nContracted\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "customer_reference",
+   "fieldtype": "Data",
+   "label": "Customer Reference / LPO"
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation"
+  },
+  {
+   "fieldname": "portal_request",
+   "fieldtype": "Link",
+   "label": "Portal Request",
+   "options": "Rental Portal Request",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "label": "Sales Person",
+   "options": "Sales Person"
+  },
+  {
+   "fieldname": "sb_25",
+   "fieldtype": "Section Break",
+   "label": "Hire Period"
+  },
+  {
+   "fieldname": "required_from",
+   "fieldtype": "Date",
+   "label": "Required From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expected_return_date",
+   "fieldtype": "Date",
+   "label": "Expected Return Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expected_hire_days",
+   "fieldtype": "Int",
+   "label": "Expected Hire Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_26",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rate_basis",
+   "fieldtype": "Select",
+   "label": "Default Rate Basis",
+   "options": "Monthly\nWeekly\nDaily",
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "Monthly\nWeekly\nDaily\nCustom",
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Payment Terms Template",
+   "options": "Payment Terms Template"
+  },
+  {
+   "fieldname": "sb_27",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Hire Order Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_28",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_shortfall_qty",
+   "fieldtype": "Float",
+   "label": "Total Shortfall",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_29",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "estimated_amount",
+   "fieldtype": "Currency",
+   "label": "Estimated Hire Amount",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "total_security_deposit",
+   "fieldtype": "Currency",
+   "label": "Total Security Deposit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_replacement_value",
+   "fieldtype": "Currency",
+   "label": "Total Replacement Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_30",
+   "fieldtype": "Section Break",
+   "label": "Terms",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Text Editor",
+   "label": "Terms and Conditions"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Hire Order",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Hire Order Contract",
+   "link_fieldname": "hire_order"
+  },
+  {
+   "link_doctype": "Rental Material Reservation",
+   "link_fieldname": "hire_order"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Hire Order",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,rental_site,status",
+ "track_changes": 1
+}

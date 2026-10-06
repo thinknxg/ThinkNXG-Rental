@@ -1,0 +1,105 @@
+{% extends "templates/rental_portal/base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date, pill %}
+
+{% block portal_content %}
+<header class="rp-lead">
+	{% if o.units_at_site %}
+	<h1>{{ _("{0} units on hire across {1} sites.").format(qty(o.units_at_site), o.site_count) if o.site_count != 1 else _("{0} units on hire at one site.").format(qty(o.units_at_site)) }}</h1>
+	{% else %}
+	<h1>{{ _("Nothing on hire right now.") }}</h1>
+	{% endif %}
+	<p class="rp-muted">{{ rp.customer_names | join(", ") | e }}</p>
+</header>
+
+<dl class="rp-facts">
+	<a href="/rental/contracts{{ rp.qs | e }}">
+		<dt>{{ _("Live contracts") }}</dt>
+		<dd>{{ o.live_contracts | length }}
+			{% if o.ending_soon %}<span class="rp-flag">{{ _("{0} ending within 14 days").format(o.ending_soon | length) }}</span>{% endif %}
+		</dd>
+	</a>
+	<a href="/rental/invoices{{ rp.qs | e }}">
+		<dt>{{ _("Unpaid invoices") }}</dt>
+		<dd>{{ money(o.unpaid_total, o.currency) }}
+			{% if o.overdue_count %}<span class="rp-flag">{{ _("{0} overdue").format(o.overdue_count) }}</span>{% endif %}
+		</dd>
+	</a>
+	<a href="/rental/requests{{ rp.qs | e }}">
+		<dt>{{ _("Requests in progress") }}</dt>
+		<dd>{{ o.open_requests | e }}</dd>
+	</a>
+</dl>
+
+<div class="rp-split">
+	<section class="rp-section">
+		<h2>{{ _("On hire now") }}</h2>
+		{% if o.on_hire %}
+		<table class="rp-table">
+			<thead><tr>
+				<th>{{ _("Contract") }}</th><th>{{ _("Site") }}</th>
+				<th class="rp-num">{{ _("Units at site") }}</th><th>{{ _("Hire ends") }}</th>
+			</tr></thead>
+			<tbody>
+			{% for c in o.on_hire %}
+			<tr>
+				<td class="rp-first"><a href="/rental/contract?name={{ c.name | urlencode }}{{ rp.qs_amp | e }}">{{ c.name | e }}</a></td>
+				<td data-label="{{ _('Site') }}">{{ c.rental_site | e }}</td>
+				<td data-label="{{ _('Units at site') }}" class="rp-num rp-strong">{{ qty(c.total_at_site_qty) }}</td>
+				<td data-label="{{ _('Hire ends') }}">{{ date(c.end_date) }}
+					{% if c.days_left is not none and c.days_left < 0 %}<span class="rp-sub rp-due">{{ _("{0} days past the end date").format(-c.days_left) }}</span>
+					{% elif c.ending_soon %}<span class="rp-sub">{{ _("{0} days left").format(c.days_left) }}</span>{% endif %}
+				</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+		{% if rp.allow_requests %}
+		<p class="rp-actions" style="margin-block-start: 1rem">
+			<a class="rp-btn rp-btn--main" href="/rental/requests?new=off-hire{{ rp.qs_amp | e }}">{{ _("Request a collection") }}</a>
+			<a class="rp-btn" href="/rental/requests?new=enquiry{{ rp.qs_amp | e }}">{{ _("Ask for more material") }}</a>
+		</p>
+		{% endif %}
+		{% else %}
+		<p class="rp-none">{{ _("When material is delivered to your site it will be listed here.") }}</p>
+		{% if rp.allow_requests %}<p><a class="rp-btn rp-btn--main" href="/rental/requests?new=enquiry{{ rp.qs_amp | e }}">{{ _("Send a hire enquiry") }}</a></p>{% endif %}
+		{% endif %}
+	</section>
+
+	<section class="rp-section">
+		<h2>{{ _("Latest deliveries and returns") }}</h2>
+		{% if o.movements %}
+		<ul class="rp-log">
+			{% for m in o.movements %}
+			<li>
+				<time>{{ date(m.date) }}</time>
+				<span><span class="rp-{{ m.kind | e }}">{{ m.label | e }}</span> {{ _("{0} units").format(qty(m.qty)) }}
+					<span class="rp-sub">{{ m.rental_site | e }}</span></span>
+				<a href="/rental/contract?name={{ m.hire_contract | urlencode }}{{ rp.qs_amp | e }}">{{ m.hire_contract | e }}</a>
+			</li>
+			{% endfor %}
+		</ul>
+		{% else %}
+		<p class="rp-none">{{ _("No deliveries or returns yet.") }}</p>
+		{% endif %}
+	</section>
+</div>
+
+{% if o.unpaid %}
+<section class="rp-section">
+	<h2>{{ _("Invoices awaiting payment") }}</h2>
+	<table class="rp-table">
+		<thead><tr><th>{{ _("Invoice") }}</th><th>{{ _("For") }}</th><th>{{ _("Due") }}</th><th class="rp-num">{{ _("Outstanding") }}</th></tr></thead>
+		<tbody>
+		{% for i in o.unpaid[:6] %}
+		<tr>
+			<td class="rp-first"><a href="/invoices/{{ i.name | urlencode }}">{{ i.name | e }}</a></td>
+			<td data-label="{{ _('For') }}">{{ i.kind | e }}{% if i.period_from %}, {{ date(i.period_from) }} {{ _("to") }} {{ date(i.period_to) }}{% endif %}</td>
+			<td data-label="{{ _('Due') }}" {% if i.overdue %}class="rp-due"{% endif %}>{{ date(i.due_date) }}</td>
+			<td data-label="{{ _('Outstanding') }}" class="rp-num rp-strong">{{ money(i.outstanding_amount, i.currency) }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ title | e }}{% endblock %}
+
+{% block style %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<link rel="stylesheet" href="/assets/thinknxg_rental/css/rental_portal.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="rp rp-admin">
+	<div class="rp-adminbar">
+		<strong>{{ _("Rental admin") }}</strong>
+		<span>{{ frappe.format_value(ra.today, {"fieldtype": "Date"}) }}</span>
+		<a href="/app/thinknxg-rental">{{ _("Open the desk") }}</a>
+		<a href="/rental">{{ _("Customer portal") }}</a>
+	</div>
+	<nav class="rp-nav" aria-label="{{ _('Rental admin') }}">
+		{% for item in ra.nav %}
+		<a href="{{ item.route | e }}" {% if item.key == ra.active %}aria-current="page"{% endif %}>{{ item.label | e }}</a>
+		{% endfor %}
+	</nav>
+	{% block admin_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script src="/assets/thinknxg_rental/js/rental_admin.js"></script>
+{% endblock %}

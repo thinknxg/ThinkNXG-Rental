@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "extension_date",
+  "previous_end_date",
+  "new_end_date",
+  "extended_by",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "extension_date",
+   "fieldtype": "Date",
+   "label": "Extension Date",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "previous_end_date",
+   "fieldtype": "Date",
+   "label": "Previous End Date",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "new_end_date",
+   "fieldtype": "Date",
+   "label": "New End Date",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "extended_by",
+   "fieldtype": "Link",
+   "label": "Extended By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Hire Contract Extension",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

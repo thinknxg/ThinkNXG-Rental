@@ -1,0 +1,36 @@
+{% extends "templates/rental_portal/base.html" %}
+{% from "templates/rental_portal/macros.html" import money, date, pill %}
+
+{% block portal_content %}
+<div class="rp-head">
+	<div>
+		<h1>{{ _("Invoices") }}</h1>
+		{% if unpaid_total %}<p>{{ _("{0} outstanding.").format(money(unpaid_total, currency)) }}</p>{% endif %}
+	</div>
+</div>
+{% if invoices %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Invoice") }}</th><th>{{ _("Date") }}</th><th>{{ _("For") }}</th><th>{{ _("Contract") }}</th>
+		<th>{{ _("Due") }}</th><th>{{ _("Status") }}</th>
+		<th class="rp-num">{{ _("Amount") }}</th><th class="rp-num">{{ _("Outstanding") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for i in invoices %}
+	<tr>
+		<td class="rp-first"><a href="/invoices/{{ i.name | urlencode }}">{{ i.name | e }}</a></td>
+		<td data-label="{{ _('Date') }}">{{ date(i.posting_date) }}</td>
+		<td data-label="{{ _('For') }}">{{ i.kind | e }}{% if i.period_from %}<span class="rp-sub">{{ date(i.period_from) }} {{ _("to") }} {{ date(i.period_to) }}</span>{% endif %}</td>
+		<td data-label="{{ _('Contract') }}"><a href="/rental/contract?name={{ i.hire_contract | urlencode }}{{ rp.qs_amp | e }}">{{ i.hire_contract | e }}</a></td>
+		<td data-label="{{ _('Due') }}" {% if i.overdue %}class="rp-due"{% endif %}>{{ date(i.due_date) }}</td>
+		<td data-label="{{ _('Status') }}">{{ pill(i.status) }}</td>
+		<td data-label="{{ _('Amount') }}" class="rp-num">{{ money(i.grand_total, i.currency) }}</td>
+		<td data-label="{{ _('Outstanding') }}" class="rp-num {% if i.unpaid %}rp-strong{% endif %}">{{ money(i.outstanding_amount, i.currency) }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("No rental invoices have been raised yet.") }}</p>
+{% endif %}
+{% endblock %}

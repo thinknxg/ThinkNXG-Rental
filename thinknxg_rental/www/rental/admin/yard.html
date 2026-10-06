@@ -1,0 +1,44 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, yard_tube, yard_key %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<div><h1>{{ _("Yard") }}</h1><p class="rp-muted">{{ _("Every item with a Rental Item Profile. Free stock is yard stock less reservations.") }}</p></div>
+	<div class="rp-actions"><a class="rp-btn" href="/app/query-report/Rental Stock Position">{{ _("Open as report") }}</a></div>
+</div>
+<div class="rp-filter">
+	<div class="rp-tabs">
+		<a href="/rental/admin/yard" aria-current="{{ 'true' if not category else 'false' }}">{{ _("All") }}</a>
+		{% for c in categories %}<a href="/rental/admin/yard?category={{ c | urlencode }}" aria-current="{{ 'true' if c == category else 'false' }}">{{ _(c) }}</a>{% endfor %}
+	</div>
+</div>
+{% if rows %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th>
+		<th class="rp-num">{{ _("Yard") }}</th><th class="rp-num">{{ _("Reserved") }}</th><th class="rp-num">{{ _("Free") }}</th>
+		<th class="rp-num">{{ _("At sites, own") }}</th><th class="rp-num">{{ _("At sites, cross hire") }}</th>
+		<th class="rp-num">{{ _("Inspection") }}</th><th class="rp-num">{{ _("Repair") }}</th><th class="rp-num">{{ _("Utilization") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for r in rows %}
+	<tr>
+		<td class="rp-first"><a href="{{ desk('Rental Item Profile', r.item_code) }}">{{ r.item_name | e }}</a><span class="rp-sub">{{ r.item_code | e }}</span></td>
+		<td data-label="{{ _('Where it is') }}">{{ yard_tube(r, _("{0} at sites, {1} reserved, {2} free").format(qty(r.at_site_own + r.at_site_cross_hire), qty(r.reserved_qty), qty(r.available_qty))) }}</td>
+		<td data-label="{{ _('Yard') }}" class="rp-num">{{ qty(r.yard_qty) }}</td>
+		<td data-label="{{ _('Reserved') }}" class="rp-num">{{ qty(r.reserved_qty) }}</td>
+		<td data-label="{{ _('Free') }}" class="rp-num rp-strong {% if r.short %}rp-due{% endif %}">{{ qty(r.available_qty) }}</td>
+		<td data-label="{{ _('At sites, own') }}" class="rp-num">{{ qty(r.at_site_own) }}</td>
+		<td data-label="{{ _('At sites, cross hire') }}" class="rp-num">{{ qty(r.at_site_cross_hire) }}</td>
+		<td data-label="{{ _('Inspection') }}" class="rp-num">{{ qty(r.inspection_qty) }}</td>
+		<td data-label="{{ _('Repair') }}" class="rp-num">{{ qty(r.repair_qty) }}</td>
+		<td data-label="{{ _('Utilization') }}" class="rp-num">{{ r.utilization | round | int }}%</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{{ yard_key() }}
+{% else %}
+<p class="rp-none">{{ _("No rental item profiles yet. Create one for each rentable item.") }}</p>
+{% endif %}
+{% endblock %}

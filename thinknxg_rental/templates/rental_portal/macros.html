@@ -1,0 +1,49 @@
+{% macro qty(v) -%}
+{%- set n = (v or 0) | float -%}
+{%- if n == n | int %}{{ "{:,.0f}".format(n) }}{% else %}{{ "{:,.2f}".format(n) }}{% endif -%}
+{%- endmacro %}
+
+{% macro money(v, currency=None) -%}
+{{ frappe.format_value(v or 0, {"fieldtype": "Currency"}, currency=currency) }}
+{%- endmacro %}
+
+{% macro date(v) -%}
+{% if v %}{{ frappe.format_value(v, {"fieldtype": "Date"}) }}{% else %}&ndash;{% endif %}
+{%- endmacro %}
+
+{% macro pill(status) -%}
+{%- set tone = {
+	"On Hire": "go", "Active": "go", "Completed": "quiet", "Off Hired": "quiet", "Cancelled": "quiet",
+	"Open": "wait", "In Progress": "wait", "Rejected": "stop",
+	"Paid": "go", "Unpaid": "wait", "Overdue": "stop", "Partly Paid": "wait", "Return": "quiet", "Credit Note Issued": "quiet"
+}.get(status, "quiet") -%}
+<span class="rp-pill rp-pill--{{ tone | e }}">{{ _(status) }}</span>
+{%- endmacro %}
+
+{# The tube: one length of scaffold tube per item. Solid = at site, hatched = already returned, open = not yet delivered. #}
+{% macro tube(pct_site, pct_back, label) -%}
+<div class="rp-tube" role="img" aria-label="{{ label | e }}">
+	{% if pct_site > 0 %}<span class="rp-tube-site" style="inline-size: {{ pct_site | e }}%"></span>{% endif %}
+	{% if pct_back > 0 %}<span class="rp-tube-back" style="inline-size: {{ pct_back | e }}%"></span>{% endif %}
+</div>
+{%- endmacro %}
+
+{# Yard tube for the admin portal: own at site, cross hire at site, reserved, workshop. The open remainder is free stock. #}
+{% macro yard_tube(r, label) -%}
+<div class="rp-tube" role="img" aria-label="{{ label | e }}">
+	{% if r.pct_own > 0 %}<span class="rp-tube-site" style="inline-size: {{ r.pct_own }}%"></span>{% endif %}
+	{% if r.pct_cross > 0 %}<span class="rp-tube-cross" style="inline-size: {{ r.pct_cross }}%"></span>{% endif %}
+	{% if r.pct_reserved > 0 %}<span class="rp-tube-res" style="inline-size: {{ r.pct_reserved }}%"></span>{% endif %}
+	{% if r.pct_workshop > 0 %}<span class="rp-tube-shop" style="inline-size: {{ r.pct_workshop }}%"></span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro yard_key() -%}
+<ul class="rp-key" aria-hidden="true">
+	<li><i class="k-site"></i>{{ _("Own, at customer sites") }}</li>
+	<li><i class="k-cross"></i>{{ _("Cross-hired, at customer sites") }}</li>
+	<li><i class="k-res"></i>{{ _("Reserved in yard") }}</li>
+	<li><i class="k-back"></i>{{ _("Inspection or repair") }}</li>
+	<li><i></i>{{ _("Free") }}</li>
+</ul>
+{%- endmacro %}

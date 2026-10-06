@@ -1,0 +1,36 @@
+{% extends "templates/rental_portal/base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, date, tube %}
+
+{% block portal_content %}
+<div class="rp-head">
+	<div>
+		<h1>{{ _("Material at site") }}</h1>
+		<p class="rp-muted">{{ _("{0} units in total. Print this page for a site count.").format(qty(total)) }}</p>
+	</div>
+	<div class="rp-actions"><button class="rp-btn" type="button" onclick="window.print()">{{ _("Print") }}</button></div>
+</div>
+{% if groups %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Item") }}</th><th>{{ _("Still at site") }}</th>
+		<th>{{ _("On site since") }}</th><th class="rp-num">{{ _("Days") }}</th><th class="rp-num">{{ _("Qty at site") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for g in groups %}
+	<tr class="rp-group"><td colspan="5">{{ g.site | e }}, <a href="/rental/contract?name={{ g.contract | urlencode }}{{ rp.qs_amp | e }}">{{ g.contract | e }}</a> ({{ _("{0} units").format(qty(g.total)) }})</td></tr>
+	{% for r in g.rows %}
+	<tr>
+		<td class="rp-first">{{ r.item_name | e }}<span class="rp-sub">{{ r.item_code | e }}</span></td>
+		<td data-label="{{ _('Still at site') }}">{{ tube(r.percent_at_site, 100 - r.percent_at_site, _("{0}% of delivered quantity still at site").format(r.percent_at_site)) }}</td>
+		<td data-label="{{ _('On site since') }}">{{ date(r.first_dispatch) }}</td>
+		<td data-label="{{ _('Days') }}" class="rp-num">{{ r.days_at_site | e }}</td>
+		<td data-label="{{ _('Qty at site') }}" class="rp-num rp-strong">{{ qty(r.qty) }} {{ r.uom | e }}</td>
+	</tr>
+	{% endfor %}
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("Nothing is at your sites at the moment.") }}</p>
+{% endif %}
+{% endblock %}

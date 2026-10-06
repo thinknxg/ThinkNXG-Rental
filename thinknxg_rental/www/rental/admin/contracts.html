@@ -1,0 +1,47 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date, pill %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<h1>{{ _("Hire contracts") }}</h1>
+	<div class="rp-actions"><a class="rp-btn rp-btn--main" href="/app/hire-order-contract/new">{{ _("New contract") }}</a></div>
+</div>
+<form class="rp-filter" method="get">
+	<div class="rp-tabs">
+		{% for key, label in (("live", _("Live")), ("overdue", _("Past end date")), ("all", _("All"))) %}
+		<a href="/rental/admin/contracts?view={{ key }}{% if q %}&q={{ q | urlencode }}{% endif %}" aria-current="{{ 'true' if view == key else 'false' }}">{{ label }}</a>
+		{% endfor %}
+	</div>
+	<input type="hidden" name="view" value="{{ view }}">
+	<input type="search" name="q" value="{{ q | e }}" placeholder="{{ _('Contract, customer or site') }}" aria-label="{{ _('Search') }}">
+	<button class="rp-btn" type="submit">{{ _("Search") }}</button>
+</form>
+{% if contracts %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Contract") }}</th><th>{{ _("Customer and site") }}</th><th>{{ _("Status") }}</th><th>{{ _("Hire ends") }}</th>
+		<th class="rp-num">{{ _("Delivered") }}</th><th class="rp-num">{{ _("At site") }}</th>
+		<th>{{ _("Billed up to") }}</th><th class="rp-num">{{ _("Billed") }}</th><th></th>
+	</tr></thead>
+	<tbody>
+	{% for c in contracts %}
+	<tr>
+		<td class="rp-first"><a href="{{ desk('Hire Order Contract', c.name) }}">{{ c.name | e }}</a></td>
+		<td data-label="{{ _('Customer and site') }}">{{ c.customer_name | e }}<span class="rp-sub">{{ c.rental_site | e }}</span></td>
+		<td data-label="{{ _('Status') }}">{{ pill(c.status) }}</td>
+		<td data-label="{{ _('Hire ends') }}">{{ date(c.end_date) }}
+			{% if c.late %}<span class="rp-sub rp-due">{{ _("{0} days over").format(-c.days_left) }}</span>
+			{% elif c.status == "On Hire" and c.days_left <= 14 %}<span class="rp-sub">{{ _("{0} days left").format(c.days_left) }}</span>{% endif %}</td>
+		<td data-label="{{ _('Delivered') }}" class="rp-num">{{ qty(c.total_dispatched_qty) }} / {{ qty(c.total_contract_qty) }}</td>
+		<td data-label="{{ _('At site') }}" class="rp-num rp-strong">{{ qty(c.total_at_site_qty) }}</td>
+		<td data-label="{{ _('Billed up to') }}">{{ date(c.last_billed_upto) }}{% if c.bill_due %}<span class="rp-sub rp-due">{{ _("Billing due") }}</span>{% endif %}</td>
+		<td data-label="{{ _('Billed') }}" class="rp-num">{{ money(c.total_billed_amount) }}</td>
+		<td class="rp-act"><a href="/rental/contract?name={{ c.name | urlencode }}&customer={{ c.customer | urlencode }}">{{ _("Customer's view") }}</a></td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("No contracts match.") }}</p>
+{% endif %}
+{% endblock %}

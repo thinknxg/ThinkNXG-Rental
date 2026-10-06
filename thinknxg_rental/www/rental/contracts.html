@@ -1,0 +1,32 @@
+{% extends "templates/rental_portal/base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, date, pill %}
+
+{% block portal_content %}
+<div class="rp-head"><h1>{{ _("Hire contracts") }}</h1></div>
+{% if contracts %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Contract") }}</th><th>{{ _("Site") }}</th><th>{{ _("Status") }}</th>
+		<th>{{ _("Hire period") }}</th>
+		<th class="rp-num">{{ _("Contracted") }}</th><th class="rp-num">{{ _("Delivered") }}</th>
+		<th class="rp-num">{{ _("Returned") }}</th><th class="rp-num">{{ _("At site") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for c in contracts %}
+	<tr>
+		<td class="rp-first"><a href="/rental/contract?name={{ c.name | urlencode }}{{ rp.qs_amp | e }}">{{ c.name | e }}</a></td>
+		<td data-label="{{ _('Site') }}">{{ c.rental_site | e }}</td>
+		<td data-label="{{ _('Status') }}">{{ pill(c.status) }}</td>
+		<td data-label="{{ _('Hire period') }}">{{ date(c.start_date) }} {{ _("to") }} {{ date(c.end_date) }}</td>
+		<td data-label="{{ _('Contracted') }}" class="rp-num">{{ qty(c.total_contract_qty) }}</td>
+		<td data-label="{{ _('Delivered') }}" class="rp-num">{{ qty(c.total_dispatched_qty) }}</td>
+		<td data-label="{{ _('Returned') }}" class="rp-num">{{ qty(c.total_returned_qty) }}</td>
+		<td data-label="{{ _('At site') }}" class="rp-num rp-strong">{{ qty(c.total_at_site_qty) }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("You have no hire contracts yet.") }}</p>
+{% endif %}
+{% endblock %}

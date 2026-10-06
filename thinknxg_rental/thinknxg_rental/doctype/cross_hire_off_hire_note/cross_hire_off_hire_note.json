@@ -1,0 +1,252 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "cross_hire_order",
+  "supplier",
+  "supplier_name",
+  "purchase_order",
+  "cb_116",
+  "off_hire_date",
+  "last_billable_date",
+  "return_from_warehouse",
+  "status",
+  "sb_117",
+  "vehicle_no",
+  "driver_name",
+  "cb_118",
+  "supplier_acknowledgement",
+  "sb_119",
+  "items",
+  "sb_120",
+  "total_qty",
+  "purchase_returns",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CHOH-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "CHOH-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cross_hire_order",
+   "fieldtype": "Link",
+   "label": "Cross Hire Order",
+   "options": "Cross Hire Order",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "fetch_from": "cross_hire_order.supplier",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "fetch_from": "cross_hire_order.supplier_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "fetch_from": "cross_hire_order.purchase_order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_116",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "off_hire_date",
+   "fieldtype": "Date",
+   "label": "Off-Hire / Return Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "last_billable_date",
+   "fieldtype": "Date",
+   "label": "Supplier Bills Upto",
+   "description": "Defaults to the off-hire date"
+  },
+  {
+   "fieldname": "return_from_warehouse",
+   "fieldtype": "Link",
+   "label": "Return From Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nReturned\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "sb_117",
+   "fieldtype": "Section Break",
+   "label": "Transport"
+  },
+  {
+   "fieldname": "vehicle_no",
+   "fieldtype": "Data",
+   "label": "Vehicle No"
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name"
+  },
+  {
+   "fieldname": "cb_118",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supplier_acknowledgement",
+   "fieldtype": "Data",
+   "label": "Supplier Return Acknowledgement No"
+  },
+  {
+   "fieldname": "sb_119",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Cross Hire Off-Hire Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_120",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Qty",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "purchase_returns",
+   "fieldtype": "Small Text",
+   "label": "Purchase Returns Created",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Cross Hire Off-Hire Note",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Purchase Receipt",
+   "link_fieldname": "nxg_cross_hire_off_hire_note"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Cross Hire Off-Hire Note",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "supplier_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "supplier_name,cross_hire_order",
+ "track_changes": 1
+}

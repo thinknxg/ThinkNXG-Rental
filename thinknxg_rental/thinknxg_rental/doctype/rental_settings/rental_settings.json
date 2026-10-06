@@ -1,0 +1,260 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "cb_1",
+  "enforce_reservation_on_dispatch",
+  "inspection_required",
+  "sb_2",
+  "rental_yard_warehouse",
+  "cross_hire_yard_warehouse",
+  "customer_sites_warehouse",
+  "cb_3",
+  "inspection_warehouse",
+  "repair_warehouse",
+  "scrap_warehouse",
+  "sb_4",
+  "rental_charge_item",
+  "damage_recovery_item",
+  "cb_5",
+  "loss_recovery_item",
+  "cross_hire_charge_item",
+  "sb_6",
+  "default_billing_cycle",
+  "month_basis",
+  "default_grace_days",
+  "cb_7",
+  "auto_generate_billing",
+  "auto_submit_sales_invoice",
+  "sb_8",
+  "auto_submit_purchase_order",
+  "sb_9",
+  "portal_show_rates",
+  "portal_allow_requests",
+  "cb_10",
+  "portal_contact_email",
+  "portal_contact_phone"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enforce_reservation_on_dispatch",
+   "fieldtype": "Check",
+   "label": "Block Dispatch of Stock Reserved for Other Contracts",
+   "default": "1"
+  },
+  {
+   "fieldname": "inspection_required",
+   "fieldtype": "Check",
+   "label": "Route Customer Returns Through Inspection",
+   "default": "1"
+  },
+  {
+   "fieldname": "sb_2",
+   "fieldtype": "Section Break",
+   "label": "Warehouses"
+  },
+  {
+   "fieldname": "rental_yard_warehouse",
+   "fieldtype": "Link",
+   "label": "Rental Yard (Available Own Stock)",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "cross_hire_yard_warehouse",
+   "fieldtype": "Link",
+   "label": "Cross Hire Yard",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "customer_sites_warehouse",
+   "fieldtype": "Link",
+   "label": "Customer Sites (Group)",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "cb_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "inspection_warehouse",
+   "fieldtype": "Link",
+   "label": "Under Inspection",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "repair_warehouse",
+   "fieldtype": "Link",
+   "label": "Repair",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "scrap_warehouse",
+   "fieldtype": "Link",
+   "label": "Scrap / Beyond Repair",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "sb_4",
+   "fieldtype": "Section Break",
+   "label": "Billing Items"
+  },
+  {
+   "fieldname": "rental_charge_item",
+   "fieldtype": "Link",
+   "label": "Rental Charge Item (Sales)",
+   "options": "Item"
+  },
+  {
+   "fieldname": "damage_recovery_item",
+   "fieldtype": "Link",
+   "label": "Damage Recovery Item (Sales)",
+   "options": "Item"
+  },
+  {
+   "fieldname": "cb_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "loss_recovery_item",
+   "fieldtype": "Link",
+   "label": "Loss Recovery Item (Sales)",
+   "options": "Item"
+  },
+  {
+   "fieldname": "cross_hire_charge_item",
+   "fieldtype": "Link",
+   "label": "Cross Hire Charge Item (Purchase)",
+   "options": "Item"
+  },
+  {
+   "fieldname": "sb_6",
+   "fieldtype": "Section Break",
+   "label": "Rental Billing"
+  },
+  {
+   "fieldname": "default_billing_cycle",
+   "fieldtype": "Select",
+   "label": "Default Billing Cycle",
+   "options": "Monthly\nWeekly\nDaily",
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "month_basis",
+   "fieldtype": "Select",
+   "label": "Monthly Rate Pro-rata Basis",
+   "options": "Fixed 30 Days\nActual Calendar Days",
+   "default": "Fixed 30 Days"
+  },
+  {
+   "fieldname": "default_grace_days",
+   "fieldtype": "Int",
+   "label": "Default Off-Hire Grace Days"
+  },
+  {
+   "fieldname": "cb_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "auto_generate_billing",
+   "fieldtype": "Check",
+   "label": "Generate Rental Billing Automatically (Daily Scheduler)",
+   "default": "1"
+  },
+  {
+   "fieldname": "auto_submit_sales_invoice",
+   "fieldtype": "Check",
+   "label": "Submit Generated Sales Invoices"
+  },
+  {
+   "fieldname": "sb_8",
+   "fieldtype": "Section Break",
+   "label": "Cross Hire"
+  },
+  {
+   "fieldname": "auto_submit_purchase_order",
+   "fieldtype": "Check",
+   "label": "Submit Purchase Order with Cross Hire Order",
+   "default": "1"
+  },
+  {
+   "fieldname": "sb_9",
+   "fieldtype": "Section Break",
+   "label": "Customer Portal"
+  },
+  {
+   "fieldname": "portal_show_rates",
+   "fieldtype": "Check",
+   "label": "Show Standard Hire Rates in Portal Catalogue"
+  },
+  {
+   "fieldname": "portal_allow_requests",
+   "fieldtype": "Check",
+   "label": "Allow Customers to Raise Requests",
+   "default": "1"
+  },
+  {
+   "fieldname": "cb_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "portal_contact_email",
+   "fieldtype": "Data",
+   "label": "Portal Help Email"
+  },
+  {
+   "fieldname": "portal_contact_phone",
+   "fieldtype": "Data",
+   "label": "Portal Help Phone"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "issingle": 1,
+ "track_changes": 1
+}

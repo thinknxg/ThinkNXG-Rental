@@ -1,0 +1,198 @@
+/* thinkNXG Rental customer portal. Everything is scoped under .rp so the site theme is left alone.
+   Palette comes from the yard: galvanised tube, slate, and one hi-vis yellow used only to mark
+   where you are and what needs action. Green and red appear only as status. */
+.rp {
+	--rp-ink: #1e2a33;
+	--rp-steel: #5b6670;
+	--rp-line: #d5dade;
+	--rp-panel: #eef1f3;
+	--rp-paper: #fafbfb;
+	--rp-hivis: #f2b705;
+	--rp-go: #1f8a4c;
+	--rp-stop: #c8372d;
+	--rp-display: "Barlow Condensed", "Arial Narrow", "Noto Kufi Arabic", sans-serif;
+	--rp-body: "Barlow", "Segoe UI", "Noto Sans Arabic", system-ui, sans-serif;
+	color: var(--rp-ink);
+	font-family: var(--rp-body);
+	font-size: 1rem;
+	line-height: 1.5;
+	padding-block: 0.5rem 3rem;
+}
+.rp *, .rp *::before, .rp *::after { box-sizing: border-box; }
+.rp a { color: var(--rp-ink); text-decoration-color: var(--rp-steel); text-underline-offset: 0.18em; }
+.rp a:hover { text-decoration-color: var(--rp-hivis); text-decoration-thickness: 2px; }
+.rp :focus-visible { outline: 3px solid var(--rp-hivis); outline-offset: 2px; }
+.rp h1, .rp h2 { font-family: var(--rp-display); font-weight: 600; letter-spacing: 0.005em; margin: 0; color: var(--rp-ink); }
+.rp h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); line-height: 1.08; }
+.rp h2 { font-size: 1.45rem; line-height: 1.2; }
+.rp p { margin: 0; }
+.rp .rp-muted { color: var(--rp-steel); }
+.rp .rp-num { font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
+
+/* navigation */
+.rp-nav { display: flex; gap: 1.75rem; overflow-x: auto; border-block-end: 1px solid var(--rp-line); margin-block-end: 2rem; }
+.rp-nav a { padding-block: 0.75rem; text-decoration: none; color: var(--rp-steel); white-space: nowrap; border-block-end: 4px solid transparent; margin-block-end: -1px; font-weight: 500; }
+.rp-nav a:hover { color: var(--rp-ink); }
+.rp-nav a[aria-current="page"] { color: var(--rp-ink); border-block-end-color: var(--rp-hivis); font-weight: 600; }
+
+/* the lead: one plain sentence about what is out on hire */
+.rp-lead { margin-block-end: 2rem; }
+.rp-lead h1 { font-size: clamp(2.4rem, 7vw, 4.25rem); line-height: 1; max-inline-size: 20ch; }
+.rp-lead + .rp-muted, .rp-lead p { margin-block-start: 0.75rem; }
+.rp-head { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: end; justify-content: space-between; margin-block-end: 1.5rem; }
+.rp-head p { margin-block-start: 0.35rem; }
+
+/* facts: a single ruled row, not cards */
+.rp-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); border-block: 1px solid var(--rp-line); margin-block-end: 2.5rem; }
+.rp-facts > a, .rp-facts > div { padding: 1rem 1.25rem 1rem 0; text-decoration: none; display: block; }
+.rp-facts dt { color: var(--rp-steel); font-size: 0.9rem; }
+.rp-facts dd { margin: 0; font-family: var(--rp-display); font-size: 1.9rem; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.rp-facts .rp-flag { font-family: var(--rp-body); font-size: 0.9rem; font-weight: 500; color: var(--rp-stop); display: block; }
+
+.rp-split { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.rp-section { margin-block-end: 2.5rem; min-inline-size: 0; }
+.rp-section > h2 { margin-block-end: 0.75rem; }
+
+/* tables */
+.rp-table { inline-size: 100%; border-collapse: collapse; font-size: 0.97rem; }
+.rp-table th { text-align: start; font-weight: 500; color: var(--rp-steel); font-size: 0.88rem; padding: 0.5rem 0.75rem 0.5rem 0; border-block-end: 1px solid var(--rp-ink); vertical-align: bottom; }
+.rp-table td { padding: 0.7rem 0.75rem 0.7rem 0; border-block-end: 1px solid var(--rp-line); vertical-align: top; }
+.rp-table th.rp-num, .rp-table td.rp-num { padding-inline: 0.75rem 0; }
+.rp-table .rp-num + td:not(.rp-num), .rp-table .rp-num + th:not(.rp-num) { padding-inline-start: 1.75rem; }
+.rp-table tbody tr:hover { background: var(--rp-panel); }
+.rp-table .rp-strong { font-weight: 600; }
+.rp-table tr.rp-group td { background: var(--rp-panel); font-weight: 600; border-block-end-color: var(--rp-ink); padding-inline-start: 0.6rem; }
+.rp-sub { display: block; color: var(--rp-steel); font-size: 0.88rem; }
+
+/* status */
+.rp-pill { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; font-weight: 500; white-space: nowrap; }
+.rp-pill::before { content: ""; inline-size: 0.6rem; block-size: 0.6rem; border-radius: 50%; background: var(--rp-steel); }
+.rp-pill--go::before { background: var(--rp-go); }
+.rp-pill--wait::before { background: var(--rp-hivis); box-shadow: 0 0 0 1px #a67c00; }
+.rp-pill--stop::before { background: var(--rp-stop); }
+.rp-pill--stop { color: var(--rp-stop); }
+.rp-due { color: var(--rp-stop); font-weight: 600; }
+
+/* the tube */
+.rp-tube { display: flex; block-size: 0.85rem; min-inline-size: 7rem; border: 1.5px solid var(--rp-ink); border-radius: 0.5rem; overflow: hidden; background: #fff; }
+.rp-tube-site { background: var(--rp-ink); }
+.rp-tube-back { background: repeating-linear-gradient(135deg, var(--rp-steel) 0 2px, #fff 2px 6px); }
+.rp-tube-site + .rp-tube-back { border-inline-start: 1.5px solid #fff; }
+.rp-key { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; font-size: 0.88rem; color: var(--rp-steel); margin-block: 0.75rem 0; padding: 0; list-style: none; }
+.rp-key li { display: flex; align-items: center; gap: 0.4rem; }
+.rp-key i { inline-size: 1.4rem; block-size: 0.7rem; border: 1.5px solid var(--rp-ink); border-radius: 0.35rem; display: inline-block; background: #fff; }
+.rp-key .k-site { background: var(--rp-ink); }
+.rp-key .k-back { background: repeating-linear-gradient(135deg, var(--rp-steel) 0 2px, #fff 2px 6px); }
+
+/* movements log */
+.rp-log { list-style: none; margin: 0; padding: 0; }
+.rp-log li { display: grid; grid-template-columns: 5.5rem 1fr auto; gap: 0.75rem; padding-block: 0.65rem; border-block-end: 1px solid var(--rp-line); align-items: baseline; }
+.rp-log time { color: var(--rp-steel); font-size: 0.9rem; }
+.rp-log .rp-out::before { content: "\2191\00a0"; }
+.rp-log .rp-in::before { content: "\2193\00a0"; }
+
+/* definition strip on the contract page */
+.rp-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem 2rem; padding-block: 1rem; border-block: 1px solid var(--rp-line); margin: 0 0 2.5rem; }
+.rp-terms dt { color: var(--rp-steel); font-size: 0.88rem; }
+.rp-terms dd { margin: 0; font-weight: 500; }
+
+/* buttons and forms */
+.rp-btn { font: inherit; font-weight: 600; padding: 0.6rem 1.1rem; border: 1.5px solid var(--rp-ink); border-radius: 0.35rem; background: #fff; color: var(--rp-ink); cursor: pointer; text-decoration: none; display: inline-block; line-height: 1.3; }
+.rp-btn:hover { background: var(--rp-panel); }
+.rp-btn--main { background: var(--rp-hivis); }
+.rp-btn--main:hover { background: #ffc91a; }
+.rp-btn--plain { border-color: transparent; background: transparent; padding-inline: 0.25rem; text-decoration: underline; font-weight: 500; }
+.rp-btn[disabled] { opacity: 0.55; cursor: progress; }
+.rp-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+.rp-form { background: var(--rp-panel); border-inline-start: 6px solid var(--rp-hivis); padding: 1.5rem; margin-block-end: 2.5rem; }
+.rp-form fieldset { border: 0; padding: 0; margin: 0 0 1.25rem; min-inline-size: 0; }
+.rp-form legend, .rp-form label { font-weight: 600; font-size: 0.95rem; margin-block-end: 0.35rem; display: block; padding: 0; }
+.rp-form .rp-hint { font-weight: 400; color: var(--rp-steel); font-size: 0.88rem; display: block; }
+.rp-form input, .rp-form select, .rp-form textarea, .rp-preview input { font: inherit; inline-size: 100%; padding: 0.55rem 0.65rem; border: 1.5px solid var(--rp-steel); border-radius: 0.3rem; background: #fff; color: var(--rp-ink); }
+.rp-form textarea { min-block-size: 5rem; resize: vertical; }
+.rp-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem 1.25rem; margin-block-end: 1.25rem; }
+.rp-choice { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.rp-choice label { font-weight: 500; margin: 0; padding: 0.55rem 0.9rem; border: 1.5px solid var(--rp-ink); border-radius: 0.35rem; background: #fff; cursor: pointer; }
+.rp-choice input { position: absolute; opacity: 0; inline-size: 1px; }
+.rp-choice label:has(input:checked) { background: var(--rp-ink); color: #fff; }
+.rp-choice label:has(input:focus-visible) { outline: 3px solid var(--rp-hivis); outline-offset: 2px; }
+.rp-lines { inline-size: 100%; border-collapse: collapse; background: #fff; }
+.rp-lines th { text-align: start; font-weight: 500; font-size: 0.88rem; color: var(--rp-steel); padding: 0.5rem 0.65rem; border-block-end: 1px solid var(--rp-ink); }
+.rp-lines td { padding: 0.45rem 0.65rem; border-block-end: 1px solid var(--rp-line); vertical-align: middle; }
+.rp-lines input[type="number"] { max-inline-size: 8rem; text-align: end; }
+.rp-msg { padding: 0.75rem 1rem; margin-block-end: 1.25rem; background: #fff; border-inline-start: 6px solid var(--rp-go); font-weight: 500; }
+.rp-msg[data-tone="stop"] { border-inline-start-color: var(--rp-stop); }
+.rp [hidden] { display: none !important; }
+
+/* staff preview bar, empty states, footer */
+.rp-preview { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; background: var(--rp-ink); color: #fff; padding: 0.6rem 0.9rem; margin-block-end: 1rem; font-size: 0.92rem; }
+.rp-preview label { margin: 0; flex: 1 1 16rem; }
+.rp-preview input { inline-size: 14rem; padding-block: 0.3rem; }
+.rp-preview button { font: inherit; font-weight: 600; background: var(--rp-hivis); border: 0; border-radius: 0.3rem; padding: 0.35rem 0.9rem; cursor: pointer; }
+.rp-empty { padding-block: 2.5rem; max-inline-size: 60ch; }
+.rp-empty p { margin-block-start: 0.75rem; color: var(--rp-steel); }
+.rp-none { color: var(--rp-steel); padding-block: 0.75rem; border-block-start: 1px solid var(--rp-line); }
+.rp-foot { margin-block-start: 1rem; padding-block-start: 1rem; border-block-start: 1px solid var(--rp-line); color: var(--rp-steel); font-size: 0.92rem; display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; }
+
+@media (max-width: 760px) {
+	.rp-split { grid-template-columns: minmax(0, 1fr); gap: 0; }
+	.rp-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+	.rp-table tr { display: block; padding-block: 0.6rem; border-block-end: 1px solid var(--rp-line); }
+	.rp-table td, .rp-table td.rp-num, .rp-table .rp-num + td:not(.rp-num) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; border: 0; padding: 0.2rem 0; text-align: end; white-space: normal; }
+	.rp-table td[data-label] > * { grid-column: 2; justify-self: end; }
+	.rp-table td::before { content: attr(data-label); color: var(--rp-steel); font-size: 0.88rem; text-align: start; grid-column: 1; grid-row: 1 / span 3; }
+	.rp-table td:not([data-label]) { display: block; }
+	.rp-table td.rp-first { display: block; text-align: start; font-weight: 600; }
+	.rp-table td.rp-first::before, .rp-table tr.rp-group td::before { content: none; }
+	.rp-table tr.rp-group { padding: 0; }
+	.rp-table tr.rp-group td { display: block; text-align: start; padding: 0.5rem 0.6rem; }
+	.rp-tube { inline-size: 9rem; align-self: center; }
+	.rp-log li { grid-template-columns: 5rem 1fr; }
+	.rp-log li > :last-child { grid-column: 2; }
+	.rp-form { padding: 1rem; }
+}
+@media print {
+	.rp-nav, .rp-preview, .rp-actions, .rp-form, .rp-foot { display: none; }
+}
+
+/* ---------------------------------------------------------------- admin portal (/rental/admin) */
+.rp-adminbar { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; align-items: baseline; background: var(--rp-ink); color: #fff; padding: 0.6rem 0.9rem; font-size: 0.92rem; }
+.rp-adminbar strong { font-family: var(--rp-display); font-size: 1.15rem; font-weight: 600; letter-spacing: 0.01em; }
+.rp-adminbar span { margin-inline-end: auto; color: #c9d1d6; }
+.rp .rp-adminbar a { color: #fff; text-decoration-color: var(--rp-hivis); }
+.rp-admin .rp-nav { margin-block-end: 1.75rem; }
+
+/* the work queue: what needs someone's hands today */
+.rp-queue { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--rp-ink); }
+.rp-queue a { display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; align-items: baseline; padding: 0.7rem 0.5rem 0.7rem 0; border-block-end: 1px solid var(--rp-line); text-decoration: none; border-inline-start: 6px solid var(--rp-hivis); padding-inline-start: 0.75rem; }
+.rp-queue a:hover { background: var(--rp-panel); }
+.rp-queue a[data-tone="late"] { border-inline-start-color: var(--rp-stop); }
+.rp-queue b { font-family: var(--rp-display); font-size: 1.6rem; font-weight: 600; line-height: 1; text-align: end; font-variant-numeric: tabular-nums; }
+.rp-clear { padding: 1rem 0.75rem; border-inline-start: 6px solid var(--rp-go); background: var(--rp-panel); font-weight: 500; }
+
+/* yard tube: own at site, cross hire at site, reserved, in inspection or repair; the open end is free stock */
+.rp-tube-cross { background: var(--rp-steel); }
+.rp-tube-res { background: var(--rp-hivis); }
+.rp-tube-shop { background: repeating-linear-gradient(135deg, var(--rp-steel) 0 2px, #fff 2px 6px); }
+.rp-tube > span + span { border-inline-start: 1.5px solid #fff; }
+.rp-key .k-cross { background: var(--rp-steel); }
+.rp-key .k-res { background: var(--rp-hivis); }
+
+/* filters */
+.rp-filter { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-block-end: 1.25rem; }
+.rp-filter input[type="search"] { font: inherit; padding: 0.5rem 0.65rem; border: 1.5px solid var(--rp-steel); border-radius: 0.3rem; inline-size: min(22rem, 100%); background: #fff; color: var(--rp-ink); }
+.rp-tabs { display: flex; gap: 0.4rem; margin-inline-end: auto; }
+.rp-tabs a { padding: 0.4rem 0.8rem; border: 1.5px solid var(--rp-ink); border-radius: 0.35rem; text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+.rp-tabs a[aria-current="true"] { background: var(--rp-ink); color: #fff; }
+.rp-btn--small { padding: 0.3rem 0.7rem; font-size: 0.9rem; }
+.rp-tag { font-size: 0.82rem; font-weight: 600; padding: 0.05rem 0.4rem; border: 1.5px solid var(--rp-steel); border-radius: 0.25rem; color: var(--rp-steel); white-space: nowrap; }
+.rp-table td.rp-act { text-align: end; white-space: nowrap; }
+
+@media (max-width: 760px) {
+	.rp-table td.rp-act { display: block; text-align: start; padding-block-start: 0.5rem; }
+	.rp-tabs { margin-inline-end: 0; flex-wrap: wrap; }
+}
+@media print {
+	.rp-adminbar, .rp-filter { display: none; }
+}

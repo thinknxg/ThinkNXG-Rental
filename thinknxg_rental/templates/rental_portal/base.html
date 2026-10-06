@@ -1,0 +1,54 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ title | e }}{% endblock %}
+
+{% block style %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<link rel="stylesheet" href="/assets/thinknxg_rental/css/rental_portal.css">
+{% endblock %}
+
+{% block page_content %}
+<div class="rp" data-customer="{{ rp.preview_customer | e }}">
+	{% if rp.preview %}
+	<form class="rp-preview" method="get" action="{{ frappe.request.path | e }}">
+		<label for="rp-preview-customer">{{ _("Staff preview. You are seeing the portal as a customer would.") }}</label>
+		<input id="rp-preview-customer" name="customer" value="{{ rp.preview_customer | e }}" placeholder="{{ _('Customer ID') }}" required>
+		<button type="submit">{{ _("View") }}</button>
+	</form>
+	{% endif %}
+
+	{% if rp.customers %}
+	<nav class="rp-nav" aria-label="{{ _('Rental portal') }}">
+		{% for item in rp.nav %}
+		<a href="{{ item.route | e }}{{ rp.qs | e }}" {% if item.key == rp.active %}aria-current="page"{% endif %}>{{ item.label | e }}</a>
+		{% endfor %}
+	</nav>
+	{% block portal_content %}{% endblock %}
+	<footer class="rp-foot">
+		{% if rp.help_email or rp.help_phone %}
+		{{ _("Need a hand with a delivery or a collection?") }}
+		{% if rp.help_phone %}<a href="tel:{{ rp.help_phone | e }}">{{ rp.help_phone | e }}</a>{% endif %}
+		{% if rp.help_email %}<a href="mailto:{{ rp.help_email | e }}">{{ rp.help_email | e }}</a>{% endif %}
+		{% endif %}
+	</footer>
+	{% elif rp.preview %}
+	<div class="rp-empty">
+		<h1>{{ _("Choose a customer to preview") }}</h1>
+		<p>{{ _("Enter a Customer ID above. Customers themselves only ever see their own contracts, material and invoices.") }}</p>
+	</div>
+	{% else %}
+	<div class="rp-empty">
+		<h1>{{ _("Your login is not linked to a customer account yet") }}</h1>
+		<p>{{ _("Ask us to add your email address as a portal user on your company's account, then sign in again.") }}</p>
+	</div>
+	{% endif %}
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script src="/assets/thinknxg_rental/js/rental_portal.js"></script>
+{% endblock %}

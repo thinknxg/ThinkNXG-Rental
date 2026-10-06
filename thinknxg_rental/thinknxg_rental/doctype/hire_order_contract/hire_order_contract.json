@@ -1,0 +1,453 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "hire_order",
+  "customer",
+  "customer_name",
+  "rental_site",
+  "project",
+  "cb_34",
+  "contract_date",
+  "status",
+  "start_date",
+  "end_date",
+  "minimum_hire_days",
+  "grace_days",
+  "sb_35",
+  "billing_cycle",
+  "billing_interval_days",
+  "align_to_calendar_month",
+  "taxes_and_charges",
+  "payment_terms_template",
+  "cost_center",
+  "cb_36",
+  "billing_start_date",
+  "last_billed_upto",
+  "next_billing_date",
+  "total_billed_amount",
+  "sb_37",
+  "security_deposit",
+  "advance_amount",
+  "cb_38",
+  "deposit_received",
+  "deposit_reference",
+  "sb_39",
+  "items",
+  "sb_40",
+  "total_contract_qty",
+  "total_dispatched_qty",
+  "cb_41",
+  "total_at_site_qty",
+  "total_returned_qty",
+  "sb_42",
+  "extensions",
+  "sb_43",
+  "terms",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HC-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "HC-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hire_order",
+   "fieldtype": "Link",
+   "label": "Hire Order",
+   "options": "Hire Order"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "customer.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "fetch_from": "rental_site.project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_34",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_date",
+   "fieldtype": "Date",
+   "label": "Contract Date",
+   "reqd": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nActive\nOn Hire\nOff Hired\nCompleted\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Contract Start Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Contract End Date",
+   "reqd": 1,
+   "allow_on_submit": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "minimum_hire_days",
+   "fieldtype": "Int",
+   "label": "Minimum Hire Days",
+   "description": "Billing never stops before billing start + minimum hire days"
+  },
+  {
+   "fieldname": "grace_days",
+   "fieldtype": "Int",
+   "label": "Off-Hire Grace Days",
+   "description": "Material returned within the grace period is billed only up to the off-hire date"
+  },
+  {
+   "fieldname": "sb_35",
+   "fieldtype": "Section Break",
+   "label": "Billing"
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "Monthly\nWeekly\nDaily\nCustom",
+   "reqd": 1,
+   "default": "Monthly"
+  },
+  {
+   "fieldname": "billing_interval_days",
+   "fieldtype": "Int",
+   "label": "Billing Interval Days",
+   "depends_on": "eval:doc.billing_cycle=='Custom'",
+   "mandatory_depends_on": "eval:doc.billing_cycle=='Custom'"
+  },
+  {
+   "fieldname": "align_to_calendar_month",
+   "fieldtype": "Check",
+   "label": "Bill by Calendar Month",
+   "default": "1",
+   "depends_on": "eval:doc.billing_cycle=='Monthly'"
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Sales Taxes Template",
+   "options": "Sales Taxes and Charges Template",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Payment Terms Template",
+   "options": "Payment Terms Template",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "cb_36",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_start_date",
+   "fieldtype": "Date",
+   "label": "Billing Start Date",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Date of first dispatch"
+  },
+  {
+   "fieldname": "last_billed_upto",
+   "fieldtype": "Date",
+   "label": "Last Billed Upto",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "next_billing_date",
+   "fieldtype": "Date",
+   "label": "Next Billing Date",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "total_billed_amount",
+   "fieldtype": "Currency",
+   "label": "Total Billed Amount",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_37",
+   "fieldtype": "Section Break",
+   "label": "Deposit"
+  },
+  {
+   "fieldname": "security_deposit",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Required"
+  },
+  {
+   "fieldname": "advance_amount",
+   "fieldtype": "Currency",
+   "label": "Advance Amount"
+  },
+  {
+   "fieldname": "cb_38",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "deposit_received",
+   "fieldtype": "Currency",
+   "label": "Deposit Received",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_reference",
+   "fieldtype": "Data",
+   "label": "Deposit Receipt Reference",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "sb_39",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Hire Contract Item",
+   "reqd": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "sb_40",
+   "fieldtype": "Section Break",
+   "label": "Position"
+  },
+  {
+   "fieldname": "total_contract_qty",
+   "fieldtype": "Float",
+   "label": "Total Contract Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_dispatched_qty",
+   "fieldtype": "Float",
+   "label": "Total Dispatched Qty",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_41",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_at_site_qty",
+   "fieldtype": "Float",
+   "label": "Total At Site Qty",
+   "read_only": 1,
+   "no_copy": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "total_returned_qty",
+   "fieldtype": "Float",
+   "label": "Total Returned Qty",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_42",
+   "fieldtype": "Section Break",
+   "label": "Extensions",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "extensions",
+   "fieldtype": "Table",
+   "label": "Extensions",
+   "options": "Hire Contract Extension",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_43",
+   "fieldtype": "Section Break",
+   "label": "Terms",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Text Editor",
+   "label": "Terms and Conditions"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Hire Order Contract",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Rental Material Reservation",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Hire Delivery Order",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Hire Off-Hire Note",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Rental Billing Schedule",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Rental Damage Settlement",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Cross Hire Order",
+   "link_fieldname": "hire_contract"
+  },
+  {
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "nxg_hire_contract"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Hire Order Contract",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,rental_site,status",
+ "track_changes": 1
+}

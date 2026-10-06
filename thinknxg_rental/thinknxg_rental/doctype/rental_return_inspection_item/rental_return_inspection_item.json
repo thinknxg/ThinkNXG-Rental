@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "uom",
+  "ownership",
+  "cross_hire_order",
+  "warehouse",
+  "cb_79",
+  "returned_qty",
+  "good_qty",
+  "repairable_qty",
+  "damaged_qty",
+  "damage_notes",
+  "sb_80",
+  "batch_no",
+  "good_serial_no",
+  "cb_81",
+  "repairable_serial_no",
+  "damaged_serial_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "fetch_from": "item_code.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "fetch_from": "item_code.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ownership",
+   "fieldtype": "Select",
+   "label": "Ownership",
+   "options": "Own\nCross Hire",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cross_hire_order",
+   "fieldtype": "Link",
+   "label": "Cross Hire Order",
+   "options": "Cross Hire Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Current Warehouse",
+   "options": "Warehouse",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_79",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "returned_qty",
+   "fieldtype": "Float",
+   "label": "Returned Qty",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "good_qty",
+   "fieldtype": "Float",
+   "label": "Good Qty",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "repairable_qty",
+   "fieldtype": "Float",
+   "label": "Repairable Qty",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "damaged_qty",
+   "fieldtype": "Float",
+   "label": "Beyond Repair Qty",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "damage_notes",
+   "fieldtype": "Data",
+   "label": "Damage Notes",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "sb_80",
+   "fieldtype": "Section Break",
+   "label": "Serial / Batch",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "good_serial_no",
+   "fieldtype": "Small Text",
+   "label": "Good Serial Nos"
+  },
+  {
+   "fieldname": "cb_81",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "repairable_serial_no",
+   "fieldtype": "Small Text",
+   "label": "Repairable Serial Nos"
+  },
+  {
+   "fieldname": "damaged_serial_no",
+   "fieldtype": "Small Text",
+   "label": "Beyond Repair Serial Nos"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Return Inspection Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

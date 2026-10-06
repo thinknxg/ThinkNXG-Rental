@@ -1,0 +1,78 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, yard_tube, yard_key %}
+
+{% block admin_content %}
+<header class="rp-lead">
+	<h1>{{ _("{0} units out, {1} free in the yard.").format(qty(b.on_hire), qty(b.available)) }}</h1>
+</header>
+
+<dl class="rp-facts">
+	<a href="/rental/admin/yard"><dt>{{ _("Utilization") }}</dt><dd>{{ b.utilization }}%</dd></a>
+	<a href="/rental/admin/yard"><dt>{{ _("Reserved in yard") }}</dt><dd>{{ qty(b.reserved) }}</dd></a>
+	<a href="/rental/admin/suppliers"><dt>{{ _("Cross-hired in custody") }}</dt><dd>{{ qty(b.cross_hire) }}</dd></a>
+	<a href="/rental/admin/yard"><dt>{{ _("Inspection or repair") }}</dt><dd>{{ qty(b.workshop) }}</dd></a>
+</dl>
+
+<div class="rp-split">
+	<section class="rp-section">
+		<h2>{{ _("Needs attention") }}</h2>
+		{% if b.queues %}
+		<ul class="rp-queue">
+			{% for q in b.queues %}
+			<li><a href="{{ q.route | e }}" data-tone="{{ q.tone }}"><b>{{ q.count }}</b><span>{{ q.label | e }}</span></a></li>
+			{% endfor %}
+		</ul>
+		{% else %}
+		<p class="rp-clear">{{ _("Nothing is waiting. Requests, inspections, billing and returns are all up to date.") }}</p>
+		{% endif %}
+	</section>
+
+	<section class="rp-section">
+		<h2>{{ _("Today's vehicles") }}</h2>
+		{% if b.out_today or b.in_today %}
+		<ul class="rp-log">
+			{% for d in b.out_today %}
+			<li><time>{{ d.vehicle_no | e if d.vehicle_no else _("No vehicle") }}</time>
+				<span><span class="rp-out">{{ _("Out") }}</span> {{ _("{0} units").format(qty(d.total_qty)) }} {% if d.docstatus == 0 %}<span class="rp-tag">{{ _("Draft") }}</span>{% endif %}
+					<span class="rp-sub">{{ d.customer_name | e }}, {{ d.rental_site | e }}</span></span>
+				<a href="{{ desk('Hire Delivery Order', d.name) }}">{{ d.name | e }}</a></li>
+			{% endfor %}
+			{% for d in b.in_today %}
+			<li><time>{{ d.vehicle_no | e if d.vehicle_no else _("No vehicle") }}</time>
+				<span><span class="rp-in">{{ _("In") }}</span> {{ _("{0} units").format(qty(d.total_returned_qty)) }} {% if d.docstatus == 0 %}<span class="rp-tag">{{ _("Draft") }}</span>{% endif %}
+					<span class="rp-sub">{{ d.customer_name | e }}, {{ d.rental_site | e }}</span></span>
+				<a href="{{ desk('Hire Off-Hire Note', d.name) }}">{{ d.name | e }}</a></li>
+			{% endfor %}
+		</ul>
+		{% else %}
+		<p class="rp-none">{{ _("No deliveries or returns are dated today.") }}</p>
+		{% endif %}
+		<p class="rp-actions" style="margin-block-start: 1rem">
+			<a class="rp-btn" href="/app/hire-delivery-order/new">{{ _("New delivery order") }}</a>
+			<a class="rp-btn" href="/app/hire-off-hire-note/new">{{ _("New off-hire note") }}</a>
+		</p>
+	</section>
+</div>
+
+{% if b.tight %}
+<section class="rp-section">
+	<h2>{{ _("Running short") }}</h2>
+	<p class="rp-muted" style="margin-block-end: 0.75rem">{{ _("Items with a tenth or less of their rentable quantity free. Negative means more is reserved than the yard holds.") }}</p>
+	<table class="rp-table">
+		<thead><tr><th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th><th class="rp-num">{{ _("Rentable") }}</th><th class="rp-num">{{ _("Reserved") }}</th><th class="rp-num">{{ _("Free") }}</th></tr></thead>
+		<tbody>
+		{% for r in b.tight %}
+		<tr>
+			<td class="rp-first">{{ r.item_name | e }}<span class="rp-sub">{{ r.item_code | e }}</span></td>
+			<td data-label="{{ _('Where it is') }}">{{ yard_tube(r, _("{0} at sites, {1} reserved, {2} free").format(qty(r.at_site_own + r.at_site_cross_hire), qty(r.reserved_qty), qty(r.available_qty))) }}</td>
+			<td data-label="{{ _('Rentable') }}" class="rp-num">{{ qty(r.rentable) }}</td>
+			<td data-label="{{ _('Reserved') }}" class="rp-num">{{ qty(r.reserved_qty) }}</td>
+			<td data-label="{{ _('Free') }}" class="rp-num rp-strong {% if r.short %}rp-due{% endif %}">{{ qty(r.available_qty) }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	{{ yard_key() }}
+</section>
+{% endif %}
+{% endblock %}

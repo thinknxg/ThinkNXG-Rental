@@ -1,0 +1,56 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date, pill, tube %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<div><h1>{{ _("Cross hire") }}</h1>
+		<p class="rp-muted">{{ _("Supplier-owned material in our custody. It is costing hire every day, so idle stock should go back.") }}</p></div>
+	<div class="rp-actions"><a class="rp-btn rp-btn--main" href="/app/cross-hire-order/new">{{ _("New cross hire order") }}</a></div>
+</div>
+<dl class="rp-facts">
+	<div><dt>{{ _("On hire from suppliers") }}</dt><dd>{{ qty(totals.on_hire) }}</dd></div>
+	<div><dt>{{ _("At customer sites") }}</dt><dd>{{ qty(totals.at_site) }}</dd></div>
+	<div><dt>{{ _("Idle, not at any site") }}</dt><dd>{{ qty(totals.idle) }}{% if totals.idle %}<span class="rp-flag">{{ _("Paying hire, earning none") }}</span>{% endif %}</dd></div>
+	<div><dt>{{ _("Orders past return date") }}</dt><dd>{{ totals.overdue }}</dd></div>
+</dl>
+{% if groups %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th>
+		<th class="rp-num">{{ _("Ordered") }}</th><th class="rp-num">{{ _("Received") }}</th><th class="rp-num">{{ _("Returned") }}</th>
+		<th class="rp-num">{{ _("On hire") }}</th><th class="rp-num">{{ _("At customer site") }}</th><th class="rp-num">{{ _("Idle") }}</th>
+		<th class="rp-num">{{ _("Rate") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for g in groups %}
+	<tr class="rp-group"><td colspan="9">{{ g.supplier | e }},
+		<a href="{{ desk('Cross Hire Order', g.order) }}">{{ g.order | e }}</a>
+		{% if g.purchase_order %}(<a href="{{ desk('Purchase Order', g.purchase_order) }}" style="font-weight: 400">{{ g.purchase_order | e }}</a>){% endif %}
+		<span style="font-weight: 400; margin-inline-start: 0.75rem">{{ _(g.status) }}{% if g.site %}, {{ _("for {0}").format(g.site | e) }}{% endif %}, {{ _("due back {0}").format(date(g.due)) }}</span>
+		{% if g.overdue_days %}<span class="rp-due" style="margin-inline-start: 0.5rem">{{ _("{0} days overdue").format(g.overdue_days) }}</span>{% endif %}</td></tr>
+	{% for r in g.rows %}
+	{% set base = r.received_qty or 1 %}
+	<tr>
+		<td class="rp-first">{{ r.item_name | e }}<span class="rp-sub">{{ r.item_code | e }}</span></td>
+		<td data-label="{{ _('Where it is') }}">{{ tube((r.at_site_qty / base * 100) | round(2), ((r.returned_qty + r.lost_qty) / base * 100) | round(2), _("{0} at customer site, {1} returned, {2} idle").format(qty(r.at_site_qty), qty(r.returned_qty), qty(r.in_yard_qty))) }}</td>
+		<td data-label="{{ _('Ordered') }}" class="rp-num">{{ qty(r.qty) }}</td>
+		<td data-label="{{ _('Received') }}" class="rp-num">{{ qty(r.received_qty) }}</td>
+		<td data-label="{{ _('Returned') }}" class="rp-num">{{ qty(r.returned_qty) }}{% if r.lost_qty %}<span class="rp-sub rp-due">{{ _("{0} lost").format(qty(r.lost_qty)) }}</span>{% endif %}</td>
+		<td data-label="{{ _('On hire') }}" class="rp-num rp-strong">{{ qty(r.on_hire_qty) }}</td>
+		<td data-label="{{ _('At customer site') }}" class="rp-num">{{ qty(r.at_site_qty) }}</td>
+		<td data-label="{{ _('Idle') }}" class="rp-num {% if r.in_yard_qty > 0 %}rp-due{% endif %}">{{ qty(r.in_yard_qty) }}</td>
+		<td data-label="{{ _('Rate') }}" class="rp-num">{{ money(r.rate) }}<span class="rp-sub">{{ _(r.rate_basis) }}</span></td>
+	</tr>
+	{% endfor %}
+	{% endfor %}
+	</tbody>
+</table>
+<ul class="rp-key" aria-hidden="true">
+	<li><i class="k-site"></i>{{ _("At customer site") }}</li>
+	<li><i class="k-back"></i>{{ _("Returned to supplier") }}</li>
+	<li><i></i>{{ _("Idle with us") }}</li>
+</ul>
+{% else %}
+<p class="rp-none">{{ _("No cross hire is open.") }}</p>
+{% endif %}
+{% endblock %}

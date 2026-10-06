@@ -1,0 +1,181 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "uom",
+  "cb_65",
+  "ownership",
+  "cross_hire_order",
+  "supplier",
+  "sb_66",
+  "at_site_qty",
+  "returned_qty",
+  "lost_qty",
+  "pending_qty",
+  "cb_67",
+  "requires_inspection",
+  "target_warehouse",
+  "sb_68",
+  "batch_no",
+  "cb_69",
+  "serial_no",
+  "sb_70",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "fetch_from": "item_code.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "fetch_from": "item_code.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_65",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ownership",
+   "fieldtype": "Select",
+   "label": "Ownership",
+   "options": "Own\nCross Hire",
+   "reqd": 1,
+   "default": "Own",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cross_hire_order",
+   "fieldtype": "Link",
+   "label": "Cross Hire Order",
+   "options": "Cross Hire Order",
+   "depends_on": "eval:doc.ownership=='Cross Hire'",
+   "mandatory_depends_on": "eval:doc.ownership=='Cross Hire'"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_66",
+   "fieldtype": "Section Break",
+   "label": "Quantities"
+  },
+  {
+   "fieldname": "at_site_qty",
+   "fieldtype": "Float",
+   "label": "At Site Qty",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "returned_qty",
+   "fieldtype": "Float",
+   "label": "Returned Qty",
+   "in_list_view": 1,
+   "columns": 2,
+   "bold": 1
+  },
+  {
+   "fieldname": "lost_qty",
+   "fieldtype": "Float",
+   "label": "Lost / Missing Qty",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "pending_qty",
+   "fieldtype": "Float",
+   "label": "Remaining at Site",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cb_67",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "requires_inspection",
+   "fieldtype": "Check",
+   "label": "Requires Inspection",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "label": "Return Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "sb_68",
+   "fieldtype": "Section Break",
+   "label": "Serial / Batch",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "cb_69",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Small Text",
+   "label": "Serial Nos"
+  },
+  {
+   "fieldname": "sb_70",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Hire Off-Hire Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

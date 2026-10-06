@@ -1,0 +1,338 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "hire_contract",
+  "customer",
+  "customer_name",
+  "rental_site",
+  "project",
+  "cb_71",
+  "status",
+  "off_hire_type",
+  "inspection_status",
+  "reason",
+  "portal_request",
+  "sb_72",
+  "off_hire_date",
+  "return_date",
+  "cb_73",
+  "grace_days",
+  "last_billable_date",
+  "sb_74",
+  "vehicle_no",
+  "cb_75",
+  "driver_name",
+  "sb_76",
+  "items",
+  "sb_77",
+  "total_returned_qty",
+  "total_lost_qty",
+  "cb_78",
+  "stock_entry",
+  "loss_stock_entry",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HOH-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "HOH-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hire_contract",
+   "fieldtype": "Link",
+   "label": "Hire Contract",
+   "options": "Hire Order Contract",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "hire_contract.customer",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "hire_contract.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site",
+   "fetch_from": "hire_contract.rental_site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "fetch_from": "hire_contract.project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_71",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nInspection Pending\nCompleted\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "off_hire_type",
+   "fieldtype": "Select",
+   "label": "Off Hire Type",
+   "options": "Partial\nFull",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "inspection_status",
+   "fieldtype": "Select",
+   "label": "Inspection Status",
+   "options": "Not Required\nPending\nCompleted",
+   "read_only": 1,
+   "no_copy": 1,
+   "default": "Not Required"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "portal_request",
+   "fieldtype": "Link",
+   "label": "Portal Request",
+   "options": "Rental Portal Request",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_72",
+   "fieldtype": "Section Break",
+   "label": "Dates"
+  },
+  {
+   "fieldname": "off_hire_date",
+   "fieldtype": "Date",
+   "label": "Off-Hire (Notice) Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "return_date",
+   "fieldtype": "Date",
+   "label": "Material Return Date",
+   "reqd": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "cb_73",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grace_days",
+   "fieldtype": "Int",
+   "label": "Grace Days",
+   "description": "Defaults from the contract"
+  },
+  {
+   "fieldname": "last_billable_date",
+   "fieldtype": "Date",
+   "label": "Last Billable Date",
+   "read_only": 1,
+   "no_copy": 1,
+   "bold": 1,
+   "description": "Returned within grace: off-hire date. Returned late: day before return."
+  },
+  {
+   "fieldname": "sb_74",
+   "fieldtype": "Section Break",
+   "label": "Transport"
+  },
+  {
+   "fieldname": "vehicle_no",
+   "fieldtype": "Data",
+   "label": "Vehicle No"
+  },
+  {
+   "fieldname": "cb_75",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name"
+  },
+  {
+   "fieldname": "sb_76",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Hire Off-Hire Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_77",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_returned_qty",
+   "fieldtype": "Float",
+   "label": "Total Returned Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_lost_qty",
+   "fieldtype": "Float",
+   "label": "Total Lost Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_78",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Return Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "loss_stock_entry",
+   "fieldtype": "Link",
+   "label": "Loss Write-off Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Hire Off-Hire Note",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "Rental Return Inspection",
+   "link_fieldname": "hire_off_hire_note"
+  },
+  {
+   "link_doctype": "Rental Damage Settlement",
+   "link_fieldname": "hire_off_hire_note"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Hire Off-Hire Note",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,hire_contract,off_hire_date",
+ "track_changes": 1
+}

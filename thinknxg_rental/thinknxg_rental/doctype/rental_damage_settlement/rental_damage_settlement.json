@@ -1,0 +1,257 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "hire_off_hire_note",
+  "hire_contract",
+  "customer",
+  "customer_name",
+  "cb_87",
+  "posting_date",
+  "status",
+  "sales_invoice",
+  "sb_88",
+  "items",
+  "sb_89",
+  "transport_charges",
+  "other_charges",
+  "other_charges_description",
+  "cb_90",
+  "total_damage_amount",
+  "total_loss_amount",
+  "total_salvage_value",
+  "grand_total",
+  "sb_91",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "RDS-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "RDS-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hire_off_hire_note",
+   "fieldtype": "Link",
+   "label": "Hire Off Hire Note",
+   "options": "Hire Off-Hire Note",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "hire_contract",
+   "fieldtype": "Link",
+   "label": "Hire Contract",
+   "options": "Hire Order Contract",
+   "fetch_from": "hire_off_hire_note.hire_contract",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "hire_off_hire_note.customer",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "hire_off_hire_note.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_87",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nTo Invoice\nInvoiced\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_88",
+   "fieldtype": "Section Break",
+   "label": "Damage and Loss"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Rental Damage Settlement Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_89",
+   "fieldtype": "Section Break",
+   "label": "Other Charges"
+  },
+  {
+   "fieldname": "transport_charges",
+   "fieldtype": "Currency",
+   "label": "Transport Charges"
+  },
+  {
+   "fieldname": "other_charges",
+   "fieldtype": "Currency",
+   "label": "Other Charges"
+  },
+  {
+   "fieldname": "other_charges_description",
+   "fieldtype": "Data",
+   "label": "Other Charges Description"
+  },
+  {
+   "fieldname": "cb_90",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_damage_amount",
+   "fieldtype": "Currency",
+   "label": "Total Damage Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_loss_amount",
+   "fieldtype": "Currency",
+   "label": "Total Loss Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_salvage_value",
+   "fieldtype": "Currency",
+   "label": "Total Salvage Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "read_only": 1,
+   "bold": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sb_91",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Rental Damage Settlement",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Damage Settlement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,hire_contract",
+ "track_changes": 1
+}
