@@ -1,9 +1,9 @@
 # thinkNXG Rental
 
-Formwork and scaffolding rental for **Frappe / ERPNext v16**: Hire Order, Hire Order Contract, material
+Formwork and scaffolding rental for **thinkNXG**: Hire Order, Hire Order Contract, material
 reservation, Delivery Order (material dispatch), material-at-site tracking, recurring rental billing,
 partial returns / off-hire, return inspection, damage and loss settlement, and a cross-hire module that
-runs on the standard ERPNext Purchase Order, Purchase Receipt, Purchase Return and Purchase Invoice.
+runs on the standard thinkNXG Purchase Order, Purchase Receipt, Purchase Return and Purchase Invoice.
 
 ## Install
 
@@ -65,7 +65,7 @@ Requires `frappe` and `erpnext` version 16 (Python 3.14).
 
 ## Cross-hire flow
 
-| Rental document | ERPNext document | Behaviour |
+| Rental document | thinkNXG document | Behaviour |
 |---|---|---|
 | **Cross Hire Order** | **Purchase Order** (created on submit) | Per equipment item: one stock line at **zero rate** (custody) and one non-stock `CROSS-HIRE-CHARGES` line carrying the supplier rate x estimated hire period. |
 | Cross Hire Receipt | **Purchase Receipt** (*Is Cross Hire Receipt*) | Charge lines are dropped; every equipment line is forced to rate 0 with *Allow Zero Valuation Rate*. Stock quantity goes up, stock value does not. |
@@ -150,7 +150,7 @@ Profitability (rental revenue + recoveries - cross hire cost).
 
 ## Design notes and limits
 
-- ERPNext remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
+- thinkNXG remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
   (`Rental Ownership Ledger`) with two positions: *At Site* and *Cross Hire Custody*.
 - Custom fields on ERPNext documents are prefixed `nxg_` and are created on install / migrate.
 - Rental Settings holds one set of default warehouses, so the app is designed for one rental company
