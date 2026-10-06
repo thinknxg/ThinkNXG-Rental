@@ -17,7 +17,7 @@ bench build --app thinknxg_rental && bench restart
 
 Upgrading from an earlier version: replace the app folder, then `bench --site <site> migrate`, `bench build --app thinknxg_rental`, `bench restart`.
 
-Requires `frappe` and `erpnext` version 16 (Python 3.14).
+Requires `thinkNXG` and `thinkNXG ERP` version 16 (Python 3.14).
 
 ## First-time setup
 
@@ -29,7 +29,7 @@ Requires `frappe` and `erpnext` version 16 (Python 3.14).
      `RENTAL-LOSS-RECOVERY`, with UOMs Unit-Day / Unit-Week / Unit-Month.
    Set income / expense accounts on those four items as you would for any service item.
 2. **Rental Item Profile** - one per rentable Item (rates, deposit, replacement value, repair charge).
-   The ERPNext Item stays the only stock master; there is no separate "rental item".
+   The thinkNXG Item stays the only stock master; there is no separate "rental item".
 3. **Rental Site** - one per customer site. Saving it creates two warehouses under Customer Sites:
    `<Site> (Own)` and `<Site> (Cross Hire)`.
 4. Roles: **Rental Manager** (everything) and **Rental User** (create / submit, no cancel).
@@ -37,7 +37,7 @@ Requires `frappe` and `erpnext` version 16 (Python 3.14).
 
 ## Customer flow
 
-| Step | Document | What it does in ERPNext |
+| Step | Document | What it does in thinkNXG |
 |---|---|---|
 | 1 | **Hire Order** | Commercial order; shows yard availability and shortfall per line. |
 | 2 | **Hire Order Contract** | The rental agreement: rates, billing cycle, grace days, minimum hire, deposit. Items, quantities and rates can be revised after submit. |
@@ -86,17 +86,17 @@ never reaches 100 % received on its own because the charge lines are billed, not
 
 ## Customer portal
 
-Server-rendered Frappe website pages inside this app (no separate frontend), at **/rental**:
+Server-rendered thinkNXG website pages inside this app (no separate frontend), at **/rental**:
 
 | Page | Shows |
 |---|---|
 | `/rental` | Units on hire and sites, live contracts, unpaid invoices, requests in progress, latest deliveries and returns. |
 | `/rental/contracts`, `/rental/contract?name=` | Contract terms, each item's contracted / delivered / returned / at-site quantity, movements, invoices, extensions. |
 | `/rental/material` | Printable material-at-site list by site and contract. |
-| `/rental/invoices` | Rental and damage invoices with billing period; each links to the standard ERPNext `/invoices/<name>` page. |
+| `/rental/invoices` | Rental and damage invoices with billing period; each links to the standard thinkNXG ERP `/invoices/<name>` page. |
 | `/rental/requests` | Raise and track requests: collect material (off-hire), hire more material, extend a hire. |
 
-**Giving a customer access:** open the Customer, add their user under *Portal Users* (ERPNext gives the
+**Giving a customer access:** open the Customer, add their user under *Portal Users* (thinkNXG ERP gives the
 user the Customer role). A user linked through a Contact also works for the rental pages, but the
 standard invoice page needs the Portal Users entry. "Rental Portal" is added to the portal menu on
 `bench migrate`.
@@ -152,7 +152,7 @@ Profitability (rental revenue + recoveries - cross hire cost).
 
 - thinkNXG remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
   (`Rental Ownership Ledger`) with two positions: *At Site* and *Cross Hire Custody*.
-- Custom fields on ERPNext documents are prefixed `nxg_` and are created on install / migrate.
+- Custom fields on thinkNXG ERP documents are prefixed `nxg_` and are created on install / migrate.
 - Rental Settings holds one set of default warehouses, so the app is designed for one rental company
   per site. Rental Sites of another company still get their own site warehouses.
 - Transactions are in company currency.
