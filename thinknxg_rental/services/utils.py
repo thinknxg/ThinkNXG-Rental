@@ -125,7 +125,13 @@ def get_available_qty(item_code, warehouse, hire_contract=None, hire_order=None,
 @frappe.whitelist()
 def get_item_rental_details(item_code: str, customer: str | None = None, rate_basis: str | None = None,
 		posting_date=None, warehouse: str | None = None):
-	frappe.has_permission("Item", "read", throw=True)
+	"""Form helper. Open to anyone who can read hire orders or contracts; it does not need Item permission."""
+	if not (frappe.has_permission("Hire Order", "read") or frappe.has_permission("Hire Order Contract", "read")):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	return item_rental_details(item_code, customer, rate_basis, posting_date, warehouse)
+
+
+def item_rental_details(item_code, customer=None, rate_basis=None, posting_date=None, warehouse=None):
 	item = frappe.get_cached_value("Item", item_code, ["item_name", "stock_uom", "is_stock_item"], as_dict=True)
 	if not item:
 		frappe.throw(_("Item {0} not found").format(item_code))

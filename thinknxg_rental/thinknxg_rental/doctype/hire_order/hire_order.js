@@ -23,7 +23,7 @@ thinknxg_rental.fetch_rental_details = function (frm, cdt, cdn, extra) {
 
 frappe.ui.form.on("Hire Order", {
 	setup(frm) {
-		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
+		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0, is_rental_item: 1 } }));
 		frm.set_query("rental_site", () => ({ filters: { customer: frm.doc.customer, disabled: 0 } }));
 	},
 	refresh(frm) {

@@ -9,7 +9,7 @@ from thinknxg_rental.services.utils import (
 	check_duplicate_items,
 	estimate_amount,
 	get_available_qty,
-	get_item_rental_details,
+	item_rental_details,
 	get_settings,
 )
 
@@ -32,7 +32,7 @@ class HireOrder(Document):
 				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 			d.rate_basis = d.rate_basis or self.rate_basis or "Monthly"
 			if not flt(d.rate) or not d.uom:
-				details = get_item_rental_details(d.item_code, self.customer, d.rate_basis, self.order_date, yard)
+				details = item_rental_details(d.item_code, self.customer, d.rate_basis, self.order_date, yard)
 				d.uom = d.uom or details["uom"]
 				d.rate = flt(d.rate) or details["rate"]
 				d.security_deposit_rate = flt(d.security_deposit_rate) or details["security_deposit_rate"]

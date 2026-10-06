@@ -1,0 +1,17 @@
+{
+ "doctype":"DocType","name":"JCR Item","module":"thinkNXG Rental","engine":"InnoDB","istable":1,"editable_grid":1,
+ "field_order":["job_no","job_description","qty","sales_order_item","custom_erection_date","custom_dismantle_date","contract_days","excess_charge","excess_period","excess_days","excess_amount"],
+ "fields":[
+  {"fieldname":"job_no","fieldtype":"Data","label":"Job No","in_list_view":1},
+  {"fieldname":"job_description","fieldtype":"Small Text","label":"Service Description","reqd":1,"in_list_view":1},
+  {"fieldname":"qty","fieldtype":"Float","label":"Qty","default":"1","in_list_view":1},
+  {"fieldname":"sales_order_item","fieldtype":"Data","label":"Source Item","hidden":1},
+  {"fieldname":"custom_erection_date","fieldtype":"Date","label":"Erection Date","in_list_view":1},
+  {"fieldname":"custom_dismantle_date","fieldtype":"Date","label":"Dismantle Date","in_list_view":1},
+  {"fieldname":"contract_days","fieldtype":"Int","label":"Contract Days","in_list_view":1},
+  {"fieldname":"excess_charge","fieldtype":"Currency","label":"Excess Charge","in_list_view":1},
+  {"fieldname":"excess_period","fieldtype":"Select","label":"Excess Period","options":"Days\nWeekly\nMonthly","in_list_view":1},
+  {"fieldname":"excess_days","fieldtype":"Float","label":"Excess Days","read_only":1,"in_list_view":1},
+  {"fieldname":"excess_amount","fieldtype":"Currency","label":"Excess Amount","read_only":1,"in_list_view":1}
+ ],"permissions":[],"sort_field":"modified","sort_order":"DESC"
+}

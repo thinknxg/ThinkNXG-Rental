@@ -60,6 +60,7 @@ def get_custom_fields():
 			dict(fieldname="nxg_rental_damage_settlement", label="Rental Damage Settlement", fieldtype="Link",
 				options="Rental Damage Settlement", read_only=1, no_copy=1, insert_after="nxg_rental_billing_schedule",
 				depends_on="nxg_rental_damage_settlement"),
+			dict(fieldname="jcr", label="JCR", fieldtype="Link", options="JCR", insert_after="nxg_rental_damage_settlement", read_only=1, no_copy=1, print_hide=1),
 		],
 		"Sales Invoice Item": [
 			dict(fieldname="nxg_hire_item", label="Hire Equipment", fieldtype="Link", options="Item", read_only=1,
@@ -68,6 +69,16 @@ def get_custom_fields():
 			dict(fieldname="nxg_hire_from", label="Hire From", fieldtype="Date", read_only=1, insert_after="nxg_hire_qty"),
 			dict(fieldname="nxg_hire_to", label="Hire To", fieldtype="Date", read_only=1, insert_after="nxg_hire_from"),
 			dict(fieldname="nxg_hire_days", label="Hire Days", fieldtype="Int", read_only=1, insert_after="nxg_hire_to"),
+			dict(fieldname="jcr", label="JCR", fieldtype="Link", options="JCR", read_only=1, no_copy=1, print_hide=1, insert_after="nxg_hire_days"),
+		],
+		"Item": [
+			dict(fieldname="is_rental_item", label="Is Rental Item", fieldtype="Check", insert_after="is_stock_item"),
+			dict(fieldname="is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_rental_item"),
+			dict(fieldname="contract_rate_per_sqm", label="Contract Rate / SQM", fieldtype="Currency", insert_after="is_job_type_item", depends_on="is_job_type_item"),
+			dict(fieldname="rate_type", label="Rate Type", fieldtype="Select", options="Daily\nWeekly\nMonthly\nLumpsum", insert_after="contract_rate_per_sqm", depends_on="is_job_type_item"),
+			dict(fieldname="rate_per_sqm", label="Rate / SQM", fieldtype="Currency", insert_after="rate_type", depends_on="is_job_type_item"),
+			dict(fieldname="lumpsum_rate", label="Lumpsum Rate", fieldtype="Currency", insert_after="rate_per_sqm", depends_on="is_job_type_item"),
+			dict(fieldname="job_type_item_names", label="Job Type Items", fieldtype="Table", options="Job Type Item Name", insert_after="lumpsum_rate", depends_on="is_job_type_item"),
 		],
 		"Stock Entry": [
 			dict(fieldname="nxg_hire_contract", label="Hire Contract", fieldtype="Link", options="Hire Order Contract",

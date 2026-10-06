@@ -1,0 +1,127 @@
+{
+  "doctype": "DocType",
+  "name": "JCR",
+  "module": "thinkNXG Rental",
+  "engine": "InnoDB",
+  "autoname": "",
+  "naming_rule": "By \"Naming Series\" field",
+  "is_submittable": 1,
+  "track_changes": 1,
+  "field_order": [
+    "naming_series",
+    "hire_contract",
+    "client_name",
+    "project_name",
+    "location",
+    "column_break_hdr",
+    "lpo_number",
+    "lpo_date",
+    "section_break_items",
+    "items",
+    "amended_from"
+  ],
+  "fields": [
+    {
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "label": "Series",
+      "options": "JCR-.#####",
+      "reqd": 1
+    },
+    {
+      "fieldname": "hire_contract",
+      "fieldtype": "Link",
+      "label": "Hire Order Contract",
+      "options": "Hire Order Contract",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "client_name",
+      "fieldtype": "Link",
+      "label": "Client Name",
+      "options": "Customer",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "project_name",
+      "fieldtype": "Link",
+      "label": "Project Name",
+      "options": "Project",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "location",
+      "fieldtype": "Link",
+      "label": "Location",
+      "options": "Rental Site",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "column_break_hdr",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "lpo_number",
+      "fieldtype": "Data",
+      "label": "LPO Number"
+    },
+    {
+      "fieldname": "lpo_date",
+      "fieldtype": "Date",
+      "label": "LPO Date"
+    },
+    {
+      "fieldname": "section_break_items",
+      "fieldtype": "Section Break",
+      "label": "Job Details"
+    },
+    {
+      "fieldname": "items",
+      "fieldtype": "Table",
+      "label": "Items",
+      "options": "JCR Item",
+      "reqd": 1
+    },
+    {
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "label": "Amended From",
+      "options": "JCR",
+      "read_only": 1,
+      "no_copy": 1,
+      "print_hide": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1
+    },
+    {
+      "role": "Rental Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1
+    },
+    {
+      "role": "Rental User",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "submit": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}

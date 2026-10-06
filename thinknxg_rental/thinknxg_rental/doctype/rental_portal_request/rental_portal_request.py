@@ -21,7 +21,7 @@ class RentalPortalRequest(Document):
 		if self.request_type != "Extension Request" or self.status in ("Completed", "Rejected", "Cancelled"):
 			frappe.throw(_("Nothing to extend"))
 		contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
-		contract.extend(str(self.new_end_date), _("Customer portal request {0}").format(self.name))
+		contract.extend_contract(str(self.new_end_date), _("Customer portal request {0}").format(self.name))
 		self.db_set({"status": "Completed", "reference_doctype": "Hire Order Contract", "reference_name": contract.name})
 
 

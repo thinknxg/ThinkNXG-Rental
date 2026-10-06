@@ -1,151 +1,292 @@
 {
- "actions": [],
- "creation": "2026-10-06 10:00:00.000000",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "item_code",
-  "item_name",
-  "uom",
-  "cb_31",
-  "qty",
-  "rate_basis",
-  "rate",
-  "replacement_value",
-  "sb_32",
-  "dispatched_qty",
-  "returned_qty",
-  "lost_qty",
-  "cb_33",
-  "at_site_qty",
-  "pending_qty"
- ],
- "fields": [
-  {
-   "fieldname": "item_code",
-   "fieldtype": "Link",
-   "label": "Item",
-   "options": "Item",
-   "reqd": 1,
-   "in_list_view": 1,
-   "columns": 3
-  },
-  {
-   "fieldname": "item_name",
-   "fieldtype": "Data",
-   "label": "Item Name",
-   "fetch_from": "item_code.item_name",
-   "read_only": 1
-  },
-  {
-   "fieldname": "uom",
-   "fieldtype": "Link",
-   "label": "UOM",
-   "options": "UOM",
-   "fetch_from": "item_code.stock_uom",
-   "read_only": 1
-  },
-  {
-   "fieldname": "cb_31",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "qty",
-   "fieldtype": "Float",
-   "label": "Contracted Qty",
-   "reqd": 1,
-   "in_list_view": 1,
-   "columns": 1,
-   "allow_on_submit": 1
-  },
-  {
-   "fieldname": "rate_basis",
-   "fieldtype": "Select",
-   "label": "Rate Basis",
-   "options": "Monthly\nWeekly\nDaily",
-   "in_list_view": 1,
-   "columns": 1,
-   "allow_on_submit": 1
-  },
-  {
-   "fieldname": "rate",
-   "fieldtype": "Currency",
-   "label": "Hire Rate",
-   "in_list_view": 1,
-   "columns": 1,
-   "allow_on_submit": 1
-  },
-  {
-   "fieldname": "replacement_value",
-   "fieldtype": "Currency",
-   "label": "Replacement Value per Unit",
-   "allow_on_submit": 1
-  },
-  {
-   "fieldname": "sb_32",
-   "fieldtype": "Section Break",
-   "label": "Progress"
-  },
-  {
-   "fieldname": "dispatched_qty",
-   "fieldtype": "Float",
-   "label": "Dispatched Qty",
-   "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1
-  },
-  {
-   "fieldname": "returned_qty",
-   "fieldtype": "Float",
-   "label": "Returned Qty",
-   "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1
-  },
-  {
-   "fieldname": "lost_qty",
-   "fieldtype": "Float",
-   "label": "Lost Qty",
-   "read_only": 1,
-   "no_copy": 1
-  },
-  {
-   "fieldname": "cb_33",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "at_site_qty",
-   "fieldtype": "Float",
-   "label": "At Site Qty",
-   "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1,
-   "bold": 1
-  },
-  {
-   "fieldname": "pending_qty",
-   "fieldtype": "Float",
-   "label": "Pending to Dispatch",
-   "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1
-  }
- ],
- "links": [],
- "modified": "2026-10-06 10:00:00.000000",
- "modified_by": "Administrator",
- "module": "thinkNXG Rental",
- "name": "Hire Contract Item",
- "owner": "Administrator",
- "permissions": [],
- "row_format": "Dynamic",
- "sort_field": "creation",
- "sort_order": "DESC",
- "states": [],
- "istable": 1,
- "editable_grid": 1
+  "actions": [],
+  "creation": "2026-10-06 10:00:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "item_code",
+    "item_name",
+    "uom",
+    "cb_31",
+    "job_no",
+    "job_tower",
+    "description",
+    "length",
+    "width",
+    "height",
+    "area",
+    "contract_days",
+    "contract_rate",
+    "rate_type",
+    "rent",
+    "rotation_qty",
+    "period",
+    "contract_amount",
+    "is_job_type_item",
+    "is_rental_item",
+    "qty",
+    "rate_basis",
+    "rate",
+    "replacement_value",
+    "sb_32",
+    "dispatched_qty",
+    "returned_qty",
+    "lost_qty",
+    "cb_33",
+    "at_site_qty",
+    "pending_qty"
+  ],
+  "fields": [
+    {
+      "fieldname": "item_code",
+      "fieldtype": "Link",
+      "label": "Item",
+      "options": "Item",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 3
+    },
+    {
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "label": "Item Name",
+      "fetch_from": "item_code.item_name",
+      "read_only": 1
+    },
+    {
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "label": "UOM",
+      "options": "UOM",
+      "fetch_from": "item_code.stock_uom",
+      "read_only": 1
+    },
+    {
+      "fieldname": "cb_31",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "qty",
+      "fieldtype": "Float",
+      "label": "Contracted Qty",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "rate_basis",
+      "fieldtype": "Select",
+      "label": "Rate Basis",
+      "options": "Monthly\nWeekly\nDaily",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "label": "Hire Rate",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "replacement_value",
+      "fieldtype": "Currency",
+      "label": "Replacement Value per Unit",
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "job_no",
+      "fieldtype": "Data",
+      "label": "Job No",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "job_tower",
+      "fieldtype": "Data",
+      "label": "Job/Tower",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Small Text",
+      "label": "Job Description",
+      "in_list_view": 1,
+      "columns": 2
+    },
+    {
+      "fieldname": "length",
+      "fieldtype": "Float",
+      "label": "Length",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "width",
+      "fieldtype": "Float",
+      "label": "Width",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "height",
+      "fieldtype": "Float",
+      "label": "Height",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "area",
+      "fieldtype": "Float",
+      "label": "Area",
+      "read_only": 1,
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "contract_days",
+      "fieldtype": "Int",
+      "label": "Days",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "contract_rate",
+      "fieldtype": "Currency",
+      "label": "Rate",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "rate_type",
+      "fieldtype": "Select",
+      "label": "Rate Type",
+      "options": "Daily\nWeekly\nMonthly\nLumpsum",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "rent",
+      "fieldtype": "Currency",
+      "label": "Rent",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "rotation_qty",
+      "fieldtype": "Float",
+      "label": "Duration / Rotation Qty",
+      "default": "1",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "period",
+      "fieldtype": "Select",
+      "label": "Period",
+      "options": "Day\nWeek\nMonth\nLumpsum",
+      "in_list_view": 1,
+      "columns": 1,
+      "allow_on_submit": 1
+    },
+    {
+      "fieldname": "contract_amount",
+      "fieldtype": "Currency",
+      "label": "Contract Amount",
+      "read_only": 1,
+      "in_list_view": 1,
+      "columns": 2
+    },
+    {
+      "fieldname": "is_job_type_item",
+      "fieldtype": "Check",
+      "label": "Job Type Item",
+      "fetch_from": "item_code.is_job_type_item",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "is_rental_item",
+      "fieldtype": "Check",
+      "label": "Rental Item",
+      "fetch_from": "item_code.is_rental_item",
+      "read_only": 1,
+      "hidden": 1
+    },
+    {
+      "fieldname": "sb_32",
+      "fieldtype": "Section Break",
+      "label": "Progress"
+    },
+    {
+      "fieldname": "dispatched_qty",
+      "fieldtype": "Float",
+      "label": "Dispatched Qty",
+      "read_only": 1,
+      "no_copy": 1,
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "returned_qty",
+      "fieldtype": "Float",
+      "label": "Returned Qty",
+      "read_only": 1,
+      "no_copy": 1,
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "lost_qty",
+      "fieldtype": "Float",
+      "label": "Lost Qty",
+      "read_only": 1,
+      "no_copy": 1
+    },
+    {
+      "fieldname": "cb_33",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "at_site_qty",
+      "fieldtype": "Float",
+      "label": "At Site Qty",
+      "read_only": 1,
+      "no_copy": 1,
+      "in_list_view": 1,
+      "columns": 1,
+      "bold": 1
+    },
+    {
+      "fieldname": "pending_qty",
+      "fieldtype": "Float",
+      "label": "Pending to Dispatch",
+      "read_only": 1,
+      "no_copy": 1,
+      "in_list_view": 1,
+      "columns": 1
+    }
+  ],
+  "links": [],
+  "modified": "2026-10-06 10:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "thinkNXG Rental",
+  "name": "Hire Contract Item",
+  "owner": "Administrator",
+  "permissions": [],
+  "row_format": "Dynamic",
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": [],
+  "istable": 1,
+  "editable_grid": 1
 }
