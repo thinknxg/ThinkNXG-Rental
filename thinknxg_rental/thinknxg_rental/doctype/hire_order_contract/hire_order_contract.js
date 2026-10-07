@@ -45,6 +45,21 @@ frappe.ui.form.on("Hire Order Contract", {
 		if (frm.doc.status === "Open") create("Rental Contract", "make_rental_contract");
 		create("Material Reservation", "make_reservation");
 		frm.add_custom_button(__("Job Completion Report (JCR)"), () => frm.trigger("make_jcr"), __("Create"));
+		frm.add_custom_button(__("View JCRs"), () =>
+			frappe.set_route("List", "Job Completion Report", { hire_order_contract: frm.doc.name })
+		);
+		frm.add_custom_button(__("Generate All JCR Billing"), () =>
+			frappe.call({
+				method: "thinknxg_rental.services.jcr_billing.generate_all_jcr_billing",
+				args: { hire_order_contract: frm.doc.name },
+				freeze: true,
+				freeze_message: __("Generating due billing for all JCRs..."),
+			}).then((r) => {
+				const rows = r.message || [];
+				const total = rows.reduce((n, row) => n + (row.schedules || []).length, 0);
+				frappe.msgprint(__("Processed {0} JCR(s) and generated {1} billing period(s).", [rows.length, total]));
+			})
+		);
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
 });

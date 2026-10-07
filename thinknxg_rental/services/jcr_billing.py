@@ -113,6 +113,24 @@ def generate_jcr_billing(jcr: str):
 
 
 @frappe.whitelist()
+@frappe.whitelist()
+def generate_all_jcr_billing(hire_order_contract: str):
+	"""Generate all due billing periods for every submitted JCR on a contract.
+
+	This is additive; the existing per-JCR billing engine and one-invoice-per-period
+	protection remain unchanged.
+	"""
+	hoc = frappe.get_doc("Hire Order Contract", hire_order_contract)
+	hoc.check_permission("read")
+	if hoc.docstatus != 1:
+		frappe.throw(_("Hire Order Contract {0} must be submitted before billing JCRs.").format(hoc.name))
+	names = frappe.get_all("Job Completion Report", filters={"hire_order_contract": hoc.name, "docstatus": 1}, pluck="name", order_by="creation asc")
+	processed = []
+	for name in names:
+		processed.append({"jcr": name, "schedules": generate_jcr_billing(name)})
+	return processed
+
+
 def make_sales_invoice(schedule: str):
 	row = frappe.get_doc("JCR Billing Schedule", schedule)
 	row.check_permission("read")
