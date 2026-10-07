@@ -22,7 +22,7 @@
 	<div class="rp-fields">
 		<div data-for="Off-Hire Request,Extension Request" hidden>
 			<label for="rp-contract">{{ _("Contract") }}</label>
-			<select id="rp-contract" name="hire_contract">
+			<select id="rp-contract" name="rental_contract">
 				<option value="">{{ _("Choose a contract") }}</option>
 				{% for c in live_contracts %}
 				<option value="{{ c.name | e }}" data-end="{{ c.end_date | e }}">{{ c.name | e }} ({{ c.rental_site | e }})</option>
@@ -86,7 +86,7 @@
 	<tr>
 		<td class="rp-first">{{ r.name | e }}<span class="rp-sub">{{ date(r.request_date) }}</span></td>
 		<td data-label="{{ _('Type') }}">{{ _(r.request_type) }}
-			{% if r.hire_contract %}<span class="rp-sub"><a href="/rental/contract?name={{ r.hire_contract | urlencode }}{{ rp.qs_amp | e }}">{{ r.hire_contract | e }}</a></span>{% endif %}</td>
+			{% if r.rental_contract %}<span class="rp-sub"><a href="/rental/contract?name={{ r.rental_contract | urlencode }}{{ rp.qs_amp | e }}">{{ r.rental_contract | e }}</a></span>{% endif %}</td>
 		<td data-label="{{ _('Details') }}">
 			{% if r.request_type == "Extension Request" %}{{ _("Extend to {0}").format(date(r.new_end_date)) }}
 			{% else %}

@@ -5,7 +5,7 @@ from frappe import _
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	conditions, values = ["s.docstatus = 1"], {}
-	for field in ("company", "customer", "hire_contract"):
+	for field in ("company", "customer", "rental_contract"):
 		if filters.get(field):
 			conditions.append(f"s.{field} = %({field})s")
 			values[field] = filters[field]
@@ -20,7 +20,7 @@ def execute(filters=None):
 		values["classification"] = filters.classification
 	rows = frappe.db.sql(
 		f"""
-		select s.posting_date, s.name as settlement, s.customer, s.customer_name, s.hire_contract, s.hire_off_hire_note,
+		select s.posting_date, s.name as settlement, s.customer, s.customer_name, s.rental_contract, s.hire_off_hire_note,
 			si.item_code, si.item_name, si.ownership, si.classification, si.qty, si.rate, si.liability_percent,
 			si.salvage_value, si.amount, s.status, s.sales_invoice
 		from `tabRental Damage Settlement Item` si
@@ -36,7 +36,7 @@ def execute(filters=None):
 		{"label": _("Settlement"), "fieldname": "settlement", "fieldtype": "Link", "options": "Rental Damage Settlement", "width": 150},
 		{"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 130},
 		{"label": _("Customer Name"), "fieldname": "customer_name", "width": 160},
-		{"label": _("Contract"), "fieldname": "hire_contract", "fieldtype": "Link", "options": "Hire Order Contract", "width": 140},
+		{"label": _("Contract"), "fieldname": "rental_contract", "fieldtype": "Link", "options": "Rental Contract", "width": 140},
 		{"label": _("Off-Hire Note"), "fieldname": "hire_off_hire_note", "fieldtype": "Link", "options": "Hire Off-Hire Note", "width": 140},
 		{"label": _("Item"), "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
 		{"label": _("Item Name"), "fieldname": "item_name", "width": 170},

@@ -4,7 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, nowdate
 
 from thinknxg_rental.services.billing import append_taxes
-from thinknxg_rental.services.utils import get_settings, require_setting
+from thinknxg_rental.services.utils import as_system, get_settings, require_setting
 
 
 class RentalDamageSettlement(Document):
@@ -41,7 +41,7 @@ def make_sales_invoice(settlement: str):
 		frappe.throw(_("Sales Invoice {0} already exists for this settlement").format(doc.sales_invoice))
 	damage_item = require_setting("damage_recovery_item")
 	loss_item = require_setting("loss_recovery_item")
-	contract = frappe.get_doc("Hire Order Contract", doc.hire_contract)
+	contract = frappe.get_doc("Rental Contract", doc.rental_contract)
 
 	si = frappe.new_doc("Sales Invoice")
 	si.update(
@@ -51,7 +51,7 @@ def make_sales_invoice(settlement: str):
 			"posting_date": nowdate(),
 			"project": contract.project,
 			"cost_center": contract.cost_center,
-			"nxg_hire_contract": contract.name,
+			"nxg_rental_contract": contract.name,
 			"nxg_rental_damage_settlement": doc.name,
 			"remarks": _("Damage and loss settlement {0} - Contract {1}").format(doc.name, contract.name),
 		}
@@ -88,8 +88,9 @@ def make_sales_invoice(settlement: str):
 		frappe.throw(_("Nothing to invoice on this settlement"))
 	append_taxes(si, "Sales Taxes and Charges Template", contract.taxes_and_charges)
 	si.flags.ignore_permissions = True
-	si.insert()
-	doc.db_set("sales_invoice", si.name)
-	if cint(get_settings().auto_submit_sales_invoice):
-		si.submit()
+	with as_system():
+		si.insert()
+		doc.db_set("sales_invoice", si.name)
+		if cint(get_settings().auto_submit_sales_invoice):
+			si.submit()
 	return si.name

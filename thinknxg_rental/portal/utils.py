@@ -86,9 +86,9 @@ def get_contracts(customers, live_only=False):
 	if live_only:
 		filters["status"] = ["in", ["Active", "On Hire"]]
 	rows = frappe.get_all(
-		"Hire Order Contract",
+		"Rental Contract",
 		filters=filters,
-		fields=["name", "customer_name", "rental_site", "status", "start_date", "end_date", "billing_cycle",
+		fields=["name", "customer_name", "rental_site", "status", "start_date", "end_date", "billing_cycle", "contract_type",
 			"total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "total_returned_qty", "last_billed_upto"],
 		order_by="start_date desc",
 	)
@@ -99,25 +99,25 @@ def get_contracts(customers, live_only=False):
 	return rows
 
 
-def get_material(customers, hire_contract=None):
+def get_material(customers, rental_contract=None):
 	"""Quantity at site per site / contract / item, own and cross-hired material combined."""
 	values = {"customers": tuple(customers)}
 	contract_cond = ""
-	if hire_contract:
-		contract_cond = "and l.hire_contract = %(hire_contract)s"
-		values["hire_contract"] = hire_contract
+	if rental_contract:
+		contract_cond = "and l.rental_contract = %(rental_contract)s"
+		values["rental_contract"] = rental_contract
 	rows = frappe.db.sql(
 		f"""
-		select l.rental_site, l.hire_contract, l.item_code, i.item_name, i.stock_uom as uom,
+		select l.rental_site, l.rental_contract, l.item_code, i.item_name, i.stock_uom as uom,
 			sum(l.qty) as qty,
 			sum(case when l.movement_type = 'Dispatch' then l.qty else 0 end) as dispatched_qty,
 			min(case when l.movement_type = 'Dispatch' then l.posting_date end) as first_dispatch
 		from `tabRental Ownership Ledger` l
 		left join `tabItem` i on i.name = l.item_code
 		where l.position_type = 'At Site' and l.customer in %(customers)s {contract_cond}
-		group by l.rental_site, l.hire_contract, l.item_code, i.item_name, i.stock_uom
+		group by l.rental_site, l.rental_contract, l.item_code, i.item_name, i.stock_uom
 		having sum(l.qty) > 0
-		order by l.rental_site, l.hire_contract, i.item_name
+		order by l.rental_site, l.rental_contract, i.item_name
 		""",
 		values,
 		as_dict=True,
@@ -129,20 +129,20 @@ def get_material(customers, hire_contract=None):
 	return rows
 
 
-def get_invoices(customers, hire_contract=None, limit=None):
-	filters = {"customer": ["in", customers], "docstatus": 1, "nxg_hire_contract": ["is", "set"]}
-	if hire_contract:
-		filters["nxg_hire_contract"] = hire_contract
+def get_invoices(customers, rental_contract=None, limit=None):
+	filters = {"customer": ["in", customers], "docstatus": 1, "nxg_rental_contract": ["is", "set"]}
+	if rental_contract:
+		filters["nxg_rental_contract"] = rental_contract
 	rows = frappe.get_all(
 		"Sales Invoice",
 		filters=filters,
 		fields=["name", "posting_date", "due_date", "grand_total", "outstanding_amount", "currency", "status", "is_return",
-			"nxg_hire_contract", "nxg_rental_billing_schedule", "nxg_rental_damage_settlement"],
+			"nxg_rental_contract", "nxg_rental_billing_schedule", "nxg_rental_damage_settlement", "nxg_jcr_billing_schedule"],
 		order_by="posting_date desc, creation desc",
 		limit=limit,
 	)
 	for r in rows:
-		r.hire_contract = r.nxg_hire_contract
+		r.rental_contract = r.nxg_rental_contract
 		r.schedule = r.nxg_rental_billing_schedule
 		r.settlement = r.nxg_rental_damage_settlement
 	periods = {}
@@ -152,24 +152,39 @@ def get_invoices(customers, hire_contract=None, limit=None):
 			"Rental Billing Schedule", filters={"name": ["in", schedules]}, fields=["name", "from_date", "to_date"]
 		):
 			periods[s.name] = s
+	job_periods = {}
+	job_rows = [r.nxg_jcr_billing_schedule for r in rows if r.nxg_jcr_billing_schedule]
+	if job_rows:
+		for s in frappe.get_all(
+			"JCR Billing Schedule", filters={"name": ["in", job_rows]}, fields=["name", "period_from", "period_to", "billing_type"]
+		):
+			job_periods[s.name] = s
 	today = getdate(nowdate())
 	for r in rows:
-		r.kind = _("Credit note") if r.is_return else (_("Damage and loss") if r.settlement else _("Rental"))
+		job = job_periods.get(r.nxg_jcr_billing_schedule)
+		if r.is_return:
+			r.kind = _("Credit note")
+		elif job:
+			r.kind = _("Job contract charge") if job.billing_type == "Contract" else _("Excess days")
+		else:
+			r.kind = _("Damage and loss") if r.settlement else _("Rental")
 		period = periods.get(r.schedule)
 		r.period_from, r.period_to = (period.from_date, period.to_date) if period else (None, None)
+		if job:
+			r.period_from, r.period_to = job.period_from, job.period_to
 		r.unpaid = flt(r.outstanding_amount) > 0
 		r.overdue = r.unpaid and r.due_date and getdate(r.due_date) < today
 	return rows
 
 
-def get_requests(customers, hire_contract=None, limit=None):
+def get_requests(customers, rental_contract=None, limit=None):
 	filters = {"customer": ["in", customers]}
-	if hire_contract:
-		filters["hire_contract"] = hire_contract
+	if rental_contract:
+		filters["rental_contract"] = rental_contract
 	rows = frappe.get_all(
 		"Rental Portal Request",
 		filters=filters,
-		fields=["name", "request_type", "status", "request_date", "hire_contract", "rental_site", "site_location",
+		fields=["name", "request_type", "status", "request_date", "rental_contract", "rental_site", "site_location",
 			"required_date", "expected_return_date", "new_end_date", "remarks", "response"],
 		order_by="creation desc",
 		limit=limit,
@@ -189,21 +204,21 @@ def get_requests(customers, hire_contract=None, limit=None):
 	return rows
 
 
-def get_movements(customers, hire_contract=None, limit=8):
+def get_movements(customers, rental_contract=None, limit=8):
 	"""Deliveries and returns, newest first."""
 	base = {"customer": ["in", customers], "docstatus": 1}
-	if hire_contract:
-		base["hire_contract"] = hire_contract
+	if rental_contract:
+		base["rental_contract"] = rental_contract
 	out = []
 	for d in frappe.get_all(
 		"Hire Delivery Order", filters=base, limit=limit, order_by="posting_date desc, creation desc",
-		fields=["name", "posting_date", "hire_contract", "rental_site", "total_qty", "vehicle_no", "dispatch_reference"],
+		fields=["name", "posting_date", "rental_contract", "rental_site", "total_qty", "vehicle_no", "dispatch_reference"],
 	):
 		d.update(kind="out", label=_("Delivered"), date=d.posting_date, qty=d.total_qty, lost_qty=0)
 		out.append(d)
 	for d in frappe.get_all(
 		"Hire Off-Hire Note", filters=base, limit=limit, order_by="return_date desc, creation desc",
-		fields=["name", "return_date", "off_hire_date", "last_billable_date", "hire_contract", "rental_site",
+		fields=["name", "return_date", "off_hire_date", "last_billable_date", "rental_contract", "rental_site",
 			"total_returned_qty", "total_lost_qty", "vehicle_no", "off_hire_type"],
 	):
 		d.update(kind="in", label=_("Returned"), date=d.return_date, qty=d.total_returned_qty, lost_qty=d.total_lost_qty)
@@ -236,9 +251,9 @@ def get_overview(customers):
 
 
 def get_contract_detail(name, customers):
-	if not name or not frappe.db.exists("Hire Order Contract", name):
+	if not name or not frappe.db.exists("Rental Contract", name):
 		raise frappe.DoesNotExistError
-	doc = frappe.get_doc("Hire Order Contract", name)
+	doc = frappe.get_doc("Rental Contract", name)
 	if doc.docstatus != 1 or doc.customer not in customers:
 		raise frappe.PermissionError
 	site = frappe.db.get_value("Rental Site", doc.rental_site, ["location", "site_contact", "contact_phone"], as_dict=True)
@@ -255,12 +270,27 @@ def get_contract_detail(name, customers):
 				pct_back=round((flt(d.returned_qty) + flt(d.lost_qty)) / base * 100, 2),
 			)
 		)
+	jcrs = []
+	if doc.hire_order_contract:
+		jcrs = frappe.get_all(
+			"Job Completion Report",
+			filters={"hire_order_contract": doc.hire_order_contract, "docstatus": 1},
+			fields=["name", "job_type_name", "location", "job_qty", "erection_date", "included_days", "contract_end_date",
+				"dismantle_date", "excess_days", "status"],
+			order_by="erection_date asc",
+		)
+		today = getdate(nowdate())
+		for j in jcrs:
+			if not j.dismantle_date:
+				j.excess_days = max(date_diff(today, j.contract_end_date), 0)
 	return frappe._dict(
 		doc=doc,
+		is_job=doc.contract_type == "Job Type Contract",
+		jcrs=jcrs,
 		site=site or frappe._dict(),
 		lines=items,
-		movements=get_movements(customers, hire_contract=name, limit=None),
-		invoices=get_invoices(customers, hire_contract=name),
-		requests=get_requests(customers, hire_contract=name, limit=10),
+		movements=get_movements(customers, rental_contract=name, limit=None),
+		invoices=get_invoices(customers, rental_contract=name),
+		requests=get_requests(customers, rental_contract=name, limit=10),
 		days_left=date_diff(doc.end_date, nowdate()),
 	)

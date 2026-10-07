@@ -21,11 +21,39 @@
 	<div><dt>{{ _("Hire period") }}</dt><dd>{{ date(d.start_date) }} {{ _("to") }} {{ date(d.end_date) }}
 		{% if live and c.days_left < 0 %}<span class="rp-sub rp-due">{{ _("{0} days past the end date").format(-c.days_left) }}</span>
 		{% elif live %}<span class="rp-sub">{{ _("{0} days left").format(c.days_left) }}</span>{% endif %}</dd></div>
+	{% if c.is_job %}
+	<div><dt>{{ _("Billing") }}</dt><dd>{{ _("Per job") }}<span class="rp-sub">{{ _("Contract charge, then excess days") }}</span></dd></div>
+	{% else %}
 	<div><dt>{{ _("Billing") }}</dt><dd>{{ _(d.billing_cycle) }}{% if d.last_billed_upto %}<span class="rp-sub">{{ _("Billed up to {0}").format(date(d.last_billed_upto)) }}</span>{% endif %}</dd></div>
+	{% endif %}
 	<div><dt>{{ _("Off-hire grace") }}</dt><dd>{{ _("{0} days").format(d.grace_days or 0) }}</dd></div>
 	{% if d.minimum_hire_days %}<div><dt>{{ _("Minimum hire") }}</dt><dd>{{ _("{0} days").format(d.minimum_hire_days) }}</dd></div>{% endif %}
 	{% if d.security_deposit %}<div><dt>{{ _("Security deposit") }}</dt><dd>{{ money(d.security_deposit) }}<span class="rp-sub">{{ _("{0} received").format(money(d.deposit_received)) }}</span></dd></div>{% endif %}
 </dl>
+
+{% if c.jcrs %}
+<section class="rp-section">
+	<h2>{{ _("Jobs") }}</h2>
+	<table class="rp-table">
+		<thead><tr>
+			<th>{{ _("Job") }}</th><th>{{ _("Erected") }}</th><th>{{ _("Included days end") }}</th>
+			<th>{{ _("Dismantled") }}</th><th class="rp-num">{{ _("Excess days") }}</th><th>{{ _("Status") }}</th>
+		</tr></thead>
+		<tbody>
+		{% for j in c.jcrs %}
+		<tr>
+			<td class="rp-first">{{ j.job_type_name | e }}<span class="rp-sub">{% if j.location %}{{ j.location | e }}, {% endif %}{{ j.name | e }}</span></td>
+			<td data-label="{{ _('Erected') }}">{{ date(j.erection_date) }}</td>
+			<td data-label="{{ _('Included days end') }}">{{ date(j.contract_end_date) }}<span class="rp-sub">{{ _("{0} days included").format(j.included_days) }}</span></td>
+			<td data-label="{{ _('Dismantled') }}">{% if j.dismantle_date %}{{ date(j.dismantle_date) }}{% else %}{{ _("Still standing") }}{% endif %}</td>
+			<td data-label="{{ _('Excess days') }}" class="rp-num {% if j.excess_days %}rp-strong{% endif %}">{{ j.excess_days }}</td>
+			<td data-label="{{ _('Status') }}">{{ pill(j.status) }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+</section>
+{% endif %}
 
 <section class="rp-section">
 	<h2>{{ _("Material") }}</h2>
@@ -34,7 +62,7 @@
 			<th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th>
 			<th class="rp-num">{{ _("Contracted") }}</th><th class="rp-num">{{ _("Delivered") }}</th>
 			<th class="rp-num">{{ _("Returned") }}</th><th class="rp-num">{{ _("At site") }}</th>
-			<th class="rp-num">{{ _("Hire rate") }}</th>
+			{% if not c.is_job %}<th class="rp-num">{{ _("Hire rate") }}</th>{% endif %}
 		</tr></thead>
 		<tbody>
 		{% for i in c.lines %}
@@ -45,7 +73,7 @@
 			<td data-label="{{ _('Delivered') }}" class="rp-num">{{ qty(i.dispatched_qty) }}</td>
 			<td data-label="{{ _('Returned') }}" class="rp-num">{{ qty(i.returned_qty) }}{% if i.lost_qty %}<span class="rp-sub rp-due">{{ _("{0} lost").format(qty(i.lost_qty)) }}</span>{% endif %}</td>
 			<td data-label="{{ _('At site') }}" class="rp-num rp-strong">{{ qty(i.at_site_qty) }}</td>
-			<td data-label="{{ _('Hire rate') }}" class="rp-num">{{ money(i.rate) }}<span class="rp-sub">{{ _(i.rate_basis) }}</span></td>
+			{% if not c.is_job %}<td data-label="{{ _('Hire rate') }}" class="rp-num">{{ money(i.rate) }}<span class="rp-sub">{{ _(i.rate_basis) }}</span></td>{% endif %}
 		</tr>
 		{% endfor %}
 		</tbody>

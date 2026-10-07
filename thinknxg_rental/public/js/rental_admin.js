@@ -12,7 +12,7 @@
 			frappe.call({ method, args, type: "POST", callback: (r) => resolve(r.message), error: reject })
 		);
 	const bill = (contract) =>
-		post("thinknxg_rental.services.billing.generate_billing", { hire_contract: contract, only_complete: 1 }).then((made) => (made || []).length);
+		post("thinknxg_rental.services.billing.generate_billing", { rental_contract: contract, only_complete: 1 }).then((made) => (made || []).length);
 
 	document.querySelectorAll("[data-bill]").forEach((button) =>
 		button.addEventListener("click", () => {

@@ -21,7 +21,7 @@
 		<td class="rp-first"><a href="/invoices/{{ i.name | urlencode }}">{{ i.name | e }}</a></td>
 		<td data-label="{{ _('Date') }}">{{ date(i.posting_date) }}</td>
 		<td data-label="{{ _('For') }}">{{ i.kind | e }}{% if i.period_from %}<span class="rp-sub">{{ date(i.period_from) }} {{ _("to") }} {{ date(i.period_to) }}</span>{% endif %}</td>
-		<td data-label="{{ _('Contract') }}"><a href="/rental/contract?name={{ i.hire_contract | urlencode }}{{ rp.qs_amp | e }}">{{ i.hire_contract | e }}</a></td>
+		<td data-label="{{ _('Contract') }}"><a href="/rental/contract?name={{ i.rental_contract | urlencode }}{{ rp.qs_amp | e }}">{{ i.rental_contract | e }}</a></td>
 		<td data-label="{{ _('Due') }}" {% if i.overdue %}class="rp-due"{% endif %}>{{ date(i.due_date) }}</td>
 		<td data-label="{{ _('Status') }}">{{ pill(i.status) }}</td>
 		<td data-label="{{ _('Amount') }}" class="rp-num">{{ money(i.grand_total, i.currency) }}</td>

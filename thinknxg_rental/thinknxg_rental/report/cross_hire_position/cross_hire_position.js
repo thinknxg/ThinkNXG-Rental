@@ -2,7 +2,7 @@ frappe.query_reports["Cross Hire Position"] = {
 	filters: [
 		{ fieldname: "company", label: __("Company"), fieldtype: "Link", options: "Company", default: frappe.defaults.get_user_default("Company") },
 		{ fieldname: "supplier", label: __("Supplier"), fieldtype: "Link", options: "Supplier" },
-		{ fieldname: "hire_contract", label: __("Customer Contract"), fieldtype: "Link", options: "Hire Order Contract" },
+		{ fieldname: "rental_contract", label: __("Customer Contract"), fieldtype: "Link", options: "Rental Contract" },
 		{ fieldname: "item_code", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "include_closed", label: __("Include Fully Returned"), fieldtype: "Check" },
 	],

@@ -1,6 +1,6 @@
 frappe.ui.form.on("Rental Portal Request", {
 	setup(frm) {
-		frm.set_query("hire_contract", () => ({ filters: { docstatus: 1, customer: frm.doc.customer } }));
+		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, customer: frm.doc.customer } }));
 	},
 	refresh(frm) {
 		if (frm.is_new() || ["Completed", "Rejected", "Cancelled"].includes(frm.doc.status)) return;
@@ -15,7 +15,7 @@ frappe.ui.form.on("Rental Portal Request", {
 			).addClass("btn-primary");
 		} else {
 			frm.add_custom_button(__("Extend Contract"), () =>
-				frappe.confirm(__("Extend {0} to {1}?", [frm.doc.hire_contract, frappe.datetime.str_to_user(frm.doc.new_end_date)]), () =>
+				frappe.confirm(__("Extend {0} to {1}?", [frm.doc.rental_contract, frappe.datetime.str_to_user(frm.doc.new_end_date)]), () =>
 					frm.call("apply_extension").then(() => frm.reload_doc())
 				)
 			).addClass("btn-primary");

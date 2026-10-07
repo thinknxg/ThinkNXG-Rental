@@ -1,6 +1,6 @@
 frappe.ui.form.on("Rental Billing Schedule", {
 	setup(frm) {
-		frm.set_query("hire_contract", () => ({ filters: { docstatus: 1 } }));
+		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1 } }));
 	},
 	refresh(frm) {
 		frm.get_field("items").grid.cannot_add_rows = true;

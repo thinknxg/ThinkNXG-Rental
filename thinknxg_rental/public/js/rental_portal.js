@@ -89,7 +89,7 @@
 			return;
 		}
 		$("rp-lines-hint").textContent = "";
-		call("get_contract_items", { hire_contract: contract }).then((data) => {
+		call("get_contract_items", { rental_contract: contract }).then((data) => {
 			if (!data || !data.items.length) {
 				$("rp-lines-hint").textContent = __("Nothing is at site on this contract.");
 				return;
@@ -172,8 +172,8 @@
 			if (!args.required_date) return fail(__("Tell us when you need the material."));
 			if (!args.items.length) return fail(__("Add at least one item and a quantity."));
 		} else {
-			args.hire_contract = data.get("hire_contract");
-			if (!args.hire_contract) return fail(__("Choose a contract."));
+			args.rental_contract = data.get("rental_contract");
+			if (!args.rental_contract) return fail(__("Choose a contract."));
 			if (t === "Off-Hire Request") {
 				args.required_date = data.get("collection_date");
 				args.items = collect_items();

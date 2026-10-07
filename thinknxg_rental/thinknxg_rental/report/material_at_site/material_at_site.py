@@ -6,7 +6,7 @@ from frappe.utils import date_diff, flt, nowdate
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	conditions, values = ["l.position_type = 'At Site'"], {}
-	for field in ("company", "customer", "hire_contract", "rental_site", "item_code", "ownership", "supplier", "project"):
+	for field in ("company", "customer", "rental_contract", "rental_site", "item_code", "ownership", "supplier", "project"):
 		if filters.get(field):
 			conditions.append(f"l.{field} = %({field})s")
 			values[field] = filters[field]
@@ -15,8 +15,8 @@ def execute(filters=None):
 		values["as_on_date"] = filters.as_on_date
 	rows = frappe.db.sql(
 		f"""
-		select l.customer, c.customer_name, l.rental_site, l.project, l.hire_contract, l.item_code, i.item_name,
-			i.stock_uom as uom, l.ownership, l.supplier, l.cross_hire_order,
+		select l.customer, c.customer_name, l.rental_site, l.project, l.rental_contract, l.item_code, i.item_name,
+			i.stock_uom as uom, l.ownership, l.supplier, l.cross_hire_order, l.source_type, l.source_document,
 			sum(l.qty) as qty,
 			min(case when l.movement_type = 'Dispatch' then l.posting_date end) as first_dispatch,
 			ifnull(p.replacement_value, 0) as replacement_rate
@@ -25,10 +25,10 @@ def execute(filters=None):
 		left join `tabCustomer` c on c.name = l.customer
 		left join `tabRental Item Profile` p on p.name = l.item_code
 		where {" and ".join(conditions)}
-		group by l.customer, c.customer_name, l.rental_site, l.project, l.hire_contract, l.item_code, i.item_name,
-			i.stock_uom, l.ownership, l.supplier, l.cross_hire_order, p.replacement_value
+		group by l.customer, c.customer_name, l.rental_site, l.project, l.rental_contract, l.item_code, i.item_name,
+			i.stock_uom, l.ownership, l.supplier, l.cross_hire_order, l.source_type, l.source_document, p.replacement_value
 		having sum(l.qty) > 0
-		order by l.customer, l.rental_site, l.hire_contract, l.item_code, l.ownership
+		order by l.customer, l.rental_site, l.rental_contract, l.item_code, l.ownership
 		""",
 		values,
 		as_dict=True,
@@ -41,7 +41,9 @@ def execute(filters=None):
 		{"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 130},
 		{"label": _("Customer Name"), "fieldname": "customer_name", "width": 160},
 		{"label": _("Site"), "fieldname": "rental_site", "fieldtype": "Link", "options": "Rental Site", "width": 140},
-		{"label": _("Contract"), "fieldname": "hire_contract", "fieldtype": "Link", "options": "Hire Order Contract", "width": 140},
+		{"label": _("Contract"), "fieldname": "rental_contract", "fieldtype": "Link", "options": "Rental Contract", "width": 140},
+		{"label": _("Source Type"), "fieldname": "source_type", "width": 150},
+		{"label": _("Source"), "fieldname": "source_document", "fieldtype": "Dynamic Link", "options": "source_type", "width": 150},
 		{"label": _("Item"), "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
 		{"label": _("Item Name"), "fieldname": "item_name", "width": 180},
 		{"label": _("UOM"), "fieldname": "uom", "width": 60},

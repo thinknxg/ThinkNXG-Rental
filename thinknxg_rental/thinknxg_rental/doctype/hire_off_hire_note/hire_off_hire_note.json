@@ -6,7 +6,7 @@
  "field_order": [
   "naming_series",
   "company",
-  "hire_contract",
+  "rental_contract",
   "customer",
   "customer_name",
   "rental_site",
@@ -56,10 +56,10 @@
    "reqd": 1
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1
@@ -69,7 +69,7 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer",
-   "fetch_from": "hire_contract.customer",
+   "fetch_from": "rental_contract.customer",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "read_only": 1
@@ -78,7 +78,7 @@
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "label": "Customer Name",
-   "fetch_from": "hire_contract.customer_name",
+   "fetch_from": "rental_contract.customer_name",
    "read_only": 1
   },
   {
@@ -86,7 +86,7 @@
    "fieldtype": "Link",
    "label": "Rental Site",
    "options": "Rental Site",
-   "fetch_from": "hire_contract.rental_site",
+   "fetch_from": "rental_contract.rental_site",
    "read_only": 1
   },
   {
@@ -94,7 +94,7 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
-   "fetch_from": "hire_contract.project",
+   "fetch_from": "rental_contract.project",
    "read_only": 1
   },
   {
@@ -333,6 +333,6 @@
  "naming_rule": "By \"Naming Series\" field",
  "title_field": "customer_name",
  "show_title_field_in_link": 1,
- "search_fields": "customer_name,hire_contract,off_hire_date",
+ "search_fields": "customer_name,rental_contract,off_hire_date",
  "track_changes": 1
 }

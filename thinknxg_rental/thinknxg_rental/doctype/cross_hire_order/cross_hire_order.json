@@ -14,7 +14,7 @@
   "status",
   "purchase_order",
   "sb_104",
-  "hire_contract",
+  "rental_contract",
   "customer",
   "rental_site",
   "cb_105",
@@ -116,10 +116,10 @@
    "label": "Back-to-Back Customer Hire"
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
    "in_standard_filter": 1
   },
   {
@@ -127,7 +127,7 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer",
-   "fetch_from": "hire_contract.customer",
+   "fetch_from": "rental_contract.customer",
    "read_only": 1
   },
   {
@@ -135,7 +135,7 @@
    "fieldtype": "Link",
    "label": "Rental Site",
    "options": "Rental Site",
-   "fetch_from": "hire_contract.rental_site",
+   "fetch_from": "rental_contract.rental_site",
    "read_only": 1
   },
   {
@@ -147,7 +147,7 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
-   "fetch_from": "hire_contract.project",
+   "fetch_from": "rental_contract.project",
    "read_only": 1
   },
   {
@@ -351,6 +351,6 @@
  "naming_rule": "By \"Naming Series\" field",
  "title_field": "supplier_name",
  "show_title_field_in_link": 1,
- "search_fields": "supplier_name,hire_contract,status",
+ "search_fields": "supplier_name,rental_contract,status",
  "track_changes": 1
 }

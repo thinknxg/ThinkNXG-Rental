@@ -6,8 +6,10 @@
  "field_order": [
   "naming_series",
   "company",
-  "hire_contract",
-  "hire_order",
+  "rental_contract",
+  "rental_material_reservation",
+  "source_type",
+  "source_document",
   "customer",
   "customer_name",
   "cb_59",
@@ -50,28 +52,39 @@
    "reqd": 1
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1
   },
   {
-   "fieldname": "hire_order",
+   "fieldname": "rental_material_reservation",
    "fieldtype": "Link",
-   "label": "Hire Order",
-   "options": "Hire Order",
-   "fetch_from": "hire_contract.hire_order",
-   "read_only": 1
+   "label": "Rental Material Reservation",
+   "options": "Rental Material Reservation",
+   "description": "Optional. Own-stock lines are then limited to the balance of this reservation."
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "label": "Rental Source Type",
+   "options": "\nHire Order\nHire Order Contract"
+  },
+  {
+   "fieldname": "source_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Rental Source",
+   "options": "source_type"
   },
   {
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer",
-   "fetch_from": "hire_contract.customer",
+   "fetch_from": "rental_contract.customer",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "read_only": 1
@@ -80,7 +93,7 @@
    "fieldname": "customer_name",
    "fieldtype": "Data",
    "label": "Customer Name",
-   "fetch_from": "hire_contract.customer_name",
+   "fetch_from": "rental_contract.customer_name",
    "read_only": 1
   },
   {
@@ -106,7 +119,7 @@
    "fieldtype": "Link",
    "label": "Rental Site",
    "options": "Rental Site",
-   "fetch_from": "hire_contract.rental_site",
+   "fetch_from": "rental_contract.rental_site",
    "in_list_view": 1,
    "read_only": 1
   },
@@ -115,7 +128,7 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
-   "fetch_from": "hire_contract.project",
+   "fetch_from": "rental_contract.project",
    "read_only": 1
   },
   {
@@ -269,6 +282,6 @@
  "naming_rule": "By \"Naming Series\" field",
  "title_field": "customer_name",
  "show_title_field_in_link": 1,
- "search_fields": "customer_name,hire_contract,posting_date",
+ "search_fields": "customer_name,rental_contract,posting_date",
  "track_changes": 1
 }

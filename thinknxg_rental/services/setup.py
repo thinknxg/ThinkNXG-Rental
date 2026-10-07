@@ -6,14 +6,23 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def get_custom_fields():
 	return {
+		"Item": [
+			dict(fieldname="nxg_is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_stock_item",
+				depends_on="eval:!doc.is_stock_item", in_standard_filter=1,
+				description="A job hired out as a unit, such as External Scaffolding. Non-stock. Its rental items are listed below."),
+			dict(fieldname="nxg_job_type_section", label="Job Type Rental Items", fieldtype="Section Break",
+				insert_after="description", depends_on="nxg_is_job_type_item"),
+			dict(fieldname="nxg_job_type_items", label="Physical Rental Items for One Job", fieldtype="Table",
+				options="Job Type Rental Item", insert_after="nxg_job_type_section"),
+		],
 		"Purchase Order": [
 			dict(fieldname="nxg_is_cross_hire", label="Is Cross Hire Order", fieldtype="Check", read_only=1, no_copy=1,
 				insert_after="order_confirmation_date", in_standard_filter=1, depends_on="nxg_is_cross_hire"),
 			dict(fieldname="nxg_cross_hire_order", label="Cross Hire Order", fieldtype="Link", options="Cross Hire Order",
 				read_only=1, no_copy=1, insert_after="nxg_is_cross_hire", depends_on="nxg_is_cross_hire"),
-			dict(fieldname="nxg_hire_contract", label="Customer Hire Contract", fieldtype="Link",
-				options="Hire Order Contract", read_only=1, no_copy=1, insert_after="nxg_cross_hire_order",
-				depends_on="nxg_hire_contract"),
+			dict(fieldname="nxg_rental_contract", label="Customer Rental Contract", fieldtype="Link",
+				options="Rental Contract", read_only=1, no_copy=1, insert_after="nxg_cross_hire_order",
+				depends_on="nxg_rental_contract"),
 		],
 		"Purchase Order Item": [
 			dict(fieldname="nxg_is_cross_hire_charge", label="Is Cross Hire Charge Line", fieldtype="Check", read_only=1,
@@ -52,15 +61,18 @@ def get_custom_fields():
 				read_only=1, insert_after="description"),
 		],
 		"Sales Invoice": [
-			dict(fieldname="nxg_hire_contract", label="Hire Contract", fieldtype="Link", options="Hire Order Contract",
+			dict(fieldname="nxg_rental_contract", label="Rental Contract", fieldtype="Link", options="Rental Contract",
 				insert_after="is_return", no_copy=1, in_standard_filter=1),
 			dict(fieldname="nxg_rental_billing_schedule", label="Rental Billing Schedule", fieldtype="Link",
-				options="Rental Billing Schedule", read_only=1, no_copy=1, insert_after="nxg_hire_contract",
+				options="Rental Billing Schedule", read_only=1, no_copy=1, insert_after="nxg_rental_contract",
 				depends_on="nxg_rental_billing_schedule"),
 			dict(fieldname="nxg_rental_damage_settlement", label="Rental Damage Settlement", fieldtype="Link",
 				options="Rental Damage Settlement", read_only=1, no_copy=1, insert_after="nxg_rental_billing_schedule",
 				depends_on="nxg_rental_damage_settlement"),
-			dict(fieldname="jcr", label="JCR", fieldtype="Link", options="JCR", insert_after="nxg_rental_damage_settlement", read_only=1, no_copy=1, print_hide=1),
+			dict(fieldname="nxg_jcr", label="Job Completion Report", fieldtype="Link", options="Job Completion Report",
+				read_only=1, no_copy=1, insert_after="nxg_rental_damage_settlement", depends_on="nxg_jcr"),
+			dict(fieldname="nxg_jcr_billing_schedule", label="JCR Billing Schedule", fieldtype="Link",
+				options="JCR Billing Schedule", read_only=1, no_copy=1, insert_after="nxg_jcr", depends_on="nxg_jcr"),
 		],
 		"Sales Invoice Item": [
 			dict(fieldname="nxg_hire_item", label="Hire Equipment", fieldtype="Link", options="Item", read_only=1,
@@ -69,22 +81,12 @@ def get_custom_fields():
 			dict(fieldname="nxg_hire_from", label="Hire From", fieldtype="Date", read_only=1, insert_after="nxg_hire_qty"),
 			dict(fieldname="nxg_hire_to", label="Hire To", fieldtype="Date", read_only=1, insert_after="nxg_hire_from"),
 			dict(fieldname="nxg_hire_days", label="Hire Days", fieldtype="Int", read_only=1, insert_after="nxg_hire_to"),
-			dict(fieldname="jcr", label="JCR", fieldtype="Link", options="JCR", read_only=1, no_copy=1, print_hide=1, insert_after="nxg_hire_days"),
-		],
-		"Item": [
-			dict(fieldname="is_rental_item", label="Is Rental Item", fieldtype="Check", insert_after="is_stock_item"),
-			dict(fieldname="is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_rental_item"),
-			dict(fieldname="contract_rate_per_sqm", label="Contract Rate / SQM", fieldtype="Currency", insert_after="is_job_type_item", depends_on="is_job_type_item"),
-			dict(fieldname="rate_type", label="Rate Type", fieldtype="Select", options="Daily\nWeekly\nMonthly\nLumpsum", insert_after="contract_rate_per_sqm", depends_on="is_job_type_item"),
-			dict(fieldname="rate_per_sqm", label="Rate / SQM", fieldtype="Currency", insert_after="rate_type", depends_on="is_job_type_item"),
-			dict(fieldname="lumpsum_rate", label="Lumpsum Rate", fieldtype="Currency", insert_after="rate_per_sqm", depends_on="is_job_type_item"),
-			dict(fieldname="job_type_item_names", label="Job Type Items", fieldtype="Table", options="Job Type Item Name", insert_after="lumpsum_rate", depends_on="is_job_type_item"),
 		],
 		"Stock Entry": [
-			dict(fieldname="nxg_hire_contract", label="Hire Contract", fieldtype="Link", options="Hire Order Contract",
-				read_only=1, no_copy=1, insert_after="remarks", depends_on="nxg_hire_contract"),
+			dict(fieldname="nxg_rental_contract", label="Rental Contract", fieldtype="Link", options="Rental Contract",
+				read_only=1, no_copy=1, insert_after="remarks", depends_on="nxg_rental_contract"),
 			dict(fieldname="nxg_hire_voucher_type", label="Rental Document Type", fieldtype="Link", options="DocType",
-				read_only=1, no_copy=1, insert_after="nxg_hire_contract", depends_on="nxg_hire_voucher_no"),
+				read_only=1, no_copy=1, insert_after="nxg_rental_contract", depends_on="nxg_hire_voucher_no"),
 			dict(fieldname="nxg_hire_voucher_no", label="Rental Document", fieldtype="Dynamic Link",
 				options="nxg_hire_voucher_type", read_only=1, no_copy=1, insert_after="nxg_hire_voucher_type",
 				depends_on="nxg_hire_voucher_no"),
@@ -105,7 +107,19 @@ def after_install():
 def after_migrate():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
 	setup_uoms()
+	ensure_settings_defaults()
 	frappe.clear_cache()
+
+
+def ensure_settings_defaults():
+	"""A setting added in an upgrade has no stored value on an existing site, so its default
+	(for example "on") would silently read as off. Store the default once."""
+	stored = set(frappe.db.sql_list("select field from `tabSingles` where doctype = 'Rental Settings'"))
+	if not stored:
+		return  # never saved: defaults apply when it is first opened
+	for df in frappe.get_meta("Rental Settings").fields:
+		if df.default and df.fieldname not in stored and df.fieldtype not in ("Section Break", "Column Break", "Tab Break"):
+			frappe.db.set_single_value("Rental Settings", df.fieldname, df.default)
 
 
 def before_uninstall():

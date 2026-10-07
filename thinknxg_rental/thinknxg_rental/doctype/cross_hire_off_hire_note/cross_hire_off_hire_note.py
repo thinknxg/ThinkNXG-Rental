@@ -65,7 +65,8 @@ class CrossHireOffHireNote(Document):
 		):
 			pr = frappe.get_doc("Purchase Receipt", name)
 			pr.flags.ignore_permissions = True
-			pr.cancel()
+			with cross_hire.as_system():
+				pr.cancel()
 		self.db_set({"purchase_returns": None, "status": "Cancelled"})
 
 

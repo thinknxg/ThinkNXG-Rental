@@ -13,8 +13,8 @@ def execute(filters=None):
 		if filters.get(field):
 			contract_filters[field] = filters[field]
 	data = []
-	for name in frappe.get_all("Hire Order Contract", filters=contract_filters, pluck="name", order_by="next_billing_date asc"):
-		contract = frappe.get_doc("Hire Order Contract", name)
+	for name in frappe.get_all("Rental Contract", filters=contract_filters, pluck="name", order_by="next_billing_date asc"):
+		contract = frappe.get_doc("Rental Contract", name)
 		if not contract.billing_start_date:
 			continue
 		from_date = getdate(add_days(contract.last_billed_upto, 1) if contract.last_billed_upto else contract.billing_start_date)
@@ -25,7 +25,7 @@ def execute(filters=None):
 			continue
 		data.append(
 			{
-				"hire_contract": contract.name,
+				"rental_contract": contract.name,
 				"customer": contract.customer,
 				"customer_name": contract.customer_name,
 				"rental_site": contract.rental_site,
@@ -40,7 +40,7 @@ def execute(filters=None):
 			}
 		)
 	columns = [
-		{"label": _("Contract"), "fieldname": "hire_contract", "fieldtype": "Link", "options": "Hire Order Contract", "width": 150},
+		{"label": _("Contract"), "fieldname": "rental_contract", "fieldtype": "Link", "options": "Rental Contract", "width": 150},
 		{"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 130},
 		{"label": _("Customer Name"), "fieldname": "customer_name", "width": 170},
 		{"label": _("Site"), "fieldname": "rental_site", "fieldtype": "Link", "options": "Rental Site", "width": 140},

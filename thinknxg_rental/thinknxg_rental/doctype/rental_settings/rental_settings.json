@@ -29,6 +29,7 @@
   "cb_7",
   "auto_generate_billing",
   "auto_submit_sales_invoice",
+  "auto_generate_jcr_billing",
   "sb_8",
   "auto_submit_purchase_order",
   "sb_9",
@@ -177,6 +178,12 @@
    "fieldname": "auto_submit_sales_invoice",
    "fieldtype": "Check",
    "label": "Submit Generated Sales Invoices"
+  },
+  {
+   "fieldname": "auto_generate_jcr_billing",
+   "fieldtype": "Check",
+   "label": "Generate JCR Billing Automatically (Daily Scheduler)",
+   "default": "1"
   },
   {
    "fieldname": "sb_8",

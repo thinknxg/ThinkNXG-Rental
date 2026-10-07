@@ -128,7 +128,7 @@ def pr_on_submit(doc, method=None):
 	if not doc.get("nxg_is_cross_hire_receipt"):
 		return
 	cho = frappe.db.get_value(
-		"Cross Hire Order", doc.nxg_cross_hire_order, ["hire_contract", "customer", "project", "rental_site"], as_dict=True
+		"Cross Hire Order", doc.nxg_cross_hire_order, ["rental_contract", "customer", "project", "rental_site"], as_dict=True
 	)
 	if doc.is_return:
 		last_billable = getdate(doc.get("nxg_cross_hire_last_billable_date") or doc.posting_date)
@@ -150,7 +150,7 @@ def pr_on_submit(doc, method=None):
 			ownership="Cross Hire",
 			supplier=doc.supplier,
 			cross_hire_order=doc.nxg_cross_hire_order,
-			hire_contract=cho.hire_contract,
+			rental_contract=cho.rental_contract,
 			customer=cho.customer,
 			project=cho.project,
 			rental_site=cho.rental_site,

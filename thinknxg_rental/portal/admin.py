@@ -83,11 +83,12 @@ def get_board():
 	count = frappe.db.count
 
 	billing_due = count(
-		"Hire Order Contract",
-		{"docstatus": 1, "status": ["in", ["On Hire", "Off Hired"]], "next_billing_date": ["<=", today]},
+		"Rental Contract",
+		{"docstatus": 1, "status": ["in", ["On Hire", "Off Hired"]], "next_billing_date": ["<=", today],
+			"contract_type": ["!=", "Job Type Contract"]},
 	)
 	overdue_hire = count(
-		"Hire Order Contract", {"docstatus": 1, "status": "On Hire", "end_date": ["<", today]}
+		"Rental Contract", {"docstatus": 1, "status": "On Hire", "end_date": ["<", today]}
 	)
 	cross_overdue = count(
 		"Cross Hire Order",
@@ -101,6 +102,10 @@ def get_board():
 		(_("Damage settlements to invoice"), count("Rental Damage Settlement", {"docstatus": 1, "status": "To Invoice"}),
 			desk("Rental Damage Settlement", status="To Invoice"), "act"),
 		(_("Contracts due for billing"), billing_due, "/rental/admin/billing", "act"),
+		(_("Job periods waiting for an invoice"), count("JCR Billing Schedule", {"status": "Pending"}),
+			desk("JCR Billing Schedule", status="Pending"), "act"),
+		(_("Jobs past their included days and still standing"), count("Job Completion Report", {"docstatus": 1, "status": "In Excess"}),
+			desk("Job Completion Report", status="In Excess"), "late"),
 		(_("Billing schedules without an invoice"), count("Rental Billing Schedule", {"docstatus": 1, "status": "Unbilled"}),
 			desk("Rental Billing Schedule", status="Unbilled"), "act"),
 		(_("Hires past their end date with material still out"), overdue_hire, "/rental/admin/contracts?view=overdue", "late"),
@@ -108,7 +113,7 @@ def get_board():
 		(_("Cross hire orders still to receive"), count("Cross Hire Order", {"docstatus": 1, "status": "To Receive"}),
 			desk("Cross Hire Order", status="To Receive"), "act"),
 	]
-	fields = ["name", "hire_contract", "customer_name", "rental_site", "vehicle_no"]
+	fields = ["name", "rental_contract", "customer_name", "rental_site", "vehicle_no"]
 	return frappe._dict(
 		on_hire=on_hire,
 		yard=total("yard_qty"),
@@ -149,11 +154,11 @@ def get_admin_contracts(view="live", search=None):
 		like = f"%{search.strip()[:60]}%"
 		or_filters = {"name": ["like", like], "customer_name": ["like", like], "rental_site": ["like", like]}
 	rows = frappe.get_all(
-		"Hire Order Contract",
+		"Rental Contract",
 		filters=filters,
 		or_filters=or_filters,
-		fields=["name", "customer", "customer_name", "rental_site", "status", "start_date", "end_date",
-			"total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "last_billed_upto",
+		fields=["name", "customer", "customer_name", "rental_site", "status", "start_date", "end_date", "contract_type",
+			"source_type", "source_document", "total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "last_billed_upto",
 			"next_billing_date", "total_billed_amount"],
 		order_by="end_date asc",
 		limit=300,
@@ -161,7 +166,8 @@ def get_admin_contracts(view="live", search=None):
 	for r in rows:
 		r.days_left = date_diff(r.end_date, today)
 		r.late = r.status == "On Hire" and r.days_left < 0
-		r.bill_due = bool(r.next_billing_date and getdate(r.next_billing_date) <= getdate(today) and r.status != "Active")
+		r.is_job = r.contract_type == "Job Type Contract"
+		r.bill_due = bool(not r.is_job and r.next_billing_date and getdate(r.next_billing_date) <= getdate(today) and r.status != "Active")
 	return view, rows
 
 
@@ -173,11 +179,11 @@ def get_site_groups(search=None):
 		needle = search.strip().lower()
 		rows = [
 			r for r in rows
-			if needle in " ".join(str(r.get(k) or "") for k in ("customer_name", "rental_site", "hire_contract", "item_name", "item_code")).lower()
+			if needle in " ".join(str(r.get(k) or "") for k in ("customer_name", "rental_site", "rental_contract", "item_name", "item_code")).lower()
 		]
 	groups = {}
 	for r in rows:
-		groups.setdefault((r.customer_name or r.customer, r.customer, r.rental_site, r.hire_contract), []).append(r)
+		groups.setdefault((r.customer_name or r.customer, r.customer, r.rental_site, r.rental_contract), []).append(r)
 	out = [
 		frappe._dict(
 			customer_name=key[0], customer=key[1], site=key[2], contract=key[3], rows=lines,
@@ -199,8 +205,8 @@ def get_billing():
 	accrued = execute({"upto_date": add_days(today, -1)})[1]
 	invoices = frappe.get_all(
 		"Sales Invoice",
-		filters={"docstatus": 1, "outstanding_amount": [">", 0], "nxg_hire_contract": ["is", "set"], "is_return": 0},
-		fields=["name", "customer_name", "nxg_hire_contract", "posting_date", "due_date", "grand_total",
+		filters={"docstatus": 1, "outstanding_amount": [">", 0], "nxg_rental_contract": ["is", "set"], "is_return": 0},
+		fields=["name", "customer_name", "nxg_rental_contract", "posting_date", "due_date", "grand_total",
 			"outstanding_amount", "currency"],
 		order_by="due_date asc",
 		limit=200,
@@ -214,7 +220,7 @@ def get_billing():
 		invoices=invoices,
 		receivable=sum(flt(i.outstanding_amount) for i in invoices),
 		late_total=sum(flt(i.outstanding_amount) for i in invoices if i.days_late > 0),
-		drafts=frappe.db.count("Sales Invoice", {"docstatus": 0, "nxg_hire_contract": ["is", "set"]}),
+		drafts=frappe.db.count("Sales Invoice", {"docstatus": 0, "nxg_rental_contract": ["is", "set"]}),
 	)
 
 
@@ -231,7 +237,7 @@ def get_cross_hire():
 		out.append(
 			frappe._dict(
 				supplier=supplier, order=order, purchase_order=head.purchase_order, status=head.status,
-				contract=head.hire_contract, site=head.rental_site, due=head.expected_return_date,
+				contract=head.rental_contract, site=head.rental_site, due=head.expected_return_date,
 				overdue_days=max(l.overdue_days for l in lines), rows=lines,
 				on_hire=sum(flt(l.on_hire_qty) for l in lines),
 			)

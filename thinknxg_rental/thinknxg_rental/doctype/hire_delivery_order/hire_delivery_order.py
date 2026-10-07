@@ -4,15 +4,33 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, getdate
 
 from thinknxg_rental.services import ledger, stock
-from thinknxg_rental.services.utils import get_available_qty, get_bin_qty, get_profile, get_settings
+from thinknxg_rental.services.utils import (
+	get_available_qty,
+	get_bin_qty,
+	get_contract_for_source,
+	get_contract_source,
+	get_profile,
+	get_settings,
+)
 
 
 class HireDeliveryOrder(Document):
 	def set_missing_values(self):
+		# the delivery can be started from the rental source; the Rental Contract is then looked up
+		if not self.rental_contract and self.source_type and self.source_document:
+			self.rental_contract = get_contract_for_source(self.source_type, self.source_document)
+			if not self.rental_contract:
+				frappe.throw(
+					_("{0} {1} has no submitted Rental Contract yet. Create the Rental Contract first.").format(
+						self.source_type, self.source_document
+					)
+				)
+		if not self.rental_contract:
+			frappe.throw(_("Select a Rental Contract, or a Hire Order / Hire Order Contract as the rental source"))
 		contract = frappe.db.get_value(
-			"Hire Order Contract",
-			self.hire_contract,
-			["hire_order", "customer", "customer_name", "rental_site", "project", "company"],
+			"Rental Contract",
+			self.rental_contract,
+			["source_type", "source_document", "customer", "customer_name", "rental_site", "project", "company"],
 			as_dict=True,
 		)
 		if contract:
@@ -21,9 +39,9 @@ class HireDeliveryOrder(Document):
 
 	def validate(self):
 		self.set_missing_values()
-		self._contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
+		self._contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		if self._contract.docstatus != 1 or self._contract.status in ("Completed", "Cancelled"):
-			frappe.throw(_("Contract {0} is not live").format(self.hire_contract))
+			frappe.throw(_("Contract {0} is not live").format(self.rental_contract))
 		if self._contract.last_billed_upto and getdate(self.posting_date) <= getdate(self._contract.last_billed_upto):
 			frappe.throw(
 				_("Dispatch Date must be after {0}, the date this contract is already billed up to.").format(
@@ -31,6 +49,41 @@ class HireDeliveryOrder(Document):
 				)
 			)
 		self.validate_items()
+		self.validate_reservation()
+
+	def validate_reservation(self):
+		"""When a reservation is named, own-stock lines are held to its reserved balance."""
+		for d in self.items:
+			d.reservation_balance = 0
+		if not self.rental_material_reservation:
+			return
+		from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
+			get_contract_reservations,
+			get_reservation_balance,
+		)
+
+		if self.rental_material_reservation not in get_contract_reservations(self.rental_contract):
+			frappe.throw(
+				_("Reservation {0} is not a submitted reservation of contract {1}").format(
+					self.rental_material_reservation, self.rental_contract
+				)
+			)
+		if frappe.db.get_value("Rental Material Reservation", self.rental_material_reservation, "status") == "Released":
+			frappe.throw(_("Reservation {0} has been released").format(self.rental_material_reservation))
+		balance = get_reservation_balance(self.rental_material_reservation)
+		wanted = {}
+		for d in self.items:
+			if d.ownership == "Own":
+				d.reservation_balance = balance.get(d.item_code, 0)
+				wanted[d.item_code] = wanted.get(d.item_code, 0) + flt(d.qty)
+		for item_code, qty in wanted.items():
+			if qty > balance.get(item_code, 0) + 1e-6:
+				frappe.throw(
+					_("{0}: dispatching {1} of own stock but reservation {2} has a balance of {3}. "
+						"Reserve more, use cross-hired stock, or clear the reservation field.").format(
+						frappe.bold(item_code), qty, self.rental_material_reservation, balance.get(item_code, 0)
+					)
+				)
 
 	def validate_items(self):
 		settings = get_settings()
@@ -45,7 +98,7 @@ class HireDeliveryOrder(Document):
 				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 			row = contract_items.get(d.item_code)
 			if not row:
-				frappe.throw(_("Row #{0}: {1} is not on contract {2}. Add it to the contract first.").format(d.idx, d.item_code, self.hire_contract))
+				frappe.throw(_("Row #{0}: {1} is not on contract {2}. Add it to the contract first.").format(d.idx, d.item_code, self.rental_contract))
 			d.contract_qty = row.qty
 			d.previously_delivered = row.dispatched_qty
 			d.balance_to_deliver = flt(row.qty) - flt(d.previously_delivered)
@@ -104,7 +157,7 @@ class HireDeliveryOrder(Document):
 				key = (d.item_code, d.source_warehouse)
 				needed[key] = needed.get(key, 0) + flt(d.qty)
 		for (item_code, warehouse), qty in needed.items():
-			available = get_available_qty(item_code, warehouse, self.hire_contract, self._contract.hire_order)
+			available = get_available_qty(item_code, warehouse, self.rental_contract, get_contract_source(self.rental_contract))
 			if qty > available + 1e-6:
 				frappe.throw(
 					_("{0}: {1} required from {2} but only {3} is free ({4} in stock, the rest is reserved for other contracts).").format(
@@ -140,7 +193,7 @@ class HireDeliveryOrder(Document):
 				ownership=d.ownership,
 				supplier=d.supplier,
 				cross_hire_order=d.cross_hire_order,
-				hire_contract=self.hire_contract,
+				rental_contract=self.rental_contract,
 				customer=self.customer,
 				project=self.project,
 				rental_site=self.rental_site,
@@ -150,13 +203,13 @@ class HireDeliveryOrder(Document):
 		self.update_related()
 
 	def on_cancel(self):
-		balance = ledger.get_site_balance(self.hire_contract)
+		balance = ledger.get_site_balance(self.rental_contract)
 		for d in self.items:
 			key = (d.item_code, d.ownership, d.cross_hire_order or "")
 			balance[key] = balance.get(key, 0) - flt(d.qty)
 			if balance[key] < -1e-6:
 				frappe.throw(_("Cannot cancel: {0} from this delivery has already been off-hired.").format(frappe.bold(d.item_code)))
-		last_billed = frappe.db.get_value("Hire Order Contract", self.hire_contract, "last_billed_upto")
+		last_billed = frappe.db.get_value("Rental Contract", self.rental_contract, "last_billed_upto")
 		if last_billed and getdate(self.posting_date) <= getdate(last_billed):
 			frappe.throw(_("Cannot cancel: this delivery has been billed. Cancel the billing schedules after {0} first.").format(self.posting_date))
 		stock.cancel_stock_entries(self)
@@ -168,20 +221,28 @@ class HireDeliveryOrder(Document):
 			sync_reservations,
 		)
 
-		ledger.update_contract_progress(self.hire_contract)
-		sync_reservations(self.hire_contract)
+		ledger.update_contract_progress(self.rental_contract)
+		sync_reservations(self.rental_contract)
 
 
 @frappe.whitelist()
-def get_dispatch_items(hire_contract: str):
-	"""Suggest dispatch lines: own yard stock first, then received cross-hire material for this contract."""
-	contract = frappe.get_doc("Hire Order Contract", hire_contract)
+def get_dispatch_items(rental_contract: str, reservation: str | None = None):
+	"""Suggest dispatch lines: own yard stock first, then received cross-hire material for this contract.
+	The contract items are always physical stock items; for a job type contract they are the
+	materials exploded from the Hire Order Contract. With a reservation, own stock is limited to its balance."""
+	from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
+		get_reservation_balance,
+	)
+
+	contract = frappe.get_doc("Rental Contract", rental_contract)
 	contract.check_permission("read")
+	source = get_contract_source(rental_contract)
+	reserved = get_reservation_balance(reservation) if reservation else None
 	settings = get_settings()
 	yard = settings.rental_yard_warehouse
 	chos = frappe.get_all(
 		"Cross Hire Order",
-		filters={"docstatus": 1, "hire_contract": hire_contract, "status": ["!=", "Completed"]},
+		filters={"docstatus": 1, "rental_contract": rental_contract, "status": ["!=", "Completed"]},
 		fields=["name", "supplier", "receipt_warehouse"],
 		order_by="creation asc",
 	)
@@ -198,7 +259,10 @@ def get_dispatch_items(hire_contract: str):
 			"previously_delivered": d.dispatched_qty,
 			"balance_to_deliver": pending,
 		}
-		own = min(pending, max(get_available_qty(d.item_code, yard, contract.name, contract.hire_order), 0)) if yard else 0
+		own = min(pending, max(get_available_qty(d.item_code, yard, contract.name, source), 0)) if yard else 0
+		if reserved is not None:
+			own = min(own, max(reserved.get(d.item_code, 0), 0))
+			base["reservation_balance"] = reserved.get(d.item_code, 0)
 		if own > 0:
 			out.append(dict(base, qty=own, ownership="Own", source_warehouse=yard))
 			pending -= own
@@ -212,3 +276,12 @@ def get_dispatch_items(hire_contract: str):
 				)
 				pending -= free
 	return out
+
+
+@frappe.whitelist()
+def get_delivery_for_source(source_type: str, source_document: str):
+	"""Selecting a Hire Order or Hire Order Contract on a delivery: find its Rental Contract and the lines to dispatch."""
+	contract = get_contract_for_source(source_type, source_document)
+	if not contract:
+		frappe.throw(_("{0} {1} has no submitted Rental Contract yet. Create the Rental Contract first.").format(source_type, source_document))
+	return {"rental_contract": contract, "items": get_dispatch_items(contract)}

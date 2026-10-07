@@ -1,6 +1,6 @@
 frappe.ui.form.on("Hire Off-Hire Note", {
 	setup(frm) {
-		frm.set_query("hire_contract", () => ({ filters: { docstatus: 1, status: ["in", ["On Hire", "Active"]] } }));
+		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["in", ["On Hire", "Active"]] } }));
 		frm.set_query("target_warehouse", "items", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
 	},
 	refresh(frm) {
@@ -16,18 +16,18 @@ frappe.ui.form.on("Hire Off-Hire Note", {
 		}
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
-	hire_contract(frm) {
-		if (!frm.doc.hire_contract) return;
-		frappe.db.get_value("Hire Order Contract", frm.doc.hire_contract, "grace_days").then((r) => {
+	rental_contract(frm) {
+		if (!frm.doc.rental_contract) return;
+		frappe.db.get_value("Rental Contract", frm.doc.rental_contract, "grace_days").then((r) => {
 			frm.set_value("grace_days", (r.message && r.message.grace_days) || 0);
 		});
 		if (!(frm.doc.items || []).some((d) => d.item_code)) frm.trigger("get_items");
 	},
 	get_items(frm) {
-		if (!frm.doc.hire_contract) return frappe.msgprint(__("Select a Hire Contract first"));
+		if (!frm.doc.rental_contract) return frappe.msgprint(__("Select a Rental Contract first"));
 		frappe.call({
 			method: "thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.get_items_at_site",
-			args: { hire_contract: frm.doc.hire_contract },
+			args: { rental_contract: frm.doc.rental_contract },
 			callback(r) {
 				frm.clear_table("items");
 				(r.message || []).forEach((row) => frm.add_child("items", row));

@@ -14,7 +14,7 @@
  "name": "Hire Contract Profitability",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Hire Order Contract",
+ "ref_doctype": "Rental Contract",
  "report_name": "Hire Contract Profitability",
  "report_type": "Script Report",
  "roles": [

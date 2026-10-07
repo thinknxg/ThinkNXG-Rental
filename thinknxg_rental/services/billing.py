@@ -9,7 +9,7 @@ from frappe import _
 from frappe.utils import add_days, add_months, cint, date_diff, flt, formatdate, get_last_day, getdate, nowdate
 
 from thinknxg_rental.services import ledger
-from thinknxg_rental.services.utils import BASIS_FACTOR, BASIS_UOM, billable_units, get_settings, require_setting
+from thinknxg_rental.services.utils import BASIS_FACTOR, BASIS_UOM, as_system, billable_units, get_settings, require_setting
 
 
 def get_period_end(contract, from_date):
@@ -31,7 +31,7 @@ def compute_lines(contract, from_date, to_date):
 	month_basis = get_settings().month_basis
 	rates = {d.item_code: d for d in contract.items}
 	lines = []
-	segments = ledger.get_segments(from_date, to_date, ledger.AT_SITE, hire_contract=contract.name)
+	segments = ledger.get_segments(from_date, to_date, ledger.AT_SITE, rental_contract=contract.name)
 	for item_code in sorted(segments):
 		row = rates.get(item_code)
 		if not row:
@@ -56,32 +56,32 @@ def compute_lines(contract, from_date, to_date):
 	return lines
 
 
-def get_last_billable_day(hire_contract):
+def get_last_billable_day(rental_contract):
 	last = frappe.db.sql(
-		"select max(billing_date) from `tabRental Ownership Ledger` where position_type = %s and hire_contract = %s",
-		(ledger.AT_SITE, hire_contract),
+		"select max(billing_date) from `tabRental Ownership Ledger` where position_type = %s and rental_contract = %s",
+		(ledger.AT_SITE, rental_contract),
 	)[0][0]
 	return add_days(getdate(last), -1) if last else None
 
 
 @frappe.whitelist()
-def generate_billing(hire_contract: str, upto_date: str | None = None, only_complete: int = 0):
+def generate_billing(rental_contract: str, upto_date: str | None = None, only_complete: int = 0):
 	"""Create billing schedules (and Sales Invoices) for every unbilled period up to `upto_date`.
 
 	only_complete=1 (scheduler) bills whole periods only, except that a fully off-hired
 	contract is billed up to its last billable day straight away.
 	"""
-	contract = frappe.get_doc("Hire Order Contract", hire_contract)
+	contract = frappe.get_doc("Rental Contract", rental_contract)
 	contract.check_permission("write")
 	if contract.docstatus != 1:
-		frappe.throw(_("Contract {0} is not submitted").format(hire_contract))
-	if not contract.billing_start_date:
+		frappe.throw(_("Contract {0} is not submitted").format(rental_contract))
+	if contract.contract_type == "Job Type Contract" or not contract.billing_start_date:
 		return []
 
 	limit = getdate(upto_date) if upto_date else add_days(getdate(nowdate()), -1)
 	off_hired = flt(contract.total_at_site_qty) <= 0
 	if off_hired:
-		last_day = get_last_billable_day(hire_contract)
+		last_day = get_last_billable_day(rental_contract)
 		if last_day:
 			limit = min(limit, getdate(last_day))
 
@@ -101,7 +101,7 @@ def generate_billing(hire_contract: str, upto_date: str | None = None, only_comp
 			schedule.update(
 				{
 					"company": contract.company,
-					"hire_contract": contract.name,
+					"rental_contract": contract.name,
 					"posting_date": nowdate(),
 					"from_date": from_date,
 					"to_date": period_end,
@@ -151,7 +151,7 @@ def make_sales_invoice(schedule: str):
 		frappe.throw(_("Sales Invoice {0} already exists for this schedule").format(doc.sales_invoice))
 	settings = get_settings()
 	charge_item = require_setting("rental_charge_item")
-	contract = frappe.get_doc("Hire Order Contract", doc.hire_contract)
+	contract = frappe.get_doc("Rental Contract", doc.rental_contract)
 
 	si = frappe.new_doc("Sales Invoice")
 	si.update(
@@ -162,7 +162,7 @@ def make_sales_invoice(schedule: str):
 			"project": contract.project,
 			"cost_center": contract.cost_center,
 			"payment_terms_template": contract.payment_terms_template,
-			"nxg_hire_contract": contract.name,
+			"nxg_rental_contract": contract.name,
 			"nxg_rental_billing_schedule": doc.name,
 			"remarks": _("Rental charges {0} to {1} - Contract {2}, Site {3}").format(
 				formatdate(doc.from_date), formatdate(doc.to_date), contract.name, contract.rental_site
@@ -194,20 +194,22 @@ def make_sales_invoice(schedule: str):
 		)
 	append_taxes(si, "Sales Taxes and Charges Template", contract.taxes_and_charges)
 	si.flags.ignore_permissions = True
-	si.insert()
-	doc.db_set("sales_invoice", si.name)
-	if cint(settings.auto_submit_sales_invoice):
-		si.submit()
+	with as_system():
+		si.insert()
+		doc.db_set("sales_invoice", si.name)
+		if cint(settings.auto_submit_sales_invoice):
+			si.submit()
 	return si.name
 
 
-def update_contract_billed_amount(hire_contract):
+def update_contract_billed_amount(rental_contract):
 	total = frappe.db.sql(
 		"""select sum(base_net_total) from `tabSales Invoice`
-		where docstatus = 1 and nxg_hire_contract = %s and ifnull(nxg_rental_billing_schedule, '') != ''""",
-		hire_contract,
+		where docstatus = 1 and nxg_rental_contract = %s
+			and (ifnull(nxg_rental_billing_schedule, '') != '' or ifnull(nxg_jcr_billing_schedule, '') != '')""",
+		rental_contract,
 	)[0][0]
-	frappe.db.set_value("Hire Order Contract", hire_contract, "total_billed_amount", flt(total), update_modified=False)
+	frappe.db.set_value("Rental Contract", rental_contract, "total_billed_amount", flt(total), update_modified=False)
 
 
 def run_daily_billing():
@@ -215,8 +217,8 @@ def run_daily_billing():
 	if not cint(get_settings().auto_generate_billing):
 		return
 	contracts = frappe.get_all(
-		"Hire Order Contract",
-		filters={"docstatus": 1, "status": ["in", ["On Hire", "Off Hired"]]},
+		"Rental Contract",
+		filters={"docstatus": 1, "status": ["in", ["On Hire", "Off Hired"]], "contract_type": ["!=", "Job Type Contract"]},
 		pluck="name",
 	)
 	for name in contracts:

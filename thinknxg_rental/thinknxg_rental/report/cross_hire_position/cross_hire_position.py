@@ -6,7 +6,7 @@ from frappe.utils import date_diff, flt, nowdate
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
 	conditions, values = ["o.docstatus = 1"], {}
-	for field in ("company", "supplier", "hire_contract"):
+	for field in ("company", "supplier", "rental_contract"):
 		if filters.get(field):
 			conditions.append(f"o.{field} = %({field})s")
 			values[field] = filters[field]
@@ -17,7 +17,7 @@ def execute(filters=None):
 		conditions.append("(oi.on_hire_qty > 0 or o.status = 'To Receive')")
 	rows = frappe.db.sql(
 		f"""
-		select o.supplier, o.supplier_name, o.name as cross_hire_order, o.purchase_order, o.status, o.hire_contract,
+		select o.supplier, o.supplier_name, o.name as cross_hire_order, o.purchase_order, o.status, o.rental_contract,
 			o.customer, o.rental_site, o.hire_from, o.expected_return_date, oi.item_code, oi.item_name, oi.qty,
 			oi.received_qty, oi.returned_qty, oi.lost_qty, oi.on_hire_qty, oi.rate, oi.rate_basis,
 			(select ifnull(sum(l.qty), 0) from `tabRental Ownership Ledger` l
@@ -44,7 +44,7 @@ def execute(filters=None):
 		{"label": _("Cross Hire Order"), "fieldname": "cross_hire_order", "fieldtype": "Link", "options": "Cross Hire Order", "width": 140},
 		{"label": _("Purchase Order"), "fieldname": "purchase_order", "fieldtype": "Link", "options": "Purchase Order", "width": 140},
 		{"label": _("Status"), "fieldname": "status", "width": 120},
-		{"label": _("Customer Contract"), "fieldname": "hire_contract", "fieldtype": "Link", "options": "Hire Order Contract", "width": 140},
+		{"label": _("Customer Contract"), "fieldname": "rental_contract", "fieldtype": "Link", "options": "Rental Contract", "width": 140},
 		{"label": _("Site"), "fieldname": "rental_site", "fieldtype": "Link", "options": "Rental Site", "width": 130},
 		{"label": _("Item"), "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 150},
 		{"label": _("Item Name"), "fieldname": "item_name", "width": 170},

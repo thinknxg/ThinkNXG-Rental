@@ -67,6 +67,17 @@
    "collapsible": 1,
    "indent": 0,
    "keep_closed": 0,
+   "label": "Rental Contract",
+   "link_to": "Rental Contract",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
    "label": "Rental Material Reservation",
    "link_to": "Rental Material Reservation",
    "link_type": "DocType",
@@ -91,6 +102,39 @@
    "keep_closed": 0,
    "label": "Hire Off-Hire Note",
    "link_to": "Hire Off-Hire Note",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "icon": "calendar-check",
+   "indent": 1,
+   "keep_closed": 0,
+   "label": "Job Type Contracts",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Section Break"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Job Completion Report",
+   "link_to": "Job Completion Report",
+   "link_type": "DocType",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "JCR Billing Schedule",
+   "link_to": "JCR Billing Schedule",
    "link_type": "DocType",
    "show_arrow": 0,
    "type": "Link"

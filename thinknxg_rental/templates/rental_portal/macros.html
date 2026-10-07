@@ -13,7 +13,7 @@
 
 {% macro pill(status) -%}
 {%- set tone = {
-	"On Hire": "go", "Active": "go", "Completed": "quiet", "Off Hired": "quiet", "Cancelled": "quiet",
+	"On Hire": "go", "Active": "go", "Within Contract": "go", "In Excess": "wait", "Dismantled": "quiet", "Completed": "quiet", "Off Hired": "quiet", "Cancelled": "quiet",
 	"Open": "wait", "In Progress": "wait", "Rejected": "stop",
 	"Paid": "go", "Unpaid": "wait", "Overdue": "stop", "Partly Paid": "wait", "Return": "quiet", "Credit Note Issued": "quiet"
 }.get(status, "quiet") -%}

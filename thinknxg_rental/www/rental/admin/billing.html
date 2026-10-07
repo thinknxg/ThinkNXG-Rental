@@ -31,14 +31,14 @@
 		<tbody>
 		{% for r in g.accrued %}
 		<tr>
-			<td class="rp-first"><a href="{{ desk('Hire Order Contract', r.hire_contract) }}">{{ r.hire_contract | e }}</a></td>
+			<td class="rp-first"><a href="{{ desk('Rental Contract', r.rental_contract) }}">{{ r.rental_contract | e }}</a></td>
 			<td data-label="{{ _('Customer and site') }}">{{ r.customer_name | e }}<span class="rp-sub">{{ r.rental_site | e }}</span></td>
 			<td data-label="{{ _('Cycle') }}">{{ _(r.billing_cycle) }}</td>
 			<td data-label="{{ _('Unbilled from') }}">{{ date(r.unbilled_from) }}</td>
 			<td data-label="{{ _('Next billing date') }}" {% if r.overdue %}class="rp-due"{% endif %}>{{ date(r.next_billing_date) }}</td>
 			<td data-label="{{ _('At site') }}" class="rp-num">{{ qty(r.at_site_qty) }}</td>
 			<td data-label="{{ _('Accrued') }}" class="rp-num rp-strong">{{ money(r.unbilled_amount) }}</td>
-			<td class="rp-act">{% if ra.can_bill and r.overdue %}<button class="rp-btn rp-btn--small" type="button" data-bill="{{ r.hire_contract | e }}">{{ _("Bill now") }}</button>{% endif %}</td>
+			<td class="rp-act">{% if ra.can_bill and r.overdue %}<button class="rp-btn rp-btn--small" type="button" data-bill="{{ r.rental_contract | e }}">{{ _("Bill now") }}</button>{% endif %}</td>
 		</tr>
 		{% endfor %}
 		</tbody>
@@ -60,7 +60,7 @@
 		<tr>
 			<td class="rp-first"><a href="{{ desk('Sales Invoice', i.name) }}">{{ i.name | e }}</a></td>
 			<td data-label="{{ _('Customer') }}">{{ i.customer_name | e }}</td>
-			<td data-label="{{ _('Contract') }}"><a href="{{ desk('Hire Order Contract', i.nxg_hire_contract) }}">{{ i.nxg_hire_contract | e }}</a></td>
+			<td data-label="{{ _('Contract') }}"><a href="{{ desk('Rental Contract', i.nxg_rental_contract) }}">{{ i.nxg_rental_contract | e }}</a></td>
 			<td data-label="{{ _('Due') }}">{{ date(i.due_date) }}{% if i.days_late > 0 %}<span class="rp-sub rp-due">{{ _("{0} days late").format(i.days_late) }}</span>{% endif %}</td>
 			<td data-label="{{ _('Amount') }}" class="rp-num">{{ money(i.grand_total, i.currency) }}</td>
 			<td data-label="{{ _('Outstanding') }}" class="rp-num rp-strong">{{ money(i.outstanding_amount, i.currency) }}</td>

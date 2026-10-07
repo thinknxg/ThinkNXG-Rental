@@ -117,7 +117,7 @@
  ],
  "links": [
   {
-   "link_doctype": "Hire Order Contract",
+   "link_doctype": "Rental Contract",
    "link_fieldname": "rental_site"
   },
   {

@@ -20,7 +20,7 @@
 	<tbody>
 	{% for g in groups %}
 	<tr class="rp-group"><td colspan="6">{{ g.customer_name | e }}, {{ g.site | e }},
-		<a href="{{ desk('Hire Order Contract', g.contract) }}">{{ g.contract | e }}</a>
+		<a href="{{ desk('Rental Contract', g.contract) }}">{{ g.contract | e }}</a>
 		({{ _("{0} units").format(qty(g.total)) }})
 		<a href="/rental/contract?name={{ g.contract | urlencode }}&customer={{ g.customer | urlencode }}" style="font-weight: 400; margin-inline-start: 0.75rem">{{ _("Customer's view") }}</a></td></tr>
 	{% for r in g.rows %}

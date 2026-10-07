@@ -23,14 +23,14 @@ thinknxg_rental.fetch_rental_details = function (frm, cdt, cdn, extra) {
 
 frappe.ui.form.on("Hire Order", {
 	setup(frm) {
-		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0, is_rental_item: 1 } }));
+		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
 		frm.set_query("rental_site", () => ({ filters: { customer: frm.doc.customer, disabled: 0 } }));
 	},
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) return;
 		if (frm.doc.status === "Open") {
 			frm.add_custom_button(
-				__("Hire Contract"),
+				__("Rental Contract"),
 				() => frappe.model.open_mapped_doc({ method: "thinknxg_rental.thinknxg_rental.doctype.hire_order.hire_order.make_contract", frm }),
 				__("Create")
 			);

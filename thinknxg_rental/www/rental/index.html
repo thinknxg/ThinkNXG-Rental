@@ -74,7 +74,7 @@
 				<time>{{ date(m.date) }}</time>
 				<span><span class="rp-{{ m.kind | e }}">{{ m.label | e }}</span> {{ _("{0} units").format(qty(m.qty)) }}
 					<span class="rp-sub">{{ m.rental_site | e }}</span></span>
-				<a href="/rental/contract?name={{ m.hire_contract | urlencode }}{{ rp.qs_amp | e }}">{{ m.hire_contract | e }}</a>
+				<a href="/rental/contract?name={{ m.rental_contract | urlencode }}{{ rp.qs_amp | e }}">{{ m.rental_contract | e }}</a>
 			</li>
 			{% endfor %}
 		</ul>

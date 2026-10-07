@@ -14,7 +14,7 @@
   "status",
   "company",
   "sb_122",
-  "hire_contract",
+  "rental_contract",
   "rental_site",
   "site_location",
   "cb_123",
@@ -107,10 +107,10 @@
    "label": "Request"
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
    "depends_on": "eval:doc.request_type!='Hire Enquiry'",
    "mandatory_depends_on": "eval:doc.request_type!='Hire Enquiry'"
   },
@@ -119,7 +119,7 @@
    "fieldtype": "Link",
    "label": "Rental Site",
    "options": "Rental Site",
-   "fetch_from": "hire_contract.rental_site",
+   "fetch_from": "rental_contract.rental_site",
    "read_only": 1
   },
   {

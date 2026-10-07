@@ -19,6 +19,7 @@
   "sb_54",
   "contract_qty",
   "previously_delivered",
+  "reservation_balance",
   "cb_55",
   "balance_to_deliver",
   "weight",
@@ -133,6 +134,13 @@
    "fieldname": "previously_delivered",
    "fieldtype": "Float",
    "label": "Previously Delivered",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "reservation_balance",
+   "fieldtype": "Float",
+   "label": "Reservation Balance",
    "read_only": 1,
    "no_copy": 1
   },

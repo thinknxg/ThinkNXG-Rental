@@ -1,0 +1,346 @@
+{
+ "actions": [],
+ "creation": "2026-10-06 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "hire_order_contract",
+  "rental_contract",
+  "customer",
+  "customer_name",
+  "rental_site",
+  "cb_140",
+  "status",
+  "job_type",
+  "job_type_name",
+  "location",
+  "job_qty",
+  "sb_141",
+  "erection_date",
+  "included_days",
+  "contract_end_date",
+  "cb_142",
+  "dismantle_date",
+  "actual_days",
+  "excess_days",
+  "sb_143",
+  "contract_rate",
+  "contract_charge_billing",
+  "cb_144",
+  "excess_rate_basis",
+  "excess_rate",
+  "sb_145",
+  "billed_upto",
+  "cb_146",
+  "total_billed_amount",
+  "sb_147",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "JCR-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1,
+   "default": "JCR-.YYYY.-.#####"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hire_order_contract",
+   "fieldtype": "Link",
+   "label": "Hire Order Contract",
+   "options": "Hire Order Contract",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "hire_order_contract.customer",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "hire_order_contract.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site",
+   "fetch_from": "hire_order_contract.rental_site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_140",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nWithin Contract\nIn Excess\nDismantled\nCompleted\nCancelled",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Draft"
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "label": "Job Type",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "job_type_name",
+   "fieldtype": "Data",
+   "label": "Job Type Name",
+   "fetch_from": "job_type.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "job_qty",
+   "fieldtype": "Float",
+   "label": "No. of Jobs",
+   "reqd": 1,
+   "default": "1"
+  },
+  {
+   "fieldname": "sb_141",
+   "fieldtype": "Section Break",
+   "label": "Duration"
+  },
+  {
+   "fieldname": "erection_date",
+   "fieldtype": "Date",
+   "label": "Erection Date (Contract Start)",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "included_days",
+   "fieldtype": "Int",
+   "label": "Included Contract Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_end_date",
+   "fieldtype": "Date",
+   "label": "Contract End Date",
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "cb_142",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dismantle_date",
+   "fieldtype": "Date",
+   "label": "Dismantle Date (Contract End)",
+   "allow_on_submit": 1,
+   "no_copy": 1,
+   "description": "Leave blank while the job is standing. Excess is then billed at each month end."
+  },
+  {
+   "fieldname": "actual_days",
+   "fieldtype": "Int",
+   "label": "Actual Days",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "excess_days",
+   "fieldtype": "Int",
+   "label": "Excess Days",
+   "read_only": 1,
+   "no_copy": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "sb_143",
+   "fieldtype": "Section Break",
+   "label": "Charges"
+  },
+  {
+   "fieldname": "contract_rate",
+   "fieldtype": "Currency",
+   "label": "Contract Charge per Job",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_charge_billing",
+   "fieldtype": "Select",
+   "label": "Bill Contract Charge",
+   "options": "On Erection\nAt Contract End",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_144",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "excess_rate_basis",
+   "fieldtype": "Select",
+   "label": "Excess Charge Basis",
+   "options": "Daily\nWeekly\nMonthly",
+   "read_only": 1
+  },
+  {
+   "fieldname": "excess_rate",
+   "fieldtype": "Currency",
+   "label": "Excess Charge per Job",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_145",
+   "fieldtype": "Section Break",
+   "label": "Billing"
+  },
+  {
+   "fieldname": "billed_upto",
+   "fieldtype": "Date",
+   "label": "Billed Upto",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_146",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_billed_amount",
+   "fieldtype": "Currency",
+   "label": "Total Billed Amount",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_147",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Job Completion Report",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [
+  {
+   "link_doctype": "JCR Billing Schedule",
+   "link_fieldname": "jcr"
+  },
+  {
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "nxg_jcr"
+  }
+ ],
+ "modified": "2026-10-06 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Job Completion Report",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,hire_order_contract,job_type,location",
+ "track_changes": 1
+}

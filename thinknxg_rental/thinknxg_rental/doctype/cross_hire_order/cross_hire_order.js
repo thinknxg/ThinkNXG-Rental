@@ -1,7 +1,7 @@
 frappe.ui.form.on("Cross Hire Order", {
 	setup(frm) {
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
-		frm.set_query("hire_contract", () => ({ filters: { docstatus: 1, status: ["not in", ["Completed", "Cancelled"]] } }));
+		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["not in", ["Completed", "Cancelled"]] } }));
 		frm.set_query("taxes_and_charges", () => ({ filters: { company: frm.doc.company } }));
 	},
 	refresh(frm) {

@@ -6,10 +6,10 @@ from frappe.utils import flt, getdate, nowdate
 
 class RentalPortalRequest(Document):
 	def validate(self):
-		if self.hire_contract:
-			contract = frappe.db.get_value("Hire Order Contract", self.hire_contract, ["customer", "company"], as_dict=True)
+		if self.rental_contract:
+			contract = frappe.db.get_value("Rental Contract", self.rental_contract, ["customer", "company"], as_dict=True)
 			if contract.customer != self.customer:
-				frappe.throw(_("Contract {0} does not belong to customer {1}").format(self.hire_contract, self.customer))
+				frappe.throw(_("Contract {0} does not belong to customer {1}").format(self.rental_contract, self.customer))
 			self.company = self.company or contract.company
 		if self.request_type != "Extension Request" and not self.items:
 			frappe.throw(_("Add at least one item"))
@@ -20,9 +20,9 @@ class RentalPortalRequest(Document):
 		self.check_permission("write")
 		if self.request_type != "Extension Request" or self.status in ("Completed", "Rejected", "Cancelled"):
 			frappe.throw(_("Nothing to extend"))
-		contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
+		contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		contract.extend_contract(str(self.new_end_date), _("Customer portal request {0}").format(self.name))
-		self.db_set({"status": "Completed", "reference_doctype": "Hire Order Contract", "reference_name": contract.name})
+		self.db_set({"status": "Completed", "reference_doctype": "Rental Contract", "reference_name": contract.name})
 
 
 def set_request_reference(doc, completed=True):
@@ -77,12 +77,12 @@ def make_off_hire_note(source_name: str, target_doc=None):
 	from thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note import get_items_at_site
 
 	source = _open_request(source_name, "Off-Hire Request")
-	contract = frappe.get_doc("Hire Order Contract", source.hire_contract)
+	contract = frappe.get_doc("Rental Contract", source.rental_contract)
 	target = frappe.new_doc("Hire Off-Hire Note")
 	target.update(
 		{
 			"company": contract.company,
-			"hire_contract": contract.name,
+			"rental_contract": contract.name,
 			"portal_request": source.name,
 			"off_hire_date": source.request_date,
 			"return_date": nowdate(),

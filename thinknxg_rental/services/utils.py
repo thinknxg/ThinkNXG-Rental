@@ -1,9 +1,30 @@
+from contextlib import contextmanager
+
 import frappe
 from frappe import _
 from frappe.utils import add_days, cint, date_diff, flt, get_last_day, getdate, nowdate
 
 BASIS_UOM = {"Daily": "Unit-Day", "Weekly": "Unit-Week", "Monthly": "Unit-Month"}
 BASIS_FACTOR = {"Daily": 1, "Weekly": 7, "Monthly": 30}
+
+
+@contextmanager
+def as_system():
+	"""Create ERPNext accounting / buying documents on the user's behalf.
+
+	The caller's permission is always checked on the rental document first. ERPNext then insists
+	that the session user can read the party's ledger account, which rental staff normally cannot,
+	so the invoice, order or return itself is written as Administrator."""
+	session = frappe.local.session
+	user = session.user
+	if user == "Administrator":
+		yield
+		return
+	session.user = "Administrator"
+	try:
+		yield
+	finally:
+		session.user = user
 
 
 def get_settings():
@@ -89,7 +110,7 @@ def get_bin_qty(item_code, warehouse):
 def get_open_reservations(item_code, warehouse):
 	return frappe.db.sql(
 		"""
-		select r.name, r.hire_contract, r.hire_order,
+		select r.name, r.rental_contract, r.source_type, r.source_document,
 			(ri.reserved_qty - ri.dispatched_qty - ri.released_qty) as balance
 		from `tabRental Material Reservation Item` ri
 		inner join `tabRental Material Reservation` r on r.name = ri.parent
@@ -102,23 +123,41 @@ def get_open_reservations(item_code, warehouse):
 	)
 
 
-def get_reserved_for_others(item_code, warehouse, hire_contract=None, hire_order=None, reservation=None):
+def get_contract_source(rental_contract):
+	"""(source_type, source_document) of a Rental Contract, or None when it was raised directly."""
+	if not rental_contract:
+		return None
+	src = frappe.db.get_value("Rental Contract", rental_contract, ["source_type", "source_document"])
+	return tuple(src) if src and src[0] and src[1] else None
+
+
+def get_contract_for_source(source_type, source_document):
+	"""The submitted Rental Contract raised from a Hire Order or Hire Order Contract, if any."""
+	if not (source_type and source_document):
+		return None
+	return frappe.db.get_value(
+		"Rental Contract", {"source_type": source_type, "source_document": source_document, "docstatus": 1}, "name"
+	)
+
+
+def get_reserved_for_others(item_code, warehouse, rental_contract=None, source=None, reservation=None):
+	"""Open reservations that do not belong to this contract / source document."""
 	total = 0.0
 	for row in get_open_reservations(item_code, warehouse):
 		if reservation and row.name == reservation:
 			continue
-		if hire_contract and row.hire_contract == hire_contract:
+		if rental_contract and row.rental_contract == rental_contract:
 			continue
-		if hire_order and row.hire_order == hire_order:
+		if source and (row.source_type, row.source_document) == tuple(source):
 			continue
 		total += flt(row.balance)
 	return total
 
 
-def get_available_qty(item_code, warehouse, hire_contract=None, hire_order=None, reservation=None):
+def get_available_qty(item_code, warehouse, rental_contract=None, source=None, reservation=None):
 	"""Yard stock not promised to somebody else. Reservations never touch the stock ledger."""
 	return get_bin_qty(item_code, warehouse) - get_reserved_for_others(
-		item_code, warehouse, hire_contract, hire_order, reservation
+		item_code, warehouse, rental_contract, source, reservation
 	)
 
 
@@ -126,7 +165,7 @@ def get_available_qty(item_code, warehouse, hire_contract=None, hire_order=None,
 def get_item_rental_details(item_code: str, customer: str | None = None, rate_basis: str | None = None,
 		posting_date=None, warehouse: str | None = None):
 	"""Form helper. Open to anyone who can read hire orders or contracts; it does not need Item permission."""
-	if not (frappe.has_permission("Hire Order", "read") or frappe.has_permission("Hire Order Contract", "read")):
+	if not (frappe.has_permission("Hire Order", "read") or frappe.has_permission("Rental Contract", "read")):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	return item_rental_details(item_code, customer, rate_basis, posting_date, warehouse)
 

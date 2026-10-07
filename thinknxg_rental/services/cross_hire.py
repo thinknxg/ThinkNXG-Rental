@@ -5,7 +5,7 @@ from frappe.utils import add_days, cint, date_diff, flt, formatdate, getdate, no
 
 from thinknxg_rental.services import ledger
 from thinknxg_rental.services.billing import append_taxes
-from thinknxg_rental.services.utils import BASIS_FACTOR, BASIS_UOM, billable_units, get_settings, require_setting
+from thinknxg_rental.services.utils import BASIS_FACTOR, BASIS_UOM, as_system, billable_units, get_settings, require_setting
 
 
 def create_purchase_order(cho):
@@ -29,7 +29,7 @@ def create_purchase_order(cho):
 			"project": cho.project,
 			"nxg_is_cross_hire": 1,
 			"nxg_cross_hire_order": cho.name,
-			"nxg_hire_contract": cho.hire_contract,
+			"nxg_rental_contract": cho.rental_contract,
 		}
 	)
 	for d in cho.items:
@@ -76,9 +76,10 @@ def create_purchase_order(cho):
 		)
 	append_taxes(po, "Purchase Taxes and Charges Template", cho.taxes_and_charges)
 	po.flags.ignore_permissions = True
-	po.insert()
-	if cint(settings.auto_submit_purchase_order):
-		po.submit()
+	with as_system():
+		po.insert()
+		if cint(settings.auto_submit_purchase_order):
+			po.submit()
 	return po.name
 
 
@@ -173,8 +174,9 @@ def create_purchase_returns(note):
 			}
 		)
 		ret.flags.ignore_permissions = True
-		ret.insert()
-		ret.submit()
+		with as_system():
+			ret.insert()
+			ret.submit()
 		created.append(ret.name)
 	short = {k: v for k, v in remaining.items() if v > 1e-6}
 	if short:

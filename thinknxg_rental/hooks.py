@@ -34,6 +34,7 @@ doc_events = {
 		"on_submit": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
+	"Item": {"validate": "thinknxg_rental.events.item.validate"},
 	"Sales Invoice": {
 		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
 		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",
@@ -43,6 +44,7 @@ doc_events = {
 }
 
 doctype_js = {
+	"Item": "public/js/item.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
 }
@@ -54,5 +56,8 @@ standard_portal_menu_items = [
 ]
 
 scheduler_events = {
-	"daily": ["thinknxg_rental.services.billing.run_daily_billing"],
+	"daily": [
+		"thinknxg_rental.services.billing.run_daily_billing",
+		"thinknxg_rental.services.jcr_billing.run_daily_jcr_billing",
+	],
 }

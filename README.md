@@ -1,6 +1,6 @@
 # thinkNXG Rental
 
-Formwork and scaffolding rental for **Frappe / ERPNext v16**: Hire Order, Hire Order Contract, material
+Formwork and scaffolding rental for **Frappe / ERPNext v16**: Hire Order, Rental Contract, material
 reservation, Delivery Order (material dispatch), material-at-site tracking, recurring rental billing,
 partial returns / off-hire, return inspection, damage and loss settlement, and a cross-hire module that
 runs on the standard ERPNext Purchase Order, Purchase Receipt, Purchase Return and Purchase Invoice.
@@ -38,12 +38,47 @@ Requires `frappe` and `erpnext` version 16 (Python 3.14).
    User for cross hire.
 5. Put opening rental stock into the Rental Yard warehouse with a normal Stock Reconciliation.
 
+## Two order types, one execution engine (v2.0)
+
+| | Hire Order | Hire Order Contract |
+|---|---|---|
+| For | Rental of stock items by quantity | A job (Job Type Item) for a fixed number of days |
+| Lines | Stock items | Job types, exploded into physical rental items |
+| Priced by | Rate per item per day / week / month | Contract charge per job + excess charge per day / week / month |
+| Duration controlled by | Deliveries and off-hire notes | Job Completion Report (JCR): erection and dismantle dates |
+| Billed by | Rental Billing Schedule (material on hire) | JCR Billing Schedule (contract period, then month-end excess) |
+
+Both create a **Rental Contract** (Rental Source Type + Rental Source), and from there share the same
+Rental Material Reservation -> Hire Delivery Order -> Material at Site -> Off-Hire engine. Reservations,
+deliveries and the ledger always carry stock items, never the non-stock job type.
+
+**Job Type Item:** an Item with Maintain Stock off and *Is Job Type Item* ticked. Its *Job Type Rental
+Items* table lists the stock items one job needs.
+
+**Hire Order Contract:** one line per job type with number of jobs, included contract days, contract
+charge and excess charge. On first save the job types are exploded into the Physical Rental Items table,
+which can be adjusted to the actual job.
+
+**JCR:** raised against a Hire Order Contract job. The erection date starts the clock;
+contract end = erection + included days - 1. While the job stands, excess is billed at each month end;
+**Record Dismantle** stops the clock and raises the final excess bill. Each period gets one JCR Billing
+Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
+contract end, as chosen on the Hire Order Contract.
+
+### Upgrading from 1.x
+
+`bench migrate` renames the old "Hire Order Contract" DocType to "Rental Contract" (with its child
+tables), renames the `hire_contract` link field to `rental_contract` everywhere including the `nxg_`
+custom fields, fills Rental Source Type / Rental Source from the old Hire Order link, and moves the
+series to `RC-`. Existing contracts keep their `HC-` numbers. Take a backup first. Any custom
+scripts, reports or print formats of your own that mention the old DocType or field names need updating.
+
 ## Customer flow
 
 | Step | Document | What it does in ERPNext |
 |---|---|---|
 | 1 | **Hire Order** | Commercial order; shows yard availability and shortfall per line. |
-| 2 | **Hire Order Contract** | The rental agreement: rates, billing cycle, grace days, minimum hire, deposit. Items, quantities and rates can be revised after submit. |
+| 2 | **Rental Contract** | The rental agreement: rates, billing cycle, grace days, minimum hire, deposit. Items, quantities and rates can be revised after submit. |
 | 3 | **Rental Material Reservation** | Soft reservation against yard stock. No stock posting; it reduces what other contracts may reserve or dispatch. Shortfall -> **Cross Hire Order**. |
 | 4 | **Hire Delivery Order** | Stock Entry (Material Transfer) yard -> site warehouse, plus the at-site ledger. Lines are Own or Cross Hire. |
 | 5 | **Hire Off-Hire Note** | Partial or full return. Stock Entry site -> inspection / yard; lost quantity is written off by Material Issue. Sets the last billable date. |
@@ -148,17 +183,17 @@ has an **Admin Portal** shortcut, and the admin bar links back to the desk and t
 ## Reports
 
 Material at Site, Rental Stock Position (availability, reservations, utilization %), Cross Hire Position
-(with overdue days), Unbilled Rental (accrued to date), Damage and Loss Register, Hire Contract
+(with overdue days), Unbilled Rental (accrued to date), Damage and Loss Register, Rental Contract
 Profitability (rental revenue + recoveries - cross hire cost).
 
 ## Verification
 
-Version 1.2.1 was installed on a Frappe 16.36 / ERPNext 16.37 bench (Python 3.14, MariaDB 10.11) and run
-end to end from the server side: setup, hire order, contract, reservation, cross hire order and receipt,
-delivery, three billing periods, partial and full off-hire, inspection, damage settlement, purchase
-returns, supplier invoice, contract close, the daily billing job, cancellations, every report, and every
-customer and admin portal page as a portal user and as a Rental User. Quantities, stock values and bill
-amounts matched the worked example in the manual. The desk forms' client scripts and the portal's
+Version 2.0.0 was tested on a Frappe 16.36 / ERPNext 16.37 bench (Python 3.14, MariaDB 10.11), from the
+server side, in three ways: a fresh install; an upgrade of a site holding v1.2.1 transactions; and the
+flows as a user holding only the Rental User role. Covered: both order tracks end to end, cross hire,
+rental billing, JCR billing (contract charge, month-end excess, final excess, re-invoicing after a
+cancelled invoice), the daily jobs, cancellations, every report and every portal page. Quantities,
+stock values and amounts matched hand calculations. The desk forms' client scripts and the portal's
 browser-side form were not driven in a browser.
 
 ## Design notes and limits
@@ -166,6 +201,11 @@ browser-side form were not driven in a browser.
 - ERPNext remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
   (`Rental Ownership Ledger`) with two positions: *At Site* and *Cross Hire Custody*.
 - Custom fields on ERPNext documents are prefixed `nxg_` and are created on install / migrate.
+- Sales Invoices, Purchase Orders, Purchase Returns and Stock Entries that the app raises on a user's
+  behalf are written as Administrator, after checking the user's permission on the rental document.
+  ERPNext otherwise refuses them for users who cannot read the party's ledger account.
+- Job type contracts: one excess rate per job line; a dismantle date inside an already-invoiced month
+  needs that invoice cancelled first; material quantities per job are set on the Hire Order Contract.
 - Rental Settings holds one set of default warehouses, so the app is designed for one rental company
   per site. Rental Sites of another company still get their own site warehouses.
 - Transactions are in company currency.

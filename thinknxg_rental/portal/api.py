@@ -18,9 +18,9 @@ def _customers(customer=None):
 	return customers
 
 
-def _contract(hire_contract, customers):
+def _contract(rental_contract, customers):
 	doc = frappe.db.get_value(
-		"Hire Order Contract", hire_contract,
+		"Rental Contract", rental_contract,
 		["name", "customer", "company", "docstatus", "status", "end_date", "rental_site"], as_dict=True,
 	)
 	if not doc or doc.docstatus != 1 or doc.customer not in customers:
@@ -29,11 +29,11 @@ def _contract(hire_contract, customers):
 
 
 @frappe.whitelist()
-def get_contract_items(hire_contract: str, customer: str | None = None):
+def get_contract_items(rental_contract: str, customer: str | None = None):
 	"""Items currently at site on one of the caller's contracts."""
-	contract = _contract(hire_contract, _customers(customer))
+	contract = _contract(rental_contract, _customers(customer))
 	totals = {}
-	for (item_code, _ownership, _cho), qty in ledger.get_site_balance(hire_contract).items():
+	for (item_code, _ownership, _cho), qty in ledger.get_site_balance(rental_contract).items():
 		totals[item_code] = totals.get(item_code, 0) + flt(qty)
 	items = []
 	for item_code, qty in sorted(totals.items()):
@@ -59,7 +59,7 @@ def get_catalogue(customer: str | None = None):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_request(request_type: str, hire_contract: str | None = None, required_date: str | None = None,
+def create_request(request_type: str, rental_contract: str | None = None, required_date: str | None = None,
 		expected_return_date: str | None = None, new_end_date: str | None = None, site_location: str | None = None,
 		remarks: str | None = None, items: str | list | None = None, customer: str | None = None):
 	if not cint(frappe.get_cached_doc("Rental Settings").portal_allow_requests):
@@ -97,12 +97,12 @@ def create_request(request_type: str, hire_contract: str | None = None, required
 		doc.site_location = (site_location or "").strip()[:140]
 		doc.company = frappe.get_cached_doc("Rental Settings").company
 	else:
-		if not hire_contract:
+		if not rental_contract:
 			frappe.throw(_("Choose a contract"))
-		contract = _contract(hire_contract, customers)
+		contract = _contract(rental_contract, customers)
 		if contract.status in ("Completed", "Cancelled"):
-			frappe.throw(_("Contract {0} is closed").format(hire_contract))
-		doc.update({"hire_contract": contract.name, "customer": contract.customer, "company": contract.company})
+			frappe.throw(_("Contract {0} is closed").format(rental_contract))
+		doc.update({"rental_contract": contract.name, "customer": contract.customer, "company": contract.company})
 		if request_type == "Extension Request":
 			if not new_end_date or getdate(new_end_date) <= getdate(contract.end_date):
 				frappe.throw(_("The new end date must be after the current end date {0}").format(frappe.format_value(contract.end_date, {"fieldtype": "Date"})))
@@ -111,7 +111,7 @@ def create_request(request_type: str, hire_contract: str | None = None, required
 		else:
 			if not items:
 				frappe.throw(_("Enter the quantity you want collected for at least one item"))
-			at_site = {i["item_code"]: i["at_site_qty"] for i in get_contract_items(hire_contract, contract.customer)["items"]}
+			at_site = {i["item_code"]: i["at_site_qty"] for i in get_contract_items(rental_contract, contract.customer)["items"]}
 			for i in items:
 				if flt(i["qty"]) > flt(at_site.get(i["item_code"])) + 1e-6:
 					frappe.throw(

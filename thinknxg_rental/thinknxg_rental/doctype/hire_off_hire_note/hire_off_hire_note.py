@@ -10,9 +10,9 @@ from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal
 
 class HireOffHireNote(Document):
 	def validate(self):
-		self._contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
+		self._contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		if self._contract.docstatus != 1 or self._contract.status in ("Completed", "Cancelled"):
-			frappe.throw(_("Contract {0} is not live").format(self.hire_contract))
+			frappe.throw(_("Contract {0} is not live").format(self.rental_contract))
 		for field in ("customer", "customer_name", "rental_site", "project"):
 			self.set(field, self._contract.get(field))
 		self.set_last_billable_date()
@@ -50,7 +50,7 @@ class HireOffHireNote(Document):
 	def validate_items(self):
 		settings = get_settings()
 		inspect = cint(settings.inspection_required)
-		balance = ledger.get_site_balance(self.hire_contract)
+		balance = ledger.get_site_balance(self.rental_contract)
 		seen = set()
 		self.total_returned_qty = self.total_lost_qty = 0
 		for d in self.items:
@@ -126,7 +126,7 @@ class HireOffHireNote(Document):
 		common = dict(
 			posting_date=self.return_date,
 			billing_date=billing_date,
-			hire_contract=self.hire_contract,
+			rental_contract=self.rental_contract,
 			customer=self.customer,
 			project=self.project,
 			rental_site=self.rental_site,
@@ -151,30 +151,30 @@ class HireOffHireNote(Document):
 				"status": "Inspection Pending" if needs_inspection else "Completed",
 			}
 		)
-		ledger.update_contract_progress(self.hire_contract)
+		ledger.update_contract_progress(self.rental_contract)
 		for cho in cross_hire_orders:
 			ledger.update_cross_hire_progress(cho)
 		set_request_reference(self)
 
 	def on_cancel(self):
 		set_request_reference(self, completed=False)
-		billed = frappe.db.get_value("Hire Order Contract", self.hire_contract, "last_billed_upto")
+		billed = frappe.db.get_value("Rental Contract", self.rental_contract, "last_billed_upto")
 		if billed and getdate(self.last_billable_date) < getdate(billed):
 			frappe.throw(_("Cannot cancel: billing has been generated for periods after this off-hire. Cancel those billing schedules first."))
 		stock.cancel_stock_entries(self)
 		cross_hire_orders = {d.cross_hire_order for d in self.items if d.ownership == "Cross Hire" and flt(d.lost_qty)}
 		ledger.delete_entries(self.doctype, self.name)
 		self.db_set("status", "Cancelled")
-		ledger.update_contract_progress(self.hire_contract)
+		ledger.update_contract_progress(self.rental_contract)
 		for cho in cross_hire_orders:
 			ledger.update_cross_hire_progress(cho)
 
 
 @frappe.whitelist()
-def get_items_at_site(hire_contract: str):
-	frappe.has_permission("Hire Order Contract", "read", hire_contract, throw=True)
+def get_items_at_site(rental_contract: str):
+	frappe.has_permission("Rental Contract", "read", rental_contract, throw=True)
 	out = []
-	for (item_code, ownership, cho), qty in sorted(ledger.get_site_balance(hire_contract).items()):
+	for (item_code, ownership, cho), qty in sorted(ledger.get_site_balance(rental_contract).items()):
 		if qty <= 0:
 			continue
 		item = frappe.get_cached_value("Item", item_code, ["item_name", "stock_uom"], as_dict=True)
@@ -204,7 +204,7 @@ def make_inspection(source_name: str, target_doc=None):
 		{
 			"company": source.company,
 			"hire_off_hire_note": source.name,
-			"hire_contract": source.hire_contract,
+			"rental_contract": source.rental_contract,
 			"customer": source.customer,
 			"customer_name": source.customer_name,
 			"rental_site": source.rental_site,
@@ -245,7 +245,7 @@ def make_damage_settlement(source_name: str, target_doc=None):
 		{
 			"company": source.company,
 			"hire_off_hire_note": source.name,
-			"hire_contract": source.hire_contract,
+			"rental_contract": source.rental_contract,
 			"customer": source.customer,
 			"customer_name": source.customer_name,
 			"posting_date": nowdate(),

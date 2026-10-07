@@ -4,7 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, date_diff, flt, getdate
 
 from thinknxg_rental.services import cross_hire, ledger
-from thinknxg_rental.services.utils import check_duplicate_items, estimate_amount, require_setting
+from thinknxg_rental.services.utils import as_system, check_duplicate_items, estimate_amount, require_setting
 
 
 class CrossHireOrder(Document):
@@ -12,12 +12,12 @@ class CrossHireOrder(Document):
 		if getdate(self.expected_return_date) < getdate(self.hire_from):
 			frappe.throw(_("Expected Return Date cannot be before Hire From"))
 		self.expected_hire_days = date_diff(self.expected_return_date, self.hire_from) + 1
-		if self.hire_contract:
+		if self.rental_contract:
 			contract = frappe.db.get_value(
-				"Hire Order Contract", self.hire_contract, ["customer", "rental_site", "project", "company"], as_dict=True
+				"Rental Contract", self.rental_contract, ["customer", "rental_site", "project", "company"], as_dict=True
 			)
 			if contract.company != self.company:
-				frappe.throw(_("Contract {0} belongs to company {1}").format(self.hire_contract, contract.company))
+				frappe.throw(_("Contract {0} belongs to company {1}").format(self.rental_contract, contract.company))
 			self.customer, self.rental_site, self.project = contract.customer, contract.rental_site, contract.project
 		self.set_receipt_warehouse()
 		check_duplicate_items(self)
@@ -38,7 +38,7 @@ class CrossHireOrder(Document):
 	def set_receipt_warehouse(self):
 		if self.receive_at == "Direct to Site":
 			if not self.rental_site:
-				frappe.throw(_("Select the customer Hire Contract to receive cross-hired material directly at site"))
+				frappe.throw(_("Select the customer Rental Contract to receive cross-hired material directly at site"))
 			self.receipt_warehouse = frappe.db.get_value("Rental Site", self.rental_site, "cross_hire_site_warehouse")
 		else:
 			self.receipt_warehouse = require_setting("cross_hire_yard_warehouse")
@@ -55,7 +55,8 @@ class CrossHireOrder(Document):
 			po = frappe.get_doc("Purchase Order", self.purchase_order)
 			if po.docstatus == 1:
 				po.flags.ignore_permissions = True
-				po.cancel()
+				with as_system():
+					po.cancel()
 			elif po.docstatus == 0:
 				frappe.delete_doc("Purchase Order", po.name, ignore_permissions=True, force=True)
 				self.db_set("purchase_order", None)
@@ -73,4 +74,5 @@ class CrossHireOrder(Document):
 		if self.purchase_order:
 			po = frappe.get_doc("Purchase Order", self.purchase_order)
 			if po.docstatus == 1 and po.status not in ("Closed", "Completed"):
-				po.update_status("Closed")
+				with as_system():
+					po.update_status("Closed")

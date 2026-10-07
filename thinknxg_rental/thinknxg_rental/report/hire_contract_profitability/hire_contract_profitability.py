@@ -11,7 +11,7 @@ def execute(filters=None):
 		if filters.get(field):
 			contract_filters[field] = filters[field]
 	contracts = frappe.get_all(
-		"Hire Order Contract",
+		"Rental Contract",
 		filters=contract_filters,
 		fields=["name", "customer", "customer_name", "rental_site", "status", "start_date", "end_date"],
 		order_by="start_date desc",
@@ -27,12 +27,12 @@ def execute(filters=None):
 	revenue, recovery = {}, {}
 	for r in frappe.db.sql(
 		f"""
-		select nxg_hire_contract as contract,
+		select nxg_rental_contract as contract,
 			sum(case when ifnull(nxg_rental_damage_settlement, '') = '' then base_net_total else 0 end) as rental,
 			sum(case when ifnull(nxg_rental_damage_settlement, '') != '' then base_net_total else 0 end) as damage
 		from `tabSales Invoice`
-		where docstatus = 1 and ifnull(nxg_hire_contract, '') != '' {date_cond}
-		group by nxg_hire_contract
+		where docstatus = 1 and ifnull(nxg_rental_contract, '') != '' {date_cond}
+		group by nxg_rental_contract
 		""",
 		values,
 		as_dict=True,
@@ -42,11 +42,11 @@ def execute(filters=None):
 	cost = dict(
 		frappe.db.sql(
 			f"""
-			select o.hire_contract, sum(pi.base_net_total)
+			select o.rental_contract, sum(pi.base_net_total)
 			from `tabPurchase Invoice` pi
 			inner join `tabCross Hire Order` o on o.name = pi.nxg_cross_hire_order
-			where pi.docstatus = 1 and ifnull(o.hire_contract, '') != '' {date_cond.replace("posting_date", "pi.posting_date")}
-			group by o.hire_contract
+			where pi.docstatus = 1 and ifnull(o.rental_contract, '') != '' {date_cond.replace("posting_date", "pi.posting_date")}
+			group by o.rental_contract
 			""",
 			values,
 		)
@@ -59,7 +59,7 @@ def execute(filters=None):
 		contribution = rental + damage - cross
 		c.update(
 			{
-				"hire_contract": c.name,
+				"rental_contract": c.name,
 				"rental_revenue": rental,
 				"damage_recovery": damage,
 				"cross_hire_cost": cross,
@@ -69,7 +69,7 @@ def execute(filters=None):
 		)
 		data.append(c)
 	columns = [
-		{"label": _("Contract"), "fieldname": "hire_contract", "fieldtype": "Link", "options": "Hire Order Contract", "width": 150},
+		{"label": _("Contract"), "fieldname": "rental_contract", "fieldtype": "Link", "options": "Rental Contract", "width": 150},
 		{"label": _("Customer"), "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 130},
 		{"label": _("Customer Name"), "fieldname": "customer_name", "width": 170},
 		{"label": _("Site"), "fieldname": "rental_site", "fieldtype": "Link", "options": "Rental Site", "width": 140},

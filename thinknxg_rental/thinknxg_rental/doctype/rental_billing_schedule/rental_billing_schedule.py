@@ -10,9 +10,9 @@ class RentalBillingSchedule(Document):
 	def validate(self):
 		if getdate(self.to_date) < getdate(self.from_date):
 			frappe.throw(_("Billing To cannot be before Billing From"))
-		self._contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
+		self._contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		if self._contract.docstatus != 1:
-			frappe.throw(_("Contract {0} is not submitted").format(self.hire_contract))
+			frappe.throw(_("Contract {0} is not submitted").format(self.rental_contract))
 		# lines always come from the ledger so a schedule can never drift from what was on hire
 		self.set("items", [])
 		for line in billing.compute_lines(self._contract, self.from_date, self.to_date):
@@ -30,7 +30,7 @@ class RentalBillingSchedule(Document):
 		if not expected or getdate(self.from_date) != getdate(expected):
 			frappe.throw(
 				_("Billing must continue from {0} for contract {1}").format(
-					frappe.format(expected, {"fieldtype": "Date"}), self.hire_contract
+					frappe.format(expected, {"fieldtype": "Date"}), self.rental_contract
 				)
 			)
 
@@ -39,7 +39,7 @@ class RentalBillingSchedule(Document):
 		billing.set_billing_pointers(self._contract, self.to_date)
 
 	def on_cancel(self):
-		contract = frappe.get_doc("Hire Order Contract", self.hire_contract)
+		contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		if not contract.last_billed_upto or getdate(contract.last_billed_upto) != getdate(self.to_date):
 			frappe.throw(_("Only the latest billing schedule of a contract can be cancelled"))
 		if self.sales_invoice and frappe.db.get_value("Sales Invoice", self.sales_invoice, "docstatus") == 0:

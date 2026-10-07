@@ -4,7 +4,7 @@ frappe.query_reports["Material at Site"] = {
 		{ fieldname: "as_on_date", label: __("As On Date"), fieldtype: "Date" },
 		{ fieldname: "customer", label: __("Customer"), fieldtype: "Link", options: "Customer" },
 		{ fieldname: "rental_site", label: __("Site"), fieldtype: "Link", options: "Rental Site" },
-		{ fieldname: "hire_contract", label: __("Contract"), fieldtype: "Link", options: "Hire Order Contract" },
+		{ fieldname: "rental_contract", label: __("Contract"), fieldtype: "Link", options: "Rental Contract" },
 		{ fieldname: "project", label: __("Project"), fieldtype: "Link", options: "Project" },
 		{ fieldname: "item_code", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "ownership", label: __("Ownership"), fieldtype: "Select", options: "\nOwn\nCross Hire" },

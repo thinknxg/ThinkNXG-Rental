@@ -6,8 +6,11 @@
  "field_order": [
   "naming_series",
   "company",
+  "rental_contract",
+  "source_type",
+  "source_document",
   "hire_order",
-  "hire_contract",
+  "hire_order_contract",
   "customer",
   "customer_name",
   "rental_site",
@@ -45,19 +48,42 @@
    "reqd": 1
   },
   {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "in_standard_filter": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "label": "Rental Source Type",
+   "options": "\nHire Order\nHire Order Contract",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "source_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Rental Source",
+   "options": "source_type",
+   "in_standard_filter": 1
+  },
+  {
    "fieldname": "hire_order",
    "fieldtype": "Link",
    "label": "Hire Order",
    "options": "Hire Order",
-   "in_standard_filter": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "hire_order_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
+   "label": "Hire Order Contract",
    "options": "Hire Order Contract",
-   "in_standard_filter": 1,
-   "allow_on_submit": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "customer",
@@ -241,6 +267,6 @@
  "naming_rule": "By \"Naming Series\" field",
  "title_field": "customer_name",
  "show_title_field_in_link": 1,
- "search_fields": "customer_name,hire_contract,status",
+ "search_fields": "customer_name,rental_contract,status",
  "track_changes": 1
 }

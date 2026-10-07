@@ -7,7 +7,7 @@
   "naming_series",
   "company",
   "hire_off_hire_note",
-  "hire_contract",
+  "rental_contract",
   "customer",
   "customer_name",
   "cb_87",
@@ -55,11 +55,11 @@
    "in_standard_filter": 1
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
-   "fetch_from": "hire_off_hire_note.hire_contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "fetch_from": "hire_off_hire_note.rental_contract",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "read_only": 1
@@ -252,6 +252,6 @@
  "naming_rule": "By \"Naming Series\" field",
  "title_field": "customer_name",
  "show_title_field_in_link": 1,
- "search_fields": "customer_name,hire_contract",
+ "search_fields": "customer_name,rental_contract",
  "track_changes": 1
 }

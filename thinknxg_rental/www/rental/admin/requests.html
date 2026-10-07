@@ -23,7 +23,7 @@
 			<span class="rp-sub {% if view == 'open' and r.age_days >= 2 %}rp-due{% endif %}">{{ date(r.request_date) }}{% if view == "open" %}, {{ _("{0} days ago").format(r.age_days) if r.age_days else _("today") }}{% endif %}</span></td>
 		<td data-label="{{ _('Customer') }}">{{ r.customer_name | e }}<span class="rp-sub">{{ r.raised_by | e }}</span></td>
 		<td data-label="{{ _('Asking for') }}"><strong>{{ _(r.request_type) }}</strong>
-			{% if r.hire_contract %}<span class="rp-sub"><a href="{{ desk('Hire Order Contract', r.hire_contract) }}">{{ r.hire_contract | e }}</a>{% if r.rental_site %}, {{ r.rental_site | e }}{% endif %}</span>{% endif %}
+			{% if r.rental_contract %}<span class="rp-sub"><a href="{{ desk('Rental Contract', r.rental_contract) }}">{{ r.rental_contract | e }}</a>{% if r.rental_site %}, {{ r.rental_site | e }}{% endif %}</span>{% endif %}
 			{% if r.request_type == "Extension Request" %}<span class="rp-sub">{{ _("Extend to {0}").format(date(r.new_end_date)) }}</span>
 			{% else %}<span class="rp-sub">{% for l in r.lines %}{{ qty(l.qty) }} &times; {{ (l.item_name or l.item_code) | e }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
 				{% if r.required_date %}<span class="rp-sub">{{ _("From {0}").format(date(r.required_date)) }}{% if r.site_location %}, {{ r.site_location | e }}{% endif %}</span>{% endif %}

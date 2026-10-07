@@ -67,6 +67,7 @@ class HireOrder(Document):
 def make_contract(source_name: str, target_doc=None):
 	def post_process(source, target):
 		settings = get_settings()
+		target.source_type = "Hire Order"
 		target.contract_date = nowdate()
 		target.start_date = source.required_from
 		target.end_date = source.expected_return_date
@@ -79,11 +80,11 @@ def make_contract(source_name: str, target_doc=None):
 		source_name,
 		{
 			"Hire Order": {
-				"doctype": "Hire Order Contract",
-				"field_map": {"name": "hire_order"},
+				"doctype": "Rental Contract",
+				"field_map": {"name": "source_document"},
 				"validation": {"docstatus": ["=", 1]},
 			},
-			"Hire Order Item": {"doctype": "Hire Contract Item"},
+			"Hire Order Item": {"doctype": "Rental Contract Item"},
 		},
 		target_doc,
 		post_process,
@@ -93,6 +94,7 @@ def make_contract(source_name: str, target_doc=None):
 @frappe.whitelist()
 def make_reservation(source_name: str, target_doc=None):
 	def post_process(source, target):
+		target.source_type = "Hire Order"
 		target.reservation_date = nowdate()
 		target.required_to = source.expected_return_date
 		target.source_warehouse = get_settings().rental_yard_warehouse
@@ -103,7 +105,7 @@ def make_reservation(source_name: str, target_doc=None):
 		{
 			"Hire Order": {
 				"doctype": "Rental Material Reservation",
-				"field_map": {"name": "hire_order"},
+				"field_map": {"name": "source_document"},
 				"validation": {"docstatus": ["=", 1]},
 			},
 			"Hire Order Item": {"doctype": "Rental Material Reservation Item", "field_map": {"qty": "required_qty"}},

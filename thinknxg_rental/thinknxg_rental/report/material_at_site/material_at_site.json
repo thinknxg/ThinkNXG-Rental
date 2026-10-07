@@ -14,7 +14,7 @@
  "name": "Material at Site",
  "owner": "Administrator",
  "prepared_report": 0,
- "ref_doctype": "Hire Order Contract",
+ "ref_doctype": "Rental Contract",
  "report_name": "Material at Site",
  "report_type": "Script Report",
  "roles": [

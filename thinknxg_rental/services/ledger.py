@@ -20,6 +20,10 @@ def add_entry(doc, **kwargs):
 	entry.update({"voucher_type": doc.doctype, "voucher_no": doc.name, "company": doc.get("company")})
 	entry.update(kwargs)
 	entry.billing_date = entry.billing_date or entry.posting_date
+	if entry.rental_contract and not entry.source_type:
+		src = frappe.db.get_value("Rental Contract", entry.rental_contract, ["source_type", "source_document"])
+		if src:
+			entry.source_type, entry.source_document = src
 	entry.flags.ignore_permissions = True
 	entry.insert()
 	return entry
@@ -29,16 +33,16 @@ def delete_entries(voucher_type, voucher_no):
 	frappe.db.delete("Rental Ownership Ledger", {"voucher_type": voucher_type, "voucher_no": voucher_no})
 
 
-def get_site_balance(hire_contract):
+def get_site_balance(rental_contract):
 	"""{(item_code, ownership, cross_hire_order): qty} currently at site for a contract."""
 	rows = frappe.db.sql(
 		"""
 		select item_code, ownership, ifnull(cross_hire_order, '') as cho, sum(qty) as qty
 		from `tabRental Ownership Ledger`
-		where position_type = %s and hire_contract = %s
+		where position_type = %s and rental_contract = %s
 		group by item_code, ownership, ifnull(cross_hire_order, '')
 		""",
-		(AT_SITE, hire_contract),
+		(AT_SITE, rental_contract),
 		as_dict=True,
 	)
 	return {(r.item_code, r.ownership, r.cho): flt(r.qty) for r in rows if flt(r.qty)}
@@ -61,13 +65,13 @@ def get_cross_hire_undelivered(cross_hire_order, item_code):
 	)
 
 
-def get_segments(from_date, to_date, position_type, hire_contract=None, cross_hire_order=None):
+def get_segments(from_date, to_date, position_type, rental_contract=None, cross_hire_order=None):
 	"""{item_code: [(seg_from, seg_to, qty), ...]} - constant-quantity stretches inside the period."""
 	from_date, to_date = getdate(from_date), getdate(to_date)
 	conditions, values = ["position_type = %(pt)s", "billing_date <= %(to)s"], {"pt": position_type, "to": to_date}
-	if hire_contract:
-		conditions.append("hire_contract = %(hc)s")
-		values["hc"] = hire_contract
+	if rental_contract:
+		conditions.append("rental_contract = %(hc)s")
+		values["hc"] = rental_contract
 	if cross_hire_order:
 		conditions.append("cross_hire_order = %(cho)s")
 		values["cho"] = cross_hire_order
@@ -104,19 +108,19 @@ def get_segments(from_date, to_date, position_type, hire_contract=None, cross_hi
 	return out
 
 
-def update_contract_progress(hire_contract):
+def update_contract_progress(rental_contract):
 	"""Recompute contract item counters, billing start and status from the ledger (idempotent)."""
 	from thinknxg_rental.services.billing import get_period_end
 
-	doc = frappe.get_doc("Hire Order Contract", hire_contract)
+	doc = frappe.get_doc("Rental Contract", rental_contract)
 	rows = frappe.db.sql(
 		"""
 		select item_code, movement_type, sum(qty) as qty, min(billing_date) as first_date
 		from `tabRental Ownership Ledger`
-		where position_type = %s and hire_contract = %s
+		where position_type = %s and rental_contract = %s
 		group by item_code, movement_type
 		""",
-		(AT_SITE, hire_contract),
+		(AT_SITE, rental_contract),
 		as_dict=True,
 	)
 	moved, first_dispatch = {}, None
@@ -150,7 +154,10 @@ def update_contract_progress(hire_contract):
 	}
 	if doc.docstatus == 1 and doc.status != "Completed":
 		update["status"] = "On Hire" if totals.at_site > 0 else ("Off Hired" if totals.dispatched > 0 else "Active")
-	if not doc.last_billed_upto:
+	if doc.contract_type == "Job Type Contract":
+		# job type contracts are billed from the Job Completion Report, never from material on hire
+		update["next_billing_date"] = None
+	elif not doc.last_billed_upto:
 		update["next_billing_date"] = add_days(get_period_end(doc, first_dispatch), 1) if first_dispatch else None
 	doc.db_set(update, update_modified=False)
 	doc.notify_update()

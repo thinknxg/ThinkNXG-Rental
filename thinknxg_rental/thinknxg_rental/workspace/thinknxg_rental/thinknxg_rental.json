@@ -1,7 +1,7 @@
 {
  "app": "thinknxg_rental",
  "charts": [],
- "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order\", \"col\": 3}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 3}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Delivery Order\", \"col\": 3}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Off-Hire Note\", \"col\": 3}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Cross Hire Order\", \"col\": 3}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 3}}, {\"id\": \"scadm\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 3}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Operations\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns and Settlement\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order\", \"col\": 3}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 3}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 3}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Delivery Order\", \"col\": 3}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Off-Hire Note\", \"col\": 3}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Cross Hire Order\", \"col\": 3}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 3}}, {\"id\": \"scadm\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 3}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Operations\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Job Type Contracts\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns and Settlement\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
  "creation": "2026-10-06 10:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -17,7 +17,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Hire Operations",
-   "link_count": 6,
+   "link_count": 7,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -54,6 +54,16 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Rental Contract",
+   "link_count": 0,
+   "link_to": "Rental Contract",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Rental Material Reservation",
    "link_count": 0,
    "link_to": "Rental Material Reservation",
@@ -77,6 +87,34 @@
    "label": "Hire Off-Hire Note",
    "link_count": 0,
    "link_to": "Hire Off-Hire Note",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Job Type Contracts",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Job Completion Report",
+   "link_count": 0,
+   "link_to": "Job Completion Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "JCR Billing Schedule",
+   "link_count": 0,
+   "link_to": "JCR Billing Schedule",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -338,6 +376,13 @@
    "doc_view": "List",
    "label": "Hire Order Contract",
    "link_to": "Hire Order Contract",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Rental Contract",
+   "link_to": "Rental Contract",
    "type": "DocType"
   },
   {

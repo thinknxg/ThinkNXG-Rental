@@ -14,7 +14,9 @@
   "ownership",
   "supplier",
   "cross_hire_order",
-  "hire_contract",
+  "rental_contract",
+  "source_type",
+  "source_document",
   "customer",
   "project",
   "rental_site",
@@ -99,12 +101,26 @@
    "search_index": 1
   },
   {
-   "fieldname": "hire_contract",
+   "fieldname": "rental_contract",
    "fieldtype": "Link",
-   "label": "Hire Contract",
-   "options": "Hire Order Contract",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
    "in_standard_filter": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "label": "Rental Source Type",
+   "options": "\nHire Order\nHire Order Contract",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "source_document",
+   "fieldtype": "Dynamic Link",
+   "label": "Rental Source",
+   "options": "source_type",
+   "in_standard_filter": 1
   },
   {
    "fieldname": "customer",
