@@ -6,6 +6,16 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def get_custom_fields():
 	return {
+		"Lead": [
+			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
+				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="status", in_standard_filter=1,
+				description="Identifies the customer requirement and selects the downstream document flow."),
+		],
+		"Quotation": [
+			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
+				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
+				description="Carries the Deal Type from the Lead and selects the next document."),
+		],
 		"Item": [
 			dict(fieldname="nxg_is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_stock_item",
 				depends_on="eval:!doc.is_stock_item", in_standard_filter=1,

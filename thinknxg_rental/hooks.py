@@ -44,6 +44,8 @@ doc_events = {
 }
 
 doctype_js = {
+	"Lead": "public/js/lead_deal.js",
+	"Quotation": "public/js/quotation_deal.js",
 	"Item": "public/js/item.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
