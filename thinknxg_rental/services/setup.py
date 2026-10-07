@@ -10,7 +10,9 @@ def get_custom_fields():
 			dict(fieldname="nxg_is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_stock_item",
 				depends_on="eval:!doc.is_stock_item", in_standard_filter=1,
 				description="A job hired out as a unit, such as External Scaffolding. Non-stock. Its rental items are listed below."),
-			dict(fieldname="nxg_job_type_section", label="Job Type Rental Items", fieldtype="Section Break",
+			# a Tab Break, not a Section Break: Frappe pushes a custom section placed at the end of a tab
+			# into the top of the next tab, where nobody looks for it
+			dict(fieldname="nxg_job_type_section", label="Job Type Rental Items", fieldtype="Tab Break",
 				insert_after="description", depends_on="nxg_is_job_type_item"),
 			dict(fieldname="nxg_job_type_items", label="Physical Rental Items for One Job", fieldtype="Table",
 				options="Job Type Rental Item", insert_after="nxg_job_type_section"),

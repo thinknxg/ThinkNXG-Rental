@@ -36,6 +36,8 @@ class HireOrderContract(Document):
 			if cint(d.included_days) < 1:
 				frappe.throw(_("Row #{0}: Included Contract Days must be at least 1").format(d.idx))
 			d.contract_amount = flt(d.qty) * flt(d.contract_rate)
+			if self.docstatus == 0:
+				d.jcr_qty = 0
 			self.total_jobs += flt(d.qty)
 			self.total_contract_amount += d.contract_amount
 
@@ -170,15 +172,64 @@ def make_reservation(source_name: str, target_doc=None):
 	return target
 
 
+def get_open_job_lines(doc):
+	"""Job lines of a Hire Order Contract that still have jobs without a JCR."""
+	from thinknxg_rental.thinknxg_rental.doctype.job_completion_report.job_completion_report import get_reported_qty
+
+	# counted from the submitted JCRs themselves, never from a stored counter (a duplicated or
+	# amended contract would otherwise inherit the old one)
+	reported = get_reported_qty(doc.name)
+	return [
+		frappe._dict(
+			idx=d.idx, name=d.name, job_type=d.job_type, job_type_name=d.job_type_name, location=d.location, qty=flt(d.qty),
+			remaining=flt(d.qty) - flt(reported.get(d.name)), included_days=cint(d.included_days),
+			contract_rate=flt(d.contract_rate), excess_rate_basis=d.excess_rate_basis, excess_rate=flt(d.excess_rate),
+		)
+		for d in doc.items
+		if flt(d.qty) - flt(reported.get(d.name)) > 1e-6
+	]
+
+
 @frappe.whitelist()
-def make_jcr(source_name: str, target_doc=None):
+def get_job_lines(hire_order_contract: str):
+	"""For the JCR form: every job line with jobs still to report, and the contract's billing choice."""
+	doc = _source(hire_order_contract)
+	return {
+		"lines": get_open_job_lines(doc),
+		"contract_charge_billing": doc.contract_charge_billing,
+		"company": doc.company,
+		"rental_contract": get_contract_for_source("Hire Order Contract", doc.name),
+	}
+
+
+@frappe.whitelist()
+def make_jcr(source_name: str, target_doc=None, args=None):
+	"""One JCR per job line (or per part of it). `job_row` picks the line when the contract has several."""
 	source = _source(source_name)
-	target = frappe.new_doc("Job Completion Report")
-	target.update({"company": source.company, "hire_order_contract": source.name, "erection_date": nowdate()})
-	for d in source.items:
-		if flt(d.qty) - flt(d.jcr_qty) > 0:
-			target.update({"job_type": d.job_type, "location": d.location, "job_qty": flt(d.qty) - flt(d.jcr_qty)})
-			break
-	else:
+	args = frappe.flags.args or args or {}
+	if isinstance(args, str):
+		args = frappe.parse_json(args)
+	lines = get_open_job_lines(source)
+	if not lines:
 		frappe.throw(_("Every job on this contract already has a Job Completion Report"))
+	wanted = cint(args.get("job_row")) if args else 0
+	line = next((l for l in lines if l.idx == wanted), lines[0])
+	target = frappe.new_doc("Job Completion Report")
+	target.update(
+		{
+			"company": source.company,
+			"hire_order_contract": source.name,
+			"erection_date": nowdate(),
+			"job_type": line.job_type,
+			"contract_item": line.name,
+			"location": line.location,
+			"job_qty": line.remaining,
+			"included_days": line.included_days,
+			"contract_end_date": add_days(nowdate(), max(line.included_days, 1) - 1),
+			"contract_rate": line.contract_rate,
+			"excess_rate_basis": line.excess_rate_basis,
+			"excess_rate": line.excess_rate,
+			"contract_charge_billing": source.contract_charge_billing,
+		}
+	)
 	return target

@@ -153,8 +153,10 @@ def make_sales_invoice(schedule: str):
 			"item_code": jcr.job_type,
 			"item_name": jcr.job_type_name,
 			"description": description,
-			"qty": job_qty,
-			"rate": flt(row.amount) / job_qty,
+			# a part-job (0.5 of a job erected in stages) is invoiced as one line for its amount,
+			# because the job type item's UOM is normally a whole-number UOM
+			"qty": job_qty if job_qty == int(job_qty) else 1,
+			"rate": flt(row.amount) / (job_qty if job_qty == int(job_qty) else 1),
 			"project": hoc.project,
 			"cost_center": hoc.cost_center,
 		},

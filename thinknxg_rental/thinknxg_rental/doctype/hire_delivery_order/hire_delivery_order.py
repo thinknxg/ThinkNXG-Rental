@@ -48,8 +48,38 @@ class HireDeliveryOrder(Document):
 					frappe.format(self._contract.last_billed_upto, {"fieldtype": "Date"})
 				)
 			)
+		self.set_reserved_warehouses()
 		self.validate_items()
 		self.validate_reservation()
+
+	def set_reserved_warehouses(self):
+		"""Own stock leaves from the warehouse it was reserved in, which can differ item by item."""
+		from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
+			get_reservation_warehouses,
+			get_reserved_stock,
+		)
+
+		if self.rental_material_reservation:
+			reserved_in = get_reservation_warehouses(self.rental_material_reservation)
+			for d in self.items:
+				if d.ownership == "Cross Hire" or d.item_code not in reserved_in:
+					continue
+				if not d.source_warehouse:
+					d.source_warehouse = reserved_in[d.item_code]
+				elif d.source_warehouse != reserved_in[d.item_code]:
+					frappe.throw(
+						_("Row #{0}: {1} is reserved in {2} on reservation {3}, not in {4}. "
+							"Use that warehouse, or clear the reservation field.").format(
+							d.idx, frappe.bold(d.item_code), reserved_in[d.item_code], self.rental_material_reservation, d.source_warehouse
+						)
+					)
+			return
+		first = {}
+		for item_code, warehouse, _balance in get_reserved_stock(self.rental_contract):
+			first.setdefault(item_code, warehouse)
+		for d in self.items:
+			if d.ownership != "Cross Hire" and not d.source_warehouse and d.item_code in first:
+				d.source_warehouse = first[d.item_code]
 
 	def validate_reservation(self):
 		"""When a reservation is named, own-stock lines are held to its reserved balance."""
@@ -232,12 +262,16 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 	materials exploded from the Hire Order Contract. With a reservation, own stock is limited to its balance."""
 	from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
 		get_reservation_balance,
+		get_reservation_warehouses,
+		get_reserved_stock,
 	)
 
 	contract = frappe.get_doc("Rental Contract", rental_contract)
 	contract.check_permission("read")
 	source = get_contract_source(rental_contract)
-	reserved = get_reservation_balance(reservation) if reservation else None
+	reserved = get_reservation_balance(reservation) if reservation else {}
+	reserved_in = get_reservation_warehouses(reservation) if reservation else {}
+	reserved_stock = [] if reservation else get_reserved_stock(rental_contract)
 	settings = get_settings()
 	yard = settings.rental_yard_warehouse
 	chos = frappe.get_all(
@@ -259,13 +293,29 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 			"previously_delivered": d.dispatched_qty,
 			"balance_to_deliver": pending,
 		}
-		own = min(pending, max(get_available_qty(d.item_code, yard, contract.name, source), 0)) if yard else 0
-		if reserved is not None:
-			own = min(own, max(reserved.get(d.item_code, 0), 0))
+		taken = {}
+
+		def take_own(warehouse, cap):
+			nonlocal pending
+			if not warehouse or pending <= 0:
+				return
+			free = max(get_available_qty(d.item_code, warehouse, contract.name, source), 0) - taken.get(warehouse, 0)
+			qty = min(pending, free, cap)
+			if qty > 0:
+				taken[warehouse] = taken.get(warehouse, 0) + qty
+				pending -= qty
+				out.append(dict(base, qty=qty, ownership="Own", source_warehouse=warehouse))
+
+		if reservation:
+			# only what this reservation holds, from the warehouse it holds it in
 			base["reservation_balance"] = reserved.get(d.item_code, 0)
-		if own > 0:
-			out.append(dict(base, qty=own, ownership="Own", source_warehouse=yard))
-			pending -= own
+			take_own(reserved_in.get(d.item_code), max(reserved.get(d.item_code, 0), 0))
+		else:
+			# reserved stock first, warehouse by warehouse, then free stock in the default yard
+			for item_code, warehouse, balance in reserved_stock:
+				if item_code == d.item_code:
+					take_own(warehouse, balance)
+			take_own(yard, pending)
 		for cho in chos:
 			if pending <= 0:
 				break

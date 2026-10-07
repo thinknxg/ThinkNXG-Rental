@@ -58,8 +58,17 @@ class RentalMaterialReservation(Document):
 		for d in self.items:
 			if flt(d.required_qty) <= 0:
 				frappe.throw(_("Row #{0}: Required Qty must be greater than zero").format(d.idx))
-			d.actual_qty = get_bin_qty(d.item_code, self.source_warehouse)
-			d.other_reserved_qty = get_reserved_for_others(d.item_code, self.source_warehouse, reservation=self.name)
+			# every row is reserved in its own warehouse; the header only supplies the default
+			d.source_warehouse = d.source_warehouse or suggest_source_warehouse(
+				d.item_code, self.company, self.source_warehouse, flt(d.required_qty)
+			)
+			wh = frappe.get_cached_value("Warehouse", d.source_warehouse, ["is_group", "company"], as_dict=True)
+			if wh.is_group:
+				frappe.throw(_("Row #{0}: {1} is a group warehouse. Pick the warehouse that holds the stock.").format(d.idx, d.source_warehouse))
+			if wh.company != self.company:
+				frappe.throw(_("Row #{0}: warehouse {1} belongs to company {2}").format(d.idx, d.source_warehouse, wh.company))
+			d.actual_qty = get_bin_qty(d.item_code, d.source_warehouse)
+			d.other_reserved_qty = get_reserved_for_others(d.item_code, d.source_warehouse, reservation=self.name)
 			d.available_qty = max(flt(d.actual_qty) - flt(d.other_reserved_qty), 0)
 			d.reserved_qty = min(flt(d.required_qty), flt(d.available_qty))
 			d.shortfall_qty = flt(d.required_qty) - flt(d.reserved_qty)
@@ -118,6 +127,87 @@ def get_contract_reservations(rental_contract):
 	return frappe.get_all(
 		"Rental Material Reservation", filters={"name": ["in", list(names)]}, pluck="name", order_by="creation asc"
 	)
+
+
+def get_rentable_warehouses(company):
+	"""Leaf warehouses own rental stock can be reserved in: not customer sites, cross hire,
+	inspection, repair or scrap."""
+	from thinknxg_rental.services.utils import get_settings
+
+	settings = get_settings()
+	excluded = {
+		settings.cross_hire_yard_warehouse, settings.inspection_warehouse, settings.repair_warehouse, settings.scrap_warehouse,
+	}
+	for site in frappe.get_all("Rental Site", fields=["site_warehouse", "cross_hire_site_warehouse"]):
+		excluded.update((site.site_warehouse, site.cross_hire_site_warehouse))
+	names = frappe.get_all("Warehouse", filters={"company": company, "is_group": 0, "disabled": 0}, pluck="name")
+	return [n for n in names if n not in excluded]
+
+
+def suggest_source_warehouse(item_code, company, default=None, required_qty=0):
+	"""The default warehouse when it can cover the row; otherwise the rentable warehouse with the
+	most free stock of this item; the default again when nothing has any."""
+	def free(warehouse):
+		return get_bin_qty(item_code, warehouse) - get_reserved_for_others(item_code, warehouse)
+
+	if default and free(default) >= max(flt(required_qty), 1e-6):
+		return default
+	allowed = set(get_rentable_warehouses(company))
+	stocked = frappe.get_all(
+		"Bin", filters={"item_code": item_code, "actual_qty": [">", 0]}, pluck="warehouse"
+	)
+	best = max(((free(w), w) for w in stocked if w in allowed), default=(0, None))
+	if not default:
+		return best[1]
+	return best[1] if best[1] and best[0] > max(free(default), 0) else default
+
+
+@frappe.whitelist()
+def get_row_availability(item_code: str, company: str, warehouse: str | None = None, default_warehouse: str | None = None,
+		required_qty: float = 0, reservation: str | None = None):
+	"""Live figures for one reservation row, and the warehouse to use when none is chosen yet."""
+	frappe.has_permission("Rental Material Reservation", "read", throw=True)
+	warehouse = warehouse or suggest_source_warehouse(item_code, company, default_warehouse, flt(required_qty))
+	actual = get_bin_qty(item_code, warehouse)
+	others = get_reserved_for_others(item_code, warehouse, reservation=reservation)
+	elsewhere = []
+	for w in get_rentable_warehouses(company):
+		if w != warehouse:
+			qty = get_bin_qty(item_code, w) - get_reserved_for_others(item_code, w, reservation=reservation)
+			if qty > 0:
+				elsewhere.append({"warehouse": w, "available_qty": qty})
+	return {
+		"source_warehouse": warehouse,
+		"actual_qty": actual,
+		"other_reserved_qty": others,
+		"available_qty": max(actual - others, 0),
+		"elsewhere": sorted(elsewhere, key=lambda r: -r["available_qty"]),
+	}
+
+
+def get_reservation_warehouses(reservation):
+	"""{item_code: source warehouse} for one reservation."""
+	default = frappe.db.get_value("Rental Material Reservation", reservation, "source_warehouse")
+	rows = frappe.get_all(
+		"Rental Material Reservation Item",
+		filters={"parent": reservation, "parenttype": "Rental Material Reservation"},
+		fields=["item_code", "source_warehouse"],
+	)
+	return {r.item_code: r.source_warehouse or default for r in rows}
+
+
+def get_reserved_stock(rental_contract):
+	"""[(item_code, warehouse, open balance)] across the contract's live reservations, oldest first."""
+	out = []
+	for name in get_contract_reservations(rental_contract):
+		doc = frappe.get_doc("Rental Material Reservation", name)
+		if doc.status == "Released":
+			continue
+		for d in doc.items:
+			balance = flt(d.reserved_qty) - flt(d.dispatched_qty) - flt(d.released_qty)
+			if balance > 0:
+				out.append((d.item_code, d.source_warehouse or doc.source_warehouse, balance))
+	return out
 
 
 def get_reservation_balance(reservation):

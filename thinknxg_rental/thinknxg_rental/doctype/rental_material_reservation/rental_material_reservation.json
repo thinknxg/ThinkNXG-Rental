@@ -143,9 +143,10 @@
   {
    "fieldname": "source_warehouse",
    "fieldtype": "Link",
-   "label": "Source Warehouse",
+   "label": "Default Source Warehouse",
    "options": "Warehouse",
-   "reqd": 1
+   "reqd": 1,
+   "description": "Used for any item row that has no source warehouse of its own"
   },
   {
    "fieldname": "sb_48",
@@ -209,7 +210,7 @@
    "link_fieldname": "material_reservation"
   }
  ],
- "modified": "2026-10-06 10:00:00.000000",
+ "modified": "2026-10-07 07:45:14.571290",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Material Reservation",

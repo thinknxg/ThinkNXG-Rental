@@ -2,6 +2,7 @@ frappe.ui.form.on("Rental Material Reservation", {
 	setup(frm) {
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
 		frm.set_query("source_warehouse", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
+		frm.set_query("source_warehouse", "items", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
 		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["not in", ["Completed", "Cancelled"]] } }));
 		frm.set_query("source_document", () => ({ filters: { docstatus: 1 } }));
 	},
@@ -45,4 +46,47 @@ frappe.ui.form.on("Rental Material Reservation", {
 			).addClass("btn-primary");
 		}
 	},
+});
+
+// Each row is reserved in its own warehouse. Show that warehouse's figures as soon as the row changes.
+function refresh_row(frm, cdt, cdn, keep_warehouse) {
+	const d = locals[cdt][cdn];
+	if (!d.item_code || !frm.doc.company || frm.doc.docstatus !== 0) return;
+	frappe.call({
+		method: "thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation.get_row_availability",
+		args: {
+			item_code: d.item_code,
+			company: frm.doc.company,
+			warehouse: keep_warehouse ? d.source_warehouse : null,
+			default_warehouse: frm.doc.source_warehouse,
+			required_qty: d.required_qty || 0,
+			reservation: frm.is_new() ? null : frm.doc.name,
+		},
+		callback(r) {
+			if (!r.message) return;
+			const m = r.message;
+			const reserved = Math.min(flt(d.required_qty), flt(m.available_qty));
+			Object.assign(d, {
+				source_warehouse: m.source_warehouse,
+				actual_qty: m.actual_qty,
+				other_reserved_qty: m.other_reserved_qty,
+				available_qty: m.available_qty,
+				reserved_qty: reserved,
+				shortfall_qty: flt(d.required_qty) - reserved,
+			});
+			frm.refresh_field("items");
+			if (flt(d.required_qty) > flt(m.available_qty) && m.elsewhere.length) {
+				frappe.show_alert({
+					message: __("{0}: also free in {1}", [d.item_code, m.elsewhere.slice(0, 3).map((e) => `${e.warehouse} (${e.available_qty})`).join(", ")]),
+					indicator: "blue",
+				}, 7);
+			}
+		},
+	});
+}
+
+frappe.ui.form.on("Rental Material Reservation Item", {
+	item_code: (frm, cdt, cdn) => refresh_row(frm, cdt, cdn, false),
+	required_qty: (frm, cdt, cdn) => refresh_row(frm, cdt, cdn, !!locals[cdt][cdn].source_warehouse),
+	source_warehouse: (frm, cdt, cdn) => refresh_row(frm, cdt, cdn, true),
 });

@@ -15,6 +15,7 @@
   "status",
   "job_type",
   "job_type_name",
+  "contract_item",
   "location",
   "job_qty",
   "sb_141",
@@ -131,6 +132,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "contract_item",
+   "fieldtype": "Data",
+   "label": "Contract Job Line",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location",
@@ -141,7 +150,8 @@
    "fieldtype": "Float",
    "label": "No. of Jobs",
    "reqd": 1,
-   "default": "1"
+   "default": "1",
+   "description": "Use part of a job (for example 0.5) when one job is erected in stages with different dates"
   },
   {
    "fieldname": "sb_141",
@@ -283,7 +293,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-06 10:00:00.000000",
+ "modified": "2026-10-07 07:45:14.571290",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",

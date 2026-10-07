@@ -115,7 +115,7 @@ def get_open_reservations(item_code, warehouse):
 		from `tabRental Material Reservation Item` ri
 		inner join `tabRental Material Reservation` r on r.name = ri.parent
 		where r.docstatus = 1 and r.status not in ('Released', 'Dispatched')
-			and r.source_warehouse = %s and ri.item_code = %s
+			and ifnull(nullif(ri.source_warehouse, ''), r.source_warehouse) = %s and ri.item_code = %s
 			and (ri.reserved_qty - ri.dispatched_qty - ri.released_qty) > 0
 		""",
 		(warehouse, item_code),

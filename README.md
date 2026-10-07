@@ -65,6 +65,21 @@ contract end = erection + included days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.0.2
+
+- **JCR with several job types.** Create > Job Completion Report on a Hire Order Contract now asks which job
+  line was erected, and the JCR form fills that line's location, included days and charges. Changing the
+  Job Type on the form switches to that line; the same job type at two locations asks which one. Each
+  JCR is linked to its job line, so every job type (and each location) has its own JCR and erection date.
+  One job erected in stages can be split over several JCRs with part quantities (for example 0.5 + 0.5).
+- **Source warehouse per reservation row.** Each row of a Rental Material Reservation has its own Source
+  Warehouse with its own stock, reserved-for-others and available figures. A blank row takes the Default
+  Source Warehouse when that can cover it, otherwise the rentable warehouse holding the most free stock.
+  Deliveries take each item from the warehouse it was reserved in.
+- **Workspace and sidebar refresh on upgrade.** Earlier releases shipped them with an unchanged timestamp,
+  so Frappe kept the layout from the first installed version. This release re-imports both once.
+- **Item form.** Job Type Rental Items has its own tab (2.0.1).
+
 ### Upgrading from 1.x
 
 `bench migrate` renames the old "Hire Order Contract" DocType to "Rental Contract" (with its child

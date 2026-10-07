@@ -26,29 +26,33 @@ class JobCompletionReport(Document):
 		self.location = self.location or line.location
 		if flt(self.job_qty) <= 0:
 			frappe.throw(_("No. of Jobs must be greater than zero"))
-		others = frappe.db.sql(
-			"""select sum(job_qty) from `tabJob Completion Report`
-			where docstatus = 1 and hire_order_contract = %s and job_type = %s and name != %s""",
-			(hoc.name, self.job_type, self.name or ""),
-		)[0][0]
-		same_type_total = sum(flt(d.qty) for d in hoc.items if d.job_type == self.job_type)
-		if flt(others) + flt(self.job_qty) > same_type_total + 1e-6:
+		others = get_reported_qty(hoc.name, exclude=self.name).get(line.name, 0)
+		if flt(others) + flt(self.job_qty) > flt(line.qty) + 1e-6:
+			where = f" ({line.location})" if line.location else ""
 			frappe.throw(
-				_("{0}: {1} jobs on the contract, {2} already on other JCRs, so at most {3} can go on this one.").format(
-					frappe.bold(self.job_type), same_type_total, flt(others), same_type_total - flt(others)
+				_("{0}{1}: {2} on the contract line, {3} already on other JCRs, so at most {4} can go on this one.").format(
+					frappe.bold(self.job_type), where, flt(line.qty), flt(others), flt(line.qty) - flt(others)
 				)
 			)
 		self.set_duration()
 
 	def get_job_line(self, hoc):
+		"""The Hire Order Contract job line this JCR reports on. A contract can carry several job
+		types, and the same job type at several locations; each line has its own terms."""
 		lines = [d for d in hoc.items if d.job_type == self.job_type]
 		if not lines:
 			frappe.throw(_("{0} is not a job type on Hire Order Contract {1}").format(frappe.bold(self.job_type), hoc.name))
-		wanted = (self.location or "").strip().lower()
-		for d in lines:
-			if wanted and (d.location or "").strip().lower() == wanted:
-				return d
-		return lines[0]
+		line = next((d for d in lines if d.name == self.contract_item), None)
+		if not line:
+			reported = get_reported_qty(hoc.name, exclude=self.name)
+			wanted = (self.location or "").strip().lower()
+			line = (
+				next((d for d in lines if wanted and (d.location or "").strip().lower() == wanted), None)
+				or next((d for d in lines if flt(d.qty) - flt(reported.get(d.name)) > 1e-6), None)
+				or lines[0]
+			)
+		self.contract_item = line.name
+		return line
 
 	def set_duration(self):
 		self.contract_end_date = jcr_billing.get_contract_end(self.erection_date, self.included_days)
@@ -106,17 +110,9 @@ class JobCompletionReport(Document):
 	def update_contract_jobs(self):
 		"""Show on each Hire Order Contract job line how many jobs have a JCR."""
 		hoc = frappe.get_doc("Hire Order Contract", self.hire_order_contract)
-		by_type = dict(
-			frappe.db.sql(
-				"""select job_type, sum(job_qty) from `tabJob Completion Report`
-				where docstatus = 1 and hire_order_contract = %s group by job_type""",
-				hoc.name,
-			)
-		)
+		reported = get_reported_qty(hoc.name)
 		for d in hoc.items:
-			take = min(flt(by_type.get(d.job_type)), flt(d.qty))
-			by_type[d.job_type] = flt(by_type.get(d.job_type)) - take
-			d.db_set("jcr_qty", take, update_modified=False)
+			d.db_set("jcr_qty", flt(reported.get(d.name)), update_modified=False)
 
 	@frappe.whitelist()
 	def record_dismantle(self, dismantle_date: str, remarks: str | None = None):
@@ -130,3 +126,15 @@ class JobCompletionReport(Document):
 		self.set_duration()
 		self.flags.ignore_validate_update_after_submit = True
 		self.save()
+
+
+def get_reported_qty(hire_order_contract, exclude=None):
+	"""{contract job line: jobs on submitted JCRs}."""
+	return dict(
+		frappe.db.sql(
+			"""select contract_item, sum(job_qty) from `tabJob Completion Report`
+			where docstatus = 1 and hire_order_contract = %s and name != %s and ifnull(contract_item, '') != ''
+			group by contract_item""",
+			(hire_order_contract, exclude or ""),
+		)
+	)

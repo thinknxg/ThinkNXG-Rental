@@ -8,6 +8,7 @@
   "item_name",
   "uom",
   "required_qty",
+  "source_warehouse",
   "cb_44",
   "actual_qty",
   "other_reserved_qty",
@@ -53,13 +54,22 @@
    "columns": 1
   },
   {
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Where this item is reserved and dispatched from. Left blank it takes the Default Source Warehouse."
+  },
+  {
    "fieldname": "cb_44",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "actual_qty",
    "fieldtype": "Float",
-   "label": "Yard Stock",
+   "label": "Stock in Warehouse",
    "read_only": 1,
    "no_copy": 1
   },
@@ -126,7 +136,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-06 10:00:00.000000",
+ "modified": "2026-10-07 07:45:14.571290",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Material Reservation Item",
