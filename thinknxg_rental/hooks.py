@@ -44,6 +44,8 @@ doc_events = {
 	},
 }
 
+app_include_js = "/assets/thinknxg_rental/js/rental_flow.js"
+
 doctype_js = {
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
