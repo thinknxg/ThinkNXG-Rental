@@ -78,11 +78,6 @@ frappe.ui.form.on("Job Completion Report", {
             frm.refresh_field("job_lines");
         }
 
-        if (!lines.length && !has_rows && frm._jcr_empty_hoc !== frm.doc.hire_order_contract) {
-            frm._jcr_empty_hoc = frm.doc.hire_order_contract;
-            frappe.msgprint(__("All job lines of {0} are already reported on a Job Completion Report.", [frm.doc.hire_order_contract]));
-        }
-
         // Keep Rental Contract, company, customer and site in line with the Hire Order Contract.
         frm._jcr_syncing = true;
         try {
