@@ -136,6 +136,47 @@ frappe.ui.form.on("Job Completion Report", {
             }));
         }
         frm.add_custom_button(__("Billing Schedule"), () => frappe.set_route("List", "JCR Billing Schedule", { jcr: frm.doc.name }));
+        if (frm.doc.status !== "Completed") {
+            const make_invoice = (jcrs) => frappe.call({
+                method: "thinknxg_rental.services.jcr_billing.make_combined_invoice",
+                args: { jcrs: JSON.stringify(jcrs) }, freeze: true, freeze_message: __("Creating Sales Invoice...")
+            }).then(r => {
+                if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
+            });
+            frm.add_custom_button(__("Sales Invoice"), () => make_invoice([frm.doc.name]), __("Create"));
+            frm.add_custom_button(__("Multiple JCRs"), () => {
+                frappe.call({
+                    method: "thinknxg_rental.services.jcr_billing.get_combinable_jcrs",
+                    args: { jcr: frm.doc.name }
+                }).then(r => {
+                    const others = r.message || [];
+                    if (!others.length) {
+                        frappe.msgprint(__("There is no other open JCR for {0}.", [frm.doc.customer]));
+                        return;
+                    }
+                    const d = new frappe.ui.Dialog({
+                        title: __("Invoice Multiple JCRs"),
+                        fields: [
+                            { fieldtype: "HTML", fieldname: "info", options: `<p class="text-muted">${__("{0} is always included. Tick the JCRs to put on the same invoice.", [frm.doc.name])}</p>` },
+                            {
+                                fieldtype: "MultiCheck", fieldname: "jcrs", label: __("JCRs of {0}", [frm.doc.customer_name || frm.doc.customer]),
+                                columns: 1,
+                                options: others.map(o => ({
+                                    label: `${o.name} (${o.rental_contract || o.hire_order_contract || ""}${o.pending_periods ? ", " + __("{0} pending", [o.pending_periods]) : ""})`,
+                                    value: o.name, checked: 0
+                                }))
+                            }
+                        ],
+                        primary_action_label: __("Create Invoice"),
+                        primary_action(values) {
+                            d.hide();
+                            make_invoice([frm.doc.name].concat(values.jcrs || []));
+                        }
+                    });
+                    d.show();
+                });
+            }, __("Create"));
+        }
     }
 });
 

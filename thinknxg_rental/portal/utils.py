@@ -141,6 +141,41 @@ def get_invoices(customers, rental_contract=None, limit=None):
 		order_by="posting_date desc, creation desc",
 		limit=limit,
 	)
+	# Combined job invoices that span several rental contracts have no header contract.
+	combined_sql = """select distinct si.name, j.rental_contract from `tabSales Invoice` si
+		inner join `tabSales Invoice Item` it on it.parent = si.name
+		inner join `tabJob Completion Report` j on j.name = it.nxg_jcr
+		where si.docstatus = 1 and si.customer in %s and ifnull(si.nxg_rental_contract, '') = ''"""
+	combined_args = [tuple(customers) or ("",)]
+	if rental_contract:
+		combined_sql += " and j.rental_contract = %s"
+		combined_args.append(rental_contract)
+	combined = {n: c for n, c in frappe.db.sql(combined_sql, combined_args)}
+	if combined:
+		extra = frappe.get_all(
+			"Sales Invoice",
+			filters={"name": ["in", list(combined)]},
+			fields=["name", "posting_date", "due_date", "grand_total", "outstanding_amount", "currency", "status", "is_return",
+				"nxg_rental_contract", "nxg_rental_billing_schedule", "nxg_rental_damage_settlement", "nxg_jcr_billing_schedule"],
+			order_by="posting_date desc, creation desc",
+		)
+		for e in extra:
+			e.nxg_rental_contract = combined[e.name]
+		rows = sorted(list(rows) + extra, key=lambda x: (x.posting_date, x.name), reverse=True)
+		if limit:
+			rows = rows[: cint(limit)]
+	# Row-level job schedules (combined invoices keep them on the rows, not the header).
+	by_invoice = {}
+	for parent, sched in frappe.db.sql(
+		"""select distinct parent, nxg_jcr_billing_schedule from `tabSales Invoice Item`
+		where parent in %s and ifnull(nxg_jcr_billing_schedule, '') != ''""",
+		[tuple(r.name for r in rows) or ("",)],
+	):
+		by_invoice.setdefault(parent, []).append(sched)
+	for r in rows:
+		r.item_schedules = by_invoice.get(r.name, [])
+		if not r.nxg_jcr_billing_schedule and len(r.item_schedules) == 1:
+			r.nxg_jcr_billing_schedule = r.item_schedules[0]
 	for r in rows:
 		r.rental_contract = r.nxg_rental_contract
 		r.schedule = r.nxg_rental_billing_schedule
@@ -153,7 +188,7 @@ def get_invoices(customers, rental_contract=None, limit=None):
 		):
 			periods[s.name] = s
 	job_periods = {}
-	job_rows = [r.nxg_jcr_billing_schedule for r in rows if r.nxg_jcr_billing_schedule]
+	job_rows = list({x for r in rows for x in (r.item_schedules or [r.nxg_jcr_billing_schedule]) if x})
 	if job_rows:
 		for s in frappe.get_all(
 			"JCR Billing Schedule", filters={"name": ["in", job_rows]}, fields=["name", "period_from", "period_to", "billing_type"]
@@ -162,15 +197,21 @@ def get_invoices(customers, rental_contract=None, limit=None):
 	today = getdate(nowdate())
 	for r in rows:
 		job = job_periods.get(r.nxg_jcr_billing_schedule)
+		combined_jobs = [job_periods[x] for x in r.item_schedules if x in job_periods] if len(r.item_schedules) > 1 else []
 		if r.is_return:
 			r.kind = _("Credit note")
+		elif combined_jobs:
+			r.kind = _("Job charges")
+			r.period_from = min(x.period_from for x in combined_jobs)
+			r.period_to = max(x.period_to for x in combined_jobs)
 		elif job:
 			r.kind = _("Job contract charge") if job.billing_type == "Contract" else _("Excess days")
 		else:
 			r.kind = _("Damage and loss") if r.settlement else _("Rental")
 		period = periods.get(r.schedule)
-		r.period_from, r.period_to = (period.from_date, period.to_date) if period else (None, None)
-		if job:
+		if not combined_jobs:
+			r.period_from, r.period_to = (period.from_date, period.to_date) if period else (None, None)
+		if job and not combined_jobs:
 			r.period_from, r.period_to = job.period_from, job.period_to
 		r.unpaid = flt(r.outstanding_amount) > 0
 		r.overdue = r.unpaid and r.due_date and getdate(r.due_date) < today

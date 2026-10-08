@@ -36,6 +36,7 @@ doc_events = {
 	},
 	"Item": {"validate": "thinknxg_rental.events.item.validate"},
 	"Sales Invoice": {
+		"validate": "thinknxg_rental.events.sales_invoice.validate",
 		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
 		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",
 		"on_trash": "thinknxg_rental.events.sales_invoice.unlink",
@@ -49,6 +50,7 @@ doctype_js = {
 	"Item": "public/js/item.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
+	"Sales Invoice": "public/js/sales_invoice.js",
 }
 
 # Customer portal (Frappe website pages under /rental)

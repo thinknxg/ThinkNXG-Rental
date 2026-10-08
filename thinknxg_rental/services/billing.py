@@ -206,9 +206,19 @@ def update_contract_billed_amount(rental_contract):
 	total = frappe.db.sql(
 		"""select sum(base_net_total) from `tabSales Invoice`
 		where docstatus = 1 and nxg_rental_contract = %s
-			and (ifnull(nxg_rental_billing_schedule, '') != '' or ifnull(nxg_jcr_billing_schedule, '') != '')""",
+			and ifnull(nxg_rental_billing_schedule, '') != ''""",
 		rental_contract,
 	)[0][0]
+	# Job (JCR) invoices are summed by row, so one combined invoice counts towards each contract it bills.
+	total = flt(total) + flt(
+		frappe.db.sql(
+			"""select sum(it.base_net_amount) from `tabSales Invoice Item` it
+			inner join `tabSales Invoice` si on si.name = it.parent
+			where si.docstatus = 1 and ifnull(it.nxg_jcr_billing_schedule, '') != ''
+				and it.nxg_jcr in (select name from `tabJob Completion Report` where rental_contract = %s)""",
+			rental_contract,
+		)[0][0]
+	)
 	frappe.db.set_value("Rental Contract", rental_contract, "total_billed_amount", flt(total), update_modified=False)
 
 
