@@ -7,8 +7,22 @@ frappe.ui.form.on("Hire Order Contract", {
 		frm.set_query("cost_center", () => ({ filters: { company: frm.doc.company, is_group: 0 } }));
 	},
 	make_jcr(frm) {
-		const method = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr";
-		frappe.model.open_mapped_doc({ method, frm });
+		// one JCR per job type (or per location / erection date); ask which when several are open
+		const method = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.";
+		frappe.call({ method: method + "get_job_lines", args: { hire_order_contract: frm.doc.name } }).then((r) => {
+			const lines = (r.message && r.message.lines) || [];
+			if (!lines.length) return frappe.msgprint(__("Every job on this contract already has a Job Completion Report."));
+			const open = (job_row) => frappe.model.open_mapped_doc({ method: method + "make_jcr", frm, args: { job_row } });
+			if (lines.length === 1) return open(lines[0].idx);
+			const label = (l) => `${l.idx}: ${l.job_type_name || l.job_type}${l.location ? " - " + l.location : ""} (${l.remaining} ${__("to report")})`;
+			frappe.prompt(
+				[{ fieldname: "line", fieldtype: "Select", label: __("Job Type"), reqd: 1, options: lines.map(label), default: label(lines[0]),
+					description: __("Raise one Job Completion Report for each job type, with its own erection date.") }],
+				(v) => open(parseInt(v.line, 10)),
+				__("Which job was erected?"),
+				__("Create JCR")
+			);
+		});
 	},
 	refresh(frm) {
 		const base = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.";
@@ -31,21 +45,6 @@ frappe.ui.form.on("Hire Order Contract", {
 		if (frm.doc.status === "Open") create("Rental Contract", "make_rental_contract");
 		create("Material Reservation", "make_reservation");
 		frm.add_custom_button(__("Job Completion Report (JCR)"), () => frm.trigger("make_jcr"), __("Create"));
-		frm.add_custom_button(__("View JCRs"), () =>
-			frappe.set_route("List", "Job Completion Report", { hire_order_contract: frm.doc.name })
-		);
-		frm.add_custom_button(__("Generate All JCR Billing"), () =>
-			frappe.call({
-				method: "thinknxg_rental.services.jcr_billing.generate_all_jcr_billing",
-				args: { hire_order_contract: frm.doc.name },
-				freeze: true,
-				freeze_message: __("Generating due billing for all JCRs..."),
-			}).then((r) => {
-				const rows = r.message || [];
-				const total = rows.reduce((n, row) => n + (row.schedules || []).length, 0);
-				frappe.msgprint(__("Processed {0} JCR(s) and generated {1} billing period(s).", [rows.length, total]));
-			})
-		);
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
 });

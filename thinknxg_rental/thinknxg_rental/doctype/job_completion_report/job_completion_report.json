@@ -8,10 +8,10 @@
   "company",
   "hire_order_contract",
   "rental_contract",
-  "items",
   "customer",
   "customer_name",
   "rental_site",
+  "job_lines",
   "cb_140",
   "status",
   "job_type",
@@ -77,16 +77,6 @@
    "in_standard_filter": 1
   },
   {
-   "fieldname": "items",
-   "fieldtype": "Table",
-   "label": "JCR Items / Jobs",
-   "options": "JCR Item",
-   "reqd": 1,
-   "description": "All job lines from the Hire Order Contract can be handled in one JCR. Each row has its own erection and dismantle dates.",
-   "allow_on_submit": 1,
-   "read_only": 1
-  },
-  {
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Customer",
@@ -112,6 +102,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "job_lines",
+   "fieldtype": "Table",
+   "label": "JCR Job Lines",
+   "options": "Job Completion Report Line",
+   "reqd": 1,
+   "description": "All job lines reported by this JCR. Each row can have its own erection and dismantle dates."
+  },
+  {
    "fieldname": "cb_140",
    "fieldtype": "Column Break"
   },
@@ -131,16 +129,17 @@
    "fieldtype": "Link",
    "label": "Job Type",
    "options": "Item",
-   "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "hidden": 1
   },
   {
    "fieldname": "job_type_name",
    "fieldtype": "Data",
    "label": "Job Type Name",
    "fetch_from": "job_type.item_name",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "contract_item",
@@ -154,15 +153,16 @@
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "hidden": 1
   },
   {
    "fieldname": "job_qty",
    "fieldtype": "Float",
    "label": "No. of Jobs",
-   "reqd": 1,
    "default": "1",
-   "description": "Use part of a job (for example 0.5) when one job is erected in stages with different dates"
+   "description": "Use part of a job (for example 0.5) when one job is erected in stages with different dates",
+   "hidden": 1
   },
   {
    "fieldname": "sb_141",
@@ -173,21 +173,23 @@
    "fieldname": "erection_date",
    "fieldtype": "Date",
    "label": "Erection Date (Contract Start)",
-   "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "hidden": 1
   },
   {
    "fieldname": "included_days",
    "fieldtype": "Int",
    "label": "Included Contract Days",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "contract_end_date",
    "fieldtype": "Date",
    "label": "Contract End Date",
    "read_only": 1,
-   "bold": 1
+   "bold": 1,
+   "hidden": 1
   },
   {
    "fieldname": "cb_142",
@@ -199,14 +201,16 @@
    "label": "Dismantle Date (Contract End)",
    "allow_on_submit": 1,
    "no_copy": 1,
-   "description": "Leave blank while the job is standing. Excess is then billed at each month end."
+   "description": "Leave blank while the job is standing. Excess is then billed at each month end.",
+   "hidden": 1
   },
   {
    "fieldname": "actual_days",
    "fieldtype": "Int",
    "label": "Actual Days",
    "read_only": 1,
-   "no_copy": 1
+   "no_copy": 1,
+   "hidden": 1
   },
   {
    "fieldname": "excess_days",
@@ -214,7 +218,8 @@
    "label": "Excess Days",
    "read_only": 1,
    "no_copy": 1,
-   "bold": 1
+   "bold": 1,
+   "hidden": 1
   },
   {
    "fieldname": "sb_143",
@@ -225,14 +230,16 @@
    "fieldname": "contract_rate",
    "fieldtype": "Currency",
    "label": "Contract Charge per Job",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "contract_charge_billing",
    "fieldtype": "Select",
    "label": "Bill Contract Charge",
    "options": "On Erection\nAt Contract End",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "cb_144",
@@ -243,13 +250,15 @@
    "fieldtype": "Select",
    "label": "Excess Charge Basis",
    "options": "Daily\nWeekly\nMonthly",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "excess_rate",
    "fieldtype": "Currency",
    "label": "Excess Charge per Job",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "sb_145",
@@ -261,7 +270,8 @@
    "fieldtype": "Date",
    "label": "Billed Upto",
    "read_only": 1,
-   "no_copy": 1
+   "no_copy": 1,
+   "hidden": 1
   },
   {
    "fieldname": "cb_146",
@@ -272,7 +282,8 @@
    "fieldtype": "Currency",
    "label": "Total Billed Amount",
    "read_only": 1,
-   "no_copy": 1
+   "no_copy": 1,
+   "hidden": 1
   },
   {
    "fieldname": "sb_147",
@@ -304,7 +315,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-08 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",

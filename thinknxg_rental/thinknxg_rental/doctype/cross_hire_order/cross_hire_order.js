@@ -29,19 +29,6 @@ frappe.ui.form.on("Cross Hire Order", {
 					frm,
 				}), __("Create"));
 		}
-		if (frm.doc.status !== "To Receive" && frm.doc.rental_contract) {
-			frm.add_custom_button(__("Continue Rental Flow"), () => {
-				frappe.call({
-					method: "thinknxg_rental.thinknxg_rental.doctype.rental_contract.rental_contract.make_delivery_order",
-					args: { source_name: frm.doc.rental_contract }, freeze: true,
-					callback(r) {
-						if (!r.message) return;
-						const doc = frappe.model.sync(r.message)[0];
-						frappe.set_route("Form", doc.doctype, doc.name);
-						}
-				});
-			}, __("Continue Workflow"));
-		}
 		if (frm.doc.status !== "To Receive") {
 			frm.add_custom_button(__("Supplier Hire Invoice"), () => {
 				frappe.prompt(

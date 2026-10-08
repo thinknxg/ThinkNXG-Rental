@@ -5,10 +5,10 @@
  "engine": "InnoDB",
  "field_order": [
   "jcr",
-  "jcr_item",
   "rental_contract",
   "hire_order_contract",
   "customer",
+  "jcr_line",
   "job_type",
   "company",
   "cb_148",
@@ -38,14 +38,6 @@
    "search_index": 1
   },
   {
-   "fieldname": "jcr_item",
-   "fieldtype": "Data",
-   "label": "JCR Item Row",
-   "read_only": 1,
-   "in_standard_filter": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "rental_contract",
    "fieldtype": "Link",
    "label": "Rental Contract",
@@ -69,6 +61,14 @@
    "read_only": 1,
    "in_list_view": 1,
    "in_standard_filter": 1
+  },
+  {
+   "fieldname": "jcr_line",
+   "fieldtype": "Data",
+   "label": "JCR Job Line",
+   "read_only": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
   },
   {
    "fieldname": "job_type",
@@ -172,7 +172,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-08 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "JCR Billing Schedule",

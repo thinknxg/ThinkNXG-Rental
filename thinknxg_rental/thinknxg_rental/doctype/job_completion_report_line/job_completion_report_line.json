@@ -1,7 +1,8 @@
 {
  "actions": [],
- "creation": "2026-10-07 10:00:00.000000",
+ "creation": "2026-10-08 00:00:00.000000",
  "doctype": "DocType",
+ "engine": "InnoDB",
  "field_order": [
   "contract_item",
   "job_type",
@@ -19,8 +20,9 @@
   "excess_rate_basis",
   "excess_rate",
   "billed_upto",
+  "total_billed_amount",
   "status",
-  "total_billed_amount"
+  "remarks"
  ],
  "fields": [
   {
@@ -28,8 +30,7 @@
    "fieldtype": "Data",
    "label": "Contract Job Line",
    "read_only": 1,
-   "hidden": 1,
-   "no_copy": 1
+   "in_list_view": 0
   },
   {
    "fieldname": "job_type",
@@ -37,33 +38,27 @@
    "label": "Job Type",
    "options": "Item",
    "reqd": 1,
-   "in_list_view": 1,
-   "columns": 2
+   "in_list_view": 1
   },
   {
    "fieldname": "job_type_name",
    "fieldtype": "Data",
    "label": "Job Type Name",
-   "fetch_from": "job_type.item_name",
    "read_only": 1,
-   "in_list_view": 1,
-   "columns": 2
+   "in_list_view": 1
   },
   {
    "fieldname": "location",
    "fieldtype": "Data",
    "label": "Location",
-   "in_list_view": 1,
-   "columns": 2
+   "in_list_view": 1
   },
   {
    "fieldname": "job_qty",
    "fieldtype": "Float",
    "label": "No. of Jobs",
    "reqd": 1,
-   "default": "1",
-   "in_list_view": 1,
-   "columns": 1
+   "in_list_view": 1
   },
   {
    "fieldname": "erection_date",
@@ -75,14 +70,16 @@
   {
    "fieldname": "included_days",
    "fieldtype": "Int",
-   "label": "Included Contract Days",
-   "read_only": 1
+   "label": "Included Days",
+   "read_only": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "contract_end_date",
    "fieldtype": "Date",
    "label": "Contract End Date",
-   "read_only": 1
+   "read_only": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "dismantle_date",
@@ -105,7 +102,7 @@
   {
    "fieldname": "contract_rate",
    "fieldtype": "Currency",
-   "label": "Contract Charge per Job",
+   "label": "Contract Charge / Job",
    "read_only": 1
   },
   {
@@ -125,34 +122,41 @@
   {
    "fieldname": "excess_rate",
    "fieldtype": "Currency",
-   "label": "Excess Charge per Job",
+   "label": "Excess Charge / Job",
    "read_only": 1
   },
   {
    "fieldname": "billed_upto",
    "fieldtype": "Date",
-   "label": "Billed Upto",
+   "label": "Billed Up To",
    "read_only": 1
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "Within Contract\nIn Excess\nDismantled\nCompleted",
-   "read_only": 1,
-   "in_list_view": 1
   },
   {
    "fieldname": "total_billed_amount",
    "fieldtype": "Currency",
    "label": "Total Billed Amount",
    "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nWithin Contract\nIn Excess\nDismantled\nCompleted\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
   }
  ],
  "links": [],
- "modified": "2026-10-07 10:00:00.000000",
+ "modified": "2026-10-08 00:00:00.000000",
+ "modified_by": "Administrator",
  "module": "thinkNXG Rental",
- "name": "JCR Item",
+ "name": "Job Completion Report Line",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

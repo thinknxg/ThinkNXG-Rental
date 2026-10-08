@@ -32,19 +32,6 @@ frappe.ui.form.on("Hire Delivery Order", {
 		if (frm.doc.rental_contract && frm.doc.docstatus === 0) frm.trigger("get_items");
 	},
 	refresh(frm) {
-		if (frm.doc.docstatus === 1 && frm.doc.source_type === "Hire Order Contract" && frm.doc.source_document) {
-			frm.add_custom_button(__("Continue to JCR"), () => {
-				frappe.call({
-					method: "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr",
-					args: { source_name: frm.doc.source_document }, freeze: true,
-					callback(r) {
-						if (!r.message) return;
-						const doc = frappe.model.sync(r.message)[0];
-						frappe.set_route("Form", doc.doctype, doc.name);
-					}
-				});
-			}, __("Continue Workflow"));
-		}
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Get Items from Contract"), () => frm.trigger("get_items"));
 		}

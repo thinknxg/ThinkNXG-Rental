@@ -6,3 +6,4 @@ thinknxg_rental.patches.v2_0.set_rental_sources
 thinknxg_rental.patches.v2_0.refresh_workspace
 thinknxg_rental.patches.v2_0.backfill_jcr_lines
 thinknxg_rental.patches.v2_0.reservation_row_warehouses
+thinknxg_rental.patches.v2_0.migrate_multiline_jcr

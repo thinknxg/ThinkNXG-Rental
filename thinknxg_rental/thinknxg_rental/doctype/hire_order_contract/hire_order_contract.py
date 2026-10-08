@@ -204,22 +204,21 @@ def get_job_lines(hire_order_contract: str):
 
 @frappe.whitelist()
 def make_jcr(source_name: str, target_doc=None, args=None):
-	"""Create one JCR containing every open job line on the Hire Order Contract.
-	Each child row has its own quantity and erection/dismantle dates.
-	"""
-	source = _source(source_name)
-	lines = get_open_job_lines(source)
-	if not lines:
-		frappe.throw(_("Every job on this contract already has a Job Completion Report"))
-	target = frappe.new_doc("Job Completion Report")
-	target.update({"company": source.company, "hire_order_contract": source.name})
-	for line in lines:
-		target.append("items", {
-			"contract_item": line.name, "job_type": line.job_type, "location": line.location,
-			"job_qty": line.remaining, "erection_date": nowdate(),
-			"included_days": line.included_days,
-			"contract_end_date": add_days(nowdate(), max(line.included_days, 1) - 1),
-			"contract_rate": line.contract_rate, "contract_charge_billing": source.contract_charge_billing,
-			"excess_rate_basis": line.excess_rate_basis, "excess_rate": line.excess_rate,
-		})
-	return target
+    """Create one JCR containing every still-unreported job line on the Hire Order Contract.
+    Each child row can later carry its own erection/dismantle date."""
+    source = _source(source_name)
+    lines = get_open_job_lines(source)
+    if not lines:
+        frappe.throw(_("Every job on this contract already has a Job Completion Report"))
+    target = frappe.new_doc("Job Completion Report")
+    target.update({"company":source.company,"hire_order_contract":source.name,"rental_contract":get_contract_for_source("Hire Order Contract",source.name),"customer":source.customer,"rental_site":source.rental_site})
+    for line in lines:
+        target.append("job_lines",{
+            "contract_item":line.name,"job_type":line.job_type,"job_type_name":line.job_type_name,"location":line.location,
+            "job_qty":line.remaining,"erection_date":nowdate(),"included_days":line.included_days,
+            "contract_end_date":add_days(nowdate(),max(line.included_days,1)-1),"contract_rate":line.contract_rate,
+            "contract_charge_billing":source.contract_charge_billing,"excess_rate_basis":line.excess_rate_basis,
+            "excess_rate":line.excess_rate,"status":"Draft"
+        })
+    return target
+
