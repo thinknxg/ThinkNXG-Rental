@@ -10,33 +10,36 @@ frappe.ui.form.on("Job Completion Report", {
         if (frm.doc.docstatus === 0) frm.trigger("load_job_lines");
     },
 
-    hire_order_contract(frm) {
-        if (frm.doc.docstatus === 0) frm.trigger("load_job_lines");
+    async hire_order_contract(frm) {
+        if (frm.doc.docstatus !== 0 || frm._jcr_syncing) return;
+        // A different Hire Order Contract was picked: start from its own lines.
+        frm.clear_table("job_lines");
+        frm.refresh_field("job_lines");
+        await frm.trigger("load_job_lines");
     },
 
     async rental_contract(frm) {
-        if (frm.doc.docstatus !== 0 || !frm.doc.rental_contract) return;
+        if (frm.doc.docstatus !== 0 || frm._jcr_syncing || !frm.doc.rental_contract) return;
 
         const r = await frappe.db.get_value(
             "Rental Contract",
             frm.doc.rental_contract,
-            ["source_type", "source_document", "company", "customer", "rental_site"]
+            ["source_type", "source_document"]
         );
         const v = r.message || {};
-
         if (v.source_type !== "Hire Order Contract" || !v.source_document) {
             frappe.msgprint(__("The selected Rental Contract is not linked to a Hire Order Contract."));
             return;
         }
 
-        if (v.company && !frm.doc.company) await frm.set_value("company", v.company);
-        if (v.customer && !frm.doc.customer) await frm.set_value("customer", v.customer);
-        if (v.rental_site && !frm.doc.rental_site) await frm.set_value("rental_site", v.rental_site);
-
-        // Do not depend on the asynchronous field event firing. Resolve the source
-        // and populate the child table explicitly as soon as Rental Contract is selected.
         if (frm.doc.hire_order_contract !== v.source_document) {
-            await frm.set_value("hire_order_contract", v.source_document);
+            frm._jcr_syncing = true;
+            try {
+                frm.clear_table("job_lines");
+                await frm.set_value("hire_order_contract", v.source_document);
+            } finally {
+                frm._jcr_syncing = false;
+            }
         }
         await frm.trigger("load_job_lines");
     },
@@ -50,13 +53,9 @@ frappe.ui.form.on("Job Completion Report", {
         });
         const m = r.message || {};
         const lines = m.lines || [];
-        if (!lines.length && !(frm.doc.job_lines || []).some(r => r.job_type)) {
-            frappe.msgprint(__("All job lines of {0} are already reported on a Job Completion Report.", [frm.doc.hire_order_contract]));
-        }
+        const has_rows = (frm.doc.job_lines || []).some(row => row.job_type);
 
-        // A newly created JCR must always receive the complete set of open HOC
-        // job lines in one child table. Existing rows are never overwritten.
-        if (!(frm.doc.job_lines || []).some(r => r.job_type)) {
+        if (!has_rows) {
             frm.clear_table("job_lines");
             lines.forEach((l) => {
                 const row = frm.add_child("job_lines");
@@ -71,8 +70,7 @@ frappe.ui.form.on("Job Completion Report", {
                 row.excess_rate_basis = l.excess_rate_basis;
                 row.excess_rate = l.excess_rate;
                 row.status = "Draft";
-                // Keep the dates independent for every JCR row. They are intentionally
-                // left blank so the user can enter the actual erection date per job.
+                // Dates stay blank so the user enters the real dates per job.
                 row.erection_date = null;
                 row.contract_end_date = null;
                 row.dismantle_date = null;
@@ -80,8 +78,36 @@ frappe.ui.form.on("Job Completion Report", {
             frm.refresh_field("job_lines");
         }
 
-        if (!frm.doc.company && m.company) await frm.set_value("company", m.company);
-        if (!frm.doc.rental_contract && m.rental_contract) await frm.set_value("rental_contract", m.rental_contract);
+        if (!lines.length && !has_rows && frm._jcr_empty_hoc !== frm.doc.hire_order_contract) {
+            frm._jcr_empty_hoc = frm.doc.hire_order_contract;
+            frappe.msgprint(__("All job lines of {0} are already reported on a Job Completion Report.", [frm.doc.hire_order_contract]));
+        }
+
+        // Keep Rental Contract, company, customer and site in line with the Hire Order Contract.
+        frm._jcr_syncing = true;
+        try {
+            if (m.rental_contract) {
+                let current_source = null;
+                if (frm.doc.rental_contract) {
+                    const c = await frappe.db.get_value("Rental Contract", frm.doc.rental_contract, "source_document");
+                    current_source = (c.message || {}).source_document;
+                }
+                if (current_source !== frm.doc.hire_order_contract) {
+                    await frm.set_value("rental_contract", m.rental_contract);
+                }
+            }
+            if (frm.doc.rental_contract) {
+                const c = await frappe.db.get_value("Rental Contract", frm.doc.rental_contract, ["company", "customer", "rental_site"]);
+                const v = c.message || {};
+                for (const f of ["company", "customer", "rental_site"]) {
+                    if (v[f] && frm.doc[f] !== v[f]) await frm.set_value(f, v[f]);
+                }
+            } else if (m.company && !frm.doc.company) {
+                await frm.set_value("company", m.company);
+            }
+        } finally {
+            frm._jcr_syncing = false;
+        }
     },
 
     refresh(frm) {
