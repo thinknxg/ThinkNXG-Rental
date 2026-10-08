@@ -11,7 +11,6 @@
   "customer",
   "customer_name",
   "rental_site",
-  "job_lines",
   "cb_140",
   "status",
   "job_type",
@@ -19,6 +18,8 @@
   "contract_item",
   "location",
   "job_qty",
+  "sb_job_lines",
+  "job_lines",
   "sb_141",
   "erection_date",
   "included_days",
@@ -303,6 +304,11 @@
    "read_only": 1,
    "no_copy": 1,
    "print_hide": 1
+  },
+  {
+   "fieldname": "sb_job_lines",
+   "fieldtype": "Section Break",
+   "label": "Job Lines"
   }
  ],
  "links": [
@@ -315,7 +321,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-08 12:00:00.000000",
+ "modified": "2026-10-09 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",
