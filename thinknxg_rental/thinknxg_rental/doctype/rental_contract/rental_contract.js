@@ -16,6 +16,16 @@ frappe.ui.form.on("Rental Contract", {
 		const create = (label, method) =>
 			frm.add_custom_button(__(label), () => frappe.model.open_mapped_doc({ method: base + method, frm }), __("Create"));
 
+		if (live && frm.doc.contract_type === "Job Type Contract" && frm.doc.hire_order_contract) {
+			frm.add_custom_button(__("Job Completion Report (JCR)"), () => {
+				const method = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr";
+				frappe.model.open_mapped_doc({
+					method,
+					source_name: frm.doc.hire_order_contract
+				});
+			}, __("Create"));
+		}
+
 		if (live) {
 			create("Material Reservation", "make_reservation");
 			create("Delivery Order", "make_delivery_order");

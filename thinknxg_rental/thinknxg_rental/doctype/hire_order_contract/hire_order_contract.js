@@ -7,11 +7,9 @@ frappe.ui.form.on("Hire Order Contract", {
 		frm.set_query("cost_center", () => ({ filters: { company: frm.doc.company, is_group: 0 } }));
 	},
 	make_jcr(frm) {
-		// One JCR contains every still-unreported job line. Each child row has its own erection/dismantle dates.
 		const method = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr";
 		frappe.model.open_mapped_doc({ method, frm });
 	},
-
 	refresh(frm) {
 		const base = "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.";
 		if (frm.doc.docstatus === 0) {
