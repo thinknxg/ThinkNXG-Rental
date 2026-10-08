@@ -4,6 +4,11 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
+# Quotation deal types that use Length / Breadth / Height / Duration. Keep in step with
+# events/quotation.py and public/js/quotation_deal.js.
+HIRE_DEPENDS_ON = 'eval:["Material Hire", "Hire Order Contract"].includes(parent.deal_type)'
+
+
 def get_custom_fields():
 	return {
 		"Lead": [
@@ -15,6 +20,19 @@ def get_custom_fields():
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
 				description="Carries the Deal Type from the Lead and selects the next document."),
+		],
+		# Dimensions and duration for hire quotations. Shown only for the hire deal types; the amount is
+		# Qty x Unit Price x Duration (see events/quotation.py and public/js/quotation_deal.js).
+		"Quotation Item": [
+			dict(fieldname="nxg_length", label="Length", fieldtype="Float", insert_after="item_name", in_list_view=1, columns=1,
+				depends_on=HIRE_DEPENDS_ON),
+			dict(fieldname="nxg_breadth", label="Breadth", fieldtype="Float", insert_after="nxg_length", in_list_view=1, columns=1,
+				depends_on=HIRE_DEPENDS_ON),
+			dict(fieldname="nxg_height", label="Height", fieldtype="Float", insert_after="nxg_breadth", in_list_view=1, columns=1,
+				depends_on=HIRE_DEPENDS_ON),
+			dict(fieldname="nxg_duration", label="Duration", fieldtype="Int", insert_after="nxg_height", in_list_view=1, columns=1,
+				depends_on=HIRE_DEPENDS_ON,
+				description="Number of periods. Amount = Qty x Unit Price x Duration. Blank counts as 1."),
 		],
 		"Item": [
 			dict(fieldname="nxg_is_job_type_item", label="Is Job Type Item", fieldtype="Check", insert_after="is_stock_item",

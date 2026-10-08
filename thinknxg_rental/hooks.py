@@ -35,6 +35,9 @@ doc_events = {
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
 	"Item": {"validate": "thinknxg_rental.events.item.validate"},
+	"Quotation": {
+		"validate": "thinknxg_rental.events.quotation.validate",
+	},
 	"Sales Invoice": {
 		"validate": "thinknxg_rental.events.sales_invoice.validate",
 		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
