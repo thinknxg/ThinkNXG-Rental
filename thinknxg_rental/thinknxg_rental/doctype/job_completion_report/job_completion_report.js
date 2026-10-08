@@ -50,13 +50,13 @@ frappe.ui.form.on("Job Completion Report", {
         });
         const m = r.message || {};
         const lines = m.lines || [];
-        if (!lines.length && !(frm.doc.job_lines || []).length) {
+        if (!lines.length && !(frm.doc.job_lines || []).some(r => r.job_type)) {
             frappe.msgprint(__("All job lines of {0} are already reported on a Job Completion Report.", [frm.doc.hire_order_contract]));
         }
 
         // A newly created JCR must always receive the complete set of open HOC
         // job lines in one child table. Existing rows are never overwritten.
-        if (!frm.doc.job_lines || !frm.doc.job_lines.length) {
+        if (!(frm.doc.job_lines || []).some(r => r.job_type)) {
             frm.clear_table("job_lines");
             lines.forEach((l) => {
                 const row = frm.add_child("job_lines");
