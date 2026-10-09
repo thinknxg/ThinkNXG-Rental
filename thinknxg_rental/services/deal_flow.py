@@ -56,14 +56,36 @@ def _quotation_source(source_name):
     return source
 
 
-def _get_customer(source):
-    # A quotation created against a Lead does not have a Customer yet.
-    customer = source.get("party_name") if source.get("quotation_to") == "Customer" else None
-    if not customer and source.get("customer"):
-        customer = source.customer
+def _make_customer_from_quotation(quotation_name):
+    """The Customer of a quotation made for a Lead or Prospect: the one already made from that Lead
+    if there is one, otherwise a new one. This is ERPNext's own routine (the one its Sales Order
+    uses), so Customer Group, Territory, contacts and addresses come across the standard way."""
+    make_customer = frappe.get_attr("erpnext.selling.doctype.quotation.quotation._make_customer")
+    customer = make_customer(quotation_name)
     if not customer:
-        frappe.throw(_("Convert the quotation party to a Customer before creating a rental document."))
+        frappe.throw(_("A Customer could not be created from the party of quotation {0}.").format(quotation_name))
     return customer
+
+
+def _get_customer(source):
+    # A quotation created against a Lead has no Customer yet. Do not stop there: use the Customer
+    # already made from the Lead, or make it now.
+    if source.get("quotation_to") == "Customer" and source.get("party_name"):
+        return source.party_name
+    if source.get("customer"):
+        return source.customer
+    return _make_customer_from_quotation(source.name).name
+
+
+@frappe.whitelist()
+def make_customer_from_quotation(source_name: str):
+    """Convert the Lead (or Prospect) of a quotation to a Customer, before or after it is submitted.
+    Returns the Customer name; if the Lead already has one, that Customer is returned."""
+    source = frappe.get_doc("Quotation", source_name)
+    source.check_permission("read")
+    if source.docstatus == 2:
+        frappe.throw(_("Quotation {0} is cancelled.").format(source.name))
+    return _get_customer(source)
 
 
 @frappe.whitelist()
@@ -129,9 +151,6 @@ def make_sales_order_from_quotation(source_name: str, target_doc=None):
     source = _quotation_source(source_name)
     if source.deal_type != "Material Sale":
         frappe.throw(_("This quotation is not a Material Sale deal."))
-    if source.get("quotation_to") != "Customer" or not source.get("party_name"):
-        frappe.throw(_("Convert the quotation party to a Customer before creating a Sales Order."))
-
     # Use ERPNext's standard quotation -> sales order mapper so the existing
     # sales flow and validations remain untouched.
     method = frappe.get_attr("erpnext.selling.doctype.quotation.quotation.make_sales_order")
