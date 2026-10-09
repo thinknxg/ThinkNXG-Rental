@@ -3,7 +3,19 @@ frappe.ui.form.on("Rental Site", {
 	refresh(frm) {
 		if (frm.is_new() || frm.doc.disabled) return;
 		frm.add_custom_button(__("Hire Order"), async () => {
-			const quotation = frm.doc.nxg_quotation;
+			let quotation = frm.doc.nxg_quotation;
+			if (!quotation) {
+				// Site not made from a quotation: use the customer's submitted hire quotation if there is exactly one
+				const q = await frappe.db.get_list("Quotation", {
+					filters: {
+						quotation_to: "Customer", party_name: frm.doc.customer, docstatus: 1,
+						deal_type: ["in", ["Material Hire", "Hire Order Contract"]],
+						status: ["not in", ["Lost", "Expired", "Cancelled"]],
+					},
+					fields: ["name"], limit: 2,
+				});
+				if (q.length === 1) quotation = q[0].name;
+			}
 			if (!quotation) {
 				frappe.new_doc("Hire Order", {
 					customer: frm.doc.customer,
