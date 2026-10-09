@@ -130,7 +130,7 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
         target.customer = customer
         target.customer_name = src.get("customer_name") or frappe.db.get_value("Customer", customer, "customer_name")
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
-        target.order_date = src.transaction_date or nowdate()
+        target.order_date = None
         target.rental_site = _site_for_quotation(customer, site_arg)
         if src.get("items"):
             # Preserve the existing Hire Order validation/rate logic; quotation values

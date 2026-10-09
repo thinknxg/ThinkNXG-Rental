@@ -96,7 +96,6 @@
    "fieldtype": "Date",
    "label": "Order Date",
    "reqd": 1,
-   "default": "Today",
    "in_list_view": 1
   },
   {
