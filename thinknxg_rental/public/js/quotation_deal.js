@@ -1,3 +1,35 @@
+// Create -> Rental Site, listed above Hire Order (this handler is registered before the Hire Order one).
+// Opens a new Rental Site with the quotation's Customer and Company filled in.
+function nxg_make_rental_site(frm) {
+	const open_site = (customer) => frappe.new_doc("Rental Site", {
+		customer: customer,
+		customer_name: frm.doc.customer_name,
+		company: frm.doc.company,
+	});
+	if (frm.doc.quotation_to === "Customer" && frm.doc.party_name) {
+		open_site(frm.doc.party_name);
+		return;
+	}
+	// Lead or Prospect: find or make the Customer first
+	frappe.call({
+		method: "thinknxg_rental.services.deal_flow.make_customer_from_quotation",
+		args: { source_name: frm.doc.name },
+		freeze: true,
+		freeze_message: __("Creating Customer..."),
+		callback(r) {
+			if (r.message) open_site(r.message);
+		},
+	});
+}
+
+frappe.ui.form.on("Quotation", {
+	refresh(frm) {
+		if (frm.is_new() || frm.doc.docstatus === 2) return;
+		if (!["Material Hire", "Hire Order Contract"].includes(frm.doc.deal_type)) return;
+		frm.add_custom_button(__("Rental Site"), () => nxg_make_rental_site(frm), __("Create"));
+	},
+});
+
 frappe.ui.form.on("Quotation", {
 	refresh(frm) {
 		if (frm.is_new() || frm.doc.docstatus !== 1 || !frm.doc.deal_type) return;
