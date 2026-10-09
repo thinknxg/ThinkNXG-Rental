@@ -9,7 +9,7 @@ class JCRBillingSchedule(Document):
 
 	def validate(self):
 		if frappe.db.exists(
-			"JCR Billing Schedule", {"jcr": self.jcr, "period_from": self.period_from, "name": ["!=", self.name]}
+			"JCR Billing Schedule", {"jcr": self.jcr, "jcr_line": self.jcr_line, "billing_type": self.billing_type, "period_from": self.period_from, "name": ["!=", self.name]}
 		):
 			frappe.throw(_("JCR {0} already has a billing period starting {1}").format(self.jcr, self.period_from))
 
