@@ -11,12 +11,31 @@ def _check_deal_type(doc):
         frappe.throw(_("Please select a valid Deal Type before creating the next document."))
 
 
+def _customer_from_lead(lead):
+    """The Customer already made from this Lead, otherwise a new one made with ERPNext's own
+    Lead -> Customer routine (contacts and addresses come across the standard way; the Lead is marked converted)."""
+    customer = frappe.db.get_value("Customer", {"lead_name": lead.name}, "name")
+    if customer:
+        return customer
+    frappe.has_permission("Customer", "create", throw=True)
+    make_customer = frappe.get_attr("erpnext.crm.doctype.lead.lead.make_customer")
+    doc = make_customer(lead.name)
+    if not hasattr(doc, "insert"):
+        doc = frappe.get_doc(doc)
+    if not doc.get("customer_group"):
+        doc.customer_group = frappe.db.get_single_value("Selling Settings", "customer_group")
+    if not doc.get("territory"):
+        doc.territory = frappe.db.get_single_value("Selling Settings", "territory")
+    doc.insert()
+    return doc.name
+
+
 def _set_party_from_lead(source, target):
-    # ERPNext quotations can be made against a Lead. Keep the standard quotation
-    # party model intact; conversion to Customer remains an ERPNext operation.
-    target.quotation_to = "Lead"
-    target.party_name = source.name
-    target.customer_name = source.get("lead_name") or source.get("company_name") or source.get("name")
+    # The quotation is addressed to the Customer made from the Lead, so nothing has to be edited by hand.
+    customer = _customer_from_lead(source)
+    target.quotation_to = "Customer"
+    target.party_name = customer
+    target.customer_name = frappe.db.get_value("Customer", customer, "customer_name") or source.get("lead_name") or source.name
     if source.get("email_id") and target.meta.has_field("contact_email"):
         target.contact_email = source.email_id
     if source.get("phone") and target.meta.has_field("contact_mobile"):
