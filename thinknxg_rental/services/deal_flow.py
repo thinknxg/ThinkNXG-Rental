@@ -107,9 +107,20 @@ def make_customer_from_quotation(source_name: str):
     return _get_customer(source)
 
 
+def _site_for_quotation(customer, rental_site=None):
+    """The Rental Site for the next document: the one passed in, otherwise the customer's only active site."""
+    if rental_site:
+        if frappe.db.get_value("Rental Site", rental_site, "customer") != customer:
+            frappe.throw(_("Rental Site {0} does not belong to customer {1}").format(rental_site, customer))
+        return rental_site
+    sites = frappe.get_all("Rental Site", filters={"customer": customer, "disabled": 0}, pluck="name", limit=2)
+    return sites[0] if len(sites) == 1 else None
+
+
 @frappe.whitelist()
-def make_hire_order_from_quotation(source_name: str, target_doc=None):
+def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None):
     source = _quotation_source(source_name)
+    site_arg = (frappe.parse_json(args) or {}).get("rental_site") if args else None
     if source.deal_type != "Material Hire":
         frappe.throw(_("This quotation is not a Material Hire deal."))
     customer = _get_customer(source)
@@ -120,6 +131,7 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None):
         target.customer_name = src.get("customer_name") or frappe.db.get_value("Customer", customer, "customer_name")
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.order_date = src.transaction_date or nowdate()
+        target.rental_site = _site_for_quotation(customer, site_arg)
         if src.get("items"):
             # Preserve the existing Hire Order validation/rate logic; quotation values
             # are only used as initial values for the existing fields.
@@ -141,8 +153,9 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None):
 
 
 @frappe.whitelist()
-def make_hire_order_contract_from_quotation(source_name: str, target_doc=None):
+def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, args=None):
     source = _quotation_source(source_name)
+    site_arg = (frappe.parse_json(args) or {}).get("rental_site") if args else None
     if source.deal_type != "Hire Order Contract":
         frappe.throw(_("This quotation is not a Hire Order Contract deal."))
     customer = _get_customer(source)
@@ -151,6 +164,7 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None):
         target.customer = customer
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.required_from = src.transaction_date or nowdate()
+        target.rental_site = _site_for_quotation(customer, site_arg)
         target.items = []
         for row in src.items:
             if not row.item_code:

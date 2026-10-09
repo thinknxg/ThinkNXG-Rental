@@ -5,6 +5,7 @@ function nxg_make_rental_site(frm) {
 		customer: customer,
 		customer_name: frm.doc.customer_name,
 		company: frm.doc.company,
+		nxg_quotation: frm.doc.name,
 	});
 	if (frm.doc.quotation_to === "Customer" && frm.doc.party_name) {
 		open_site(frm.doc.party_name);

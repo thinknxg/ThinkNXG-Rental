@@ -18,7 +18,8 @@
   "sb_17",
   "site_warehouse",
   "cb_18",
-  "cross_hire_site_warehouse"
+  "cross_hire_site_warehouse",
+  "nxg_quotation"
  ],
  "fields": [
   {
@@ -113,6 +114,15 @@
    "options": "Warehouse",
    "no_copy": 1,
    "description": "Kept separate so supplier-owned stock stays at zero value"
+  },
+  {
+   "fieldname": "nxg_quotation",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Quotation",
+   "no_copy": 1,
+   "options": "Quotation",
+   "read_only": 1
   }
  ],
  "links": [
@@ -125,7 +135,7 @@
    "link_fieldname": "rental_site"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-09 13:25:24.641783",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Site",
