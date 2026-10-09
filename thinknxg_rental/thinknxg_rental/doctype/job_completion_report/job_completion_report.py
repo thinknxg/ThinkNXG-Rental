@@ -137,13 +137,13 @@ class JobCompletionReport(Document):
 
     def on_submit(self):
         self.update_contract_jobs()
-        jcr_billing.generate_jcr_billing(self.name)
+        jcr_billing.generate_jcr_billing(self.name, invoice=0)
         jcr_billing.update_jcr_progress(self.name)
 
     def on_update_after_submit(self):
         jcr_billing.update_jcr_progress(self.name)
         if any(r.dismantle_date for r in self.job_lines):
-            jcr_billing.generate_jcr_billing(self.name)
+            jcr_billing.generate_jcr_billing(self.name, invoice=0)
 
     def on_cancel(self):
         for s in jcr_billing.get_schedules(self.name):
