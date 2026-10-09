@@ -92,7 +92,6 @@
    "fieldtype": "Date",
    "label": "Order Date",
    "reqd": 1,
-   "default": "Today",
    "in_list_view": 1
   },
   {
@@ -157,7 +156,7 @@
    "label": "Bill Contract Charge",
    "options": "On Erection\nAt Contract End",
    "reqd": 1,
-   "default": "On Erection"
+   "default": "At Contract End"
   },
   {
    "fieldname": "taxes_and_charges",

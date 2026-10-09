@@ -36,6 +36,7 @@ frappe.ui.form.on("Rental Site", {
                                 });
                                 return;
                         }
+                        if (!frm.doc.nxg_quotation) await frappe.db.set_value("Rental Site", frm.doc.name, "nxg_quotation", quotation);
                         const r = await frappe.db.get_value("Quotation", quotation, ["deal_type", "docstatus"]);
                         const v = r.message || {};
                         if (v.docstatus !== 1) {
