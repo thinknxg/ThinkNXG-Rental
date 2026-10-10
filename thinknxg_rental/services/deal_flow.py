@@ -172,6 +172,7 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, a
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.required_from = src.transaction_date or nowdate()
         target.rental_site = _site_for_quotation(customer, site_arg)
+        target.quotation = src.name
         target.items = []
         for row in src.items:
             if not row.item_code:

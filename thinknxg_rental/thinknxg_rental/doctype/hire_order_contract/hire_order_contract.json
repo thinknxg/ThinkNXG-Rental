@@ -9,6 +9,7 @@
   "customer",
   "customer_name",
   "rental_site",
+  "quotation",
   "project",
   "cb_132",
   "order_date",
@@ -74,6 +75,14 @@
    "label": "Rental Site",
    "options": "Rental Site",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "no_copy": 1,
+   "options": "Quotation",
+   "read_only": 1
   },
   {
    "fieldname": "project",
