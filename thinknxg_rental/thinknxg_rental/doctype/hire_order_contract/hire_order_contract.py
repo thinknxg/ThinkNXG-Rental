@@ -117,8 +117,6 @@ def make_rental_contract(source_name: str, target_doc=None):
 	if not source.rental_site:
 		frappe.throw(_("Set the Rental Site on the Hire Order Contract first"))
 	settings = get_settings()
-	start = getdate(source.required_from)
-	longest = max(cint(d.included_days) for d in source.items)
 	target = frappe.new_doc("Rental Contract")
 	target.update(
 		{
@@ -128,9 +126,7 @@ def make_rental_contract(source_name: str, target_doc=None):
 			"source_type": "Hire Order Contract",
 			"source_document": source.name,
 			"contract_type": "Job Type Contract",
-			"contract_date": nowdate(),
-			"start_date": start,
-			"end_date": add_days(start, longest - 1),
+			"contract_date": source.order_date,
 			"grace_days": cint(settings.default_grace_days),
 			"billing_cycle": "Monthly",
 			"taxes_and_charges": source.taxes_and_charges,
