@@ -1,6 +1,7 @@
 // Create -> Rental Site, listed above Hire Order (this handler is registered before the Hire Order one).
 // Opens a new Rental Site with the quotation's Customer and Company filled in.
 function nxg_make_rental_site(frm) {
+        frappe.flags.nxg_site_quotation = { quotation: frm.doc.name, at: Date.now() };
 	const open_site = (customer) => frappe.new_doc("Rental Site", {
 		customer: customer,
 		customer_name: frm.doc.customer_name,

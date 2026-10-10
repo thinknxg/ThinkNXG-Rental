@@ -47,3 +47,26 @@ frappe.ui.form.on("Rental Site", {
                 frm.page.set_inner_btn_group_as_primary(__("Create"));
         },
 });
+
+// Site opened from Quotation > Create > Rental Site: keep that quotation on the site.
+// quotation_deal.js leaves it in frappe.flags because a read-only prefill is often dropped.
+function nxg_take_site_quotation(max_age_ms) {
+        const f = frappe.flags.nxg_site_quotation;
+        if (!f) return null;
+        frappe.flags.nxg_site_quotation = null;
+        return Date.now() - f.at <= max_age_ms ? f.quotation : null;
+}
+
+frappe.ui.form.on("Rental Site", {
+        onload(frm) {
+                if (!frm.is_new()) return;
+                const q = nxg_take_site_quotation(60000);
+                if (q && !frm.doc.nxg_quotation) frm.set_value("nxg_quotation", q);
+        },
+        refresh(frm) {
+                // fallback: the site was saved through a quick-entry dialog, so the new-form step never ran
+                if (frm.is_new() || frm.doc.nxg_quotation || !frappe.flags.nxg_site_quotation) return;
+                const q = nxg_take_site_quotation(120000);
+                if (q) frappe.db.set_value("Rental Site", frm.doc.name, "nxg_quotation", q).then(() => frm.reload_doc());
+        },
+});
