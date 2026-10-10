@@ -118,7 +118,6 @@
   {
    "fieldname": "nxg_quotation",
    "fieldtype": "Link",
-   "hidden": 1,
    "label": "Quotation",
    "no_copy": 1,
    "options": "Quotation",

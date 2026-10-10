@@ -107,6 +107,13 @@ def make_customer_from_quotation(source_name: str):
     return _get_customer(source)
 
 
+def _rental_site_arg(args=None):
+    """open_mapped_doc hands its args over in frappe.flags.args, not as the method argument."""
+    direct = frappe.parse_json(args) if args else None
+    flagged = frappe.flags.get("args")
+    return (direct or {}).get("rental_site") or (flagged or {}).get("rental_site")
+
+
 def _site_for_quotation(customer, rental_site=None):
     """The Rental Site for the next document: the one passed in, otherwise the customer's only active site."""
     if rental_site:
@@ -120,7 +127,7 @@ def _site_for_quotation(customer, rental_site=None):
 @frappe.whitelist()
 def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None):
     source = _quotation_source(source_name)
-    site_arg = (frappe.parse_json(args) or {}).get("rental_site") if args else None
+    site_arg = _rental_site_arg(args)
     if source.deal_type != "Material Hire":
         frappe.throw(_("This quotation is not a Material Hire deal."))
     customer = _get_customer(source)
@@ -155,7 +162,7 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
 @frappe.whitelist()
 def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, args=None):
     source = _quotation_source(source_name)
-    site_arg = (frappe.parse_json(args) or {}).get("rental_site") if args else None
+    site_arg = _rental_site_arg(args)
     if source.deal_type != "Hire Order Contract":
         frappe.throw(_("This quotation is not a Hire Order Contract deal."))
     customer = _get_customer(source)
