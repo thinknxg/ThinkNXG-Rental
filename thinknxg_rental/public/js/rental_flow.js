@@ -154,17 +154,4 @@
         },
     });
 
-    frappe.ui.form.on("Rental Contract", {
-        refresh(frm) {
-            if (frm.doc.docstatus !== 1) return;
-            const rc = frm.doc.name;
-            const group = __("Flow");
-            [
-                OPEN(__("Material Reservations"), "Rental Material Reservation", { rental_contract: rc }),
-                OPEN(__("Cross Hire Orders"), "Cross Hire Order", { rental_contract: rc }),
-                OPEN(__("Delivery Orders"), "Hire Delivery Order", { rental_contract: rc }),
-                OPEN(__("Sales Invoices"), "Sales Invoice", { nxg_rental_contract: rc }),
-            ].forEach((v) => frm.add_custom_button(v.label, v.route, group));
-        },
-    });
 })();
