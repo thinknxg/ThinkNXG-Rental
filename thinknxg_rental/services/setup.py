@@ -120,16 +120,16 @@ def get_custom_fields():
 				read_only=1, no_copy=1, print_hide=1, insert_after="nxg_jcr_billing_schedule"),
 			dict(fieldname="nxg_contract_from", label="Contract From", fieldtype="Date", read_only=1, no_copy=1, insert_after="nxg_row_type"),
 			dict(fieldname="nxg_contract_to", label="Contract To", fieldtype="Date", read_only=1, no_copy=1, insert_after="nxg_contract_from"),
-			dict(fieldname="nxg_contract_days", label="Contract Days", fieldtype="Int", read_only=1, no_copy=1, in_list_view=1,
+			dict(fieldname="nxg_contract_days", label="Contract Days", fieldtype="Int", read_only=1, no_copy=1, in_list_view=0,
 				insert_after="nxg_contract_to"),
-			dict(fieldname="nxg_contract_amount", label="Contract Amount", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=1,
+			dict(fieldname="nxg_contract_amount", label="Contract Amount", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=0,
 				options="currency", insert_after="nxg_contract_days"),
-			dict(fieldname="nxg_excess_days", label="Excess Days", fieldtype="Int", read_only=1, no_copy=1, in_list_view=1,
+			dict(fieldname="nxg_excess_days", label="Excess Days", fieldtype="Int", read_only=1, no_copy=1, in_list_view=0,
 				insert_after="nxg_contract_amount"),
 			dict(fieldname="nxg_excess_period", label="Excess Period", fieldtype="Data", read_only=1, no_copy=1, insert_after="nxg_excess_days"),
-			dict(fieldname="nxg_excess_charge", label="Excess Charge", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=1,
+			dict(fieldname="nxg_excess_charge", label="Excess Charge", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=0,
 				options="currency", insert_after="nxg_excess_period"),
-			dict(fieldname="nxg_excess_amount", label="Excess Amount", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=1,
+			dict(fieldname="nxg_excess_amount", label="Excess Amount", fieldtype="Currency", read_only=1, no_copy=1, in_list_view=0,
 				options="currency", insert_after="nxg_excess_charge"),
 			dict(fieldname="nxg_locked_rate", label="Locked Rate", fieldtype="Currency", hidden=1, read_only=1, no_copy=1, print_hide=1,
 				options="currency", insert_after="nxg_excess_amount"),
@@ -160,6 +160,9 @@ def after_install():
 
 def after_migrate():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
+	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+	make_property_setter("Sales Invoice Item", "description", "in_list_view", "1", "Check", validate_fields_for_doctype=False)
+	make_property_setter("Sales Invoice Item", "description", "columns", "3", "Int", validate_fields_for_doctype=False)
 	setup_uoms()
 	ensure_settings_defaults()
 	frappe.clear_cache()
