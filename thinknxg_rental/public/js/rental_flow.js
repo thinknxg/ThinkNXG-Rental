@@ -147,7 +147,6 @@
             if (frm.doc.docstatus !== 1 || !frm.doc.rental_contract) return;
             const rc = frm.doc.rental_contract;
             with_contract(frm, rc, (info) => {
-                add_view_buttons(frm, rc);
                 // material is at site: the next step is the JCR
                 add_next_steps(frm, rc, info, { delivery: false });
             });
