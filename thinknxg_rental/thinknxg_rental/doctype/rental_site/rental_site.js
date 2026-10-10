@@ -5,7 +5,7 @@ frappe.ui.form.on("Rental Site", {
                 frm.add_custom_button(__("Hire Order"), async () => {
                         let quotation = frm.doc.nxg_quotation;
                         if (!quotation) {
-                                // Site not made from a quotation: use the customer's submitted hire quotation; if there are several, ask which one
+                                // Site not made from a quotation: use the customer's only submitted hire quotation
                                 const q = await frappe.db.get_list("Quotation", {
                                         filters: {
                                                 quotation_to: "Customer", party_name: frm.doc.customer, docstatus: 1,
@@ -17,14 +17,8 @@ frappe.ui.form.on("Rental Site", {
                                 if (q.length === 1) {
                                         quotation = q[0].name;
                                 } else if (q.length > 1) {
-                                        quotation = await new Promise((resolve) =>
-                                                frappe.prompt(
-                                                        { fieldname: "quotation", fieldtype: "Select", label: __("Quotation"), options: q.map((d) => d.name).join("\n"), reqd: 1 },
-                                                        (v) => resolve(v.quotation),
-                                                        __("Select Quotation"),
-                                                        __("Create")
-                                                )
-                                        );
+                                        frappe.msgprint(__("This Rental Site is not linked to a quotation and the customer has several. Create the site from the quotation (Quotation > Create > Rental Site)."));
+                                        return;
                                 }
                         }
                         if (!quotation) {
