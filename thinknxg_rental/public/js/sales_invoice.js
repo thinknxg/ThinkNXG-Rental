@@ -24,6 +24,16 @@ function nxg_inject_style() {
     $("<style>").attr("id", NXG_STYLE_ID).text(css).appendTo(document.head);
 }
 
+const NXG_LOCKED_FIELDS = ["description", "item_code", "qty", "uom", "rate"];
+
+function nxg_lock_row(gr) {
+    if (!gr || !gr.doc || !gr.doc.nxg_row_type || gr._nxg_locked) return;
+    gr._nxg_locked = true;
+    NXG_LOCKED_FIELDS.forEach((f) => {
+        try { gr.set_field_property(f, "read_only", 1); } catch (e) { /* column not rendered */ }
+    });
+}
+
 function nxg_style_grid(frm) {
     const field = frm.fields_dict.items;
     const grid = field && field.grid;
@@ -36,6 +46,7 @@ function nxg_style_grid(frm) {
     grid.grid_rows.forEach((gr) => {
         const title = nxg_is_title(gr.doc);
         $(gr.wrapper).toggleClass("nxg-jcr-title", title);
+        nxg_lock_row(gr);
         if (!title) {
             n += 1;
             const el = $(gr.wrapper).find(".row-index span").first();
@@ -66,5 +77,17 @@ frappe.ui.form.on("Sales Invoice", {
     },
     items_on_form_rendered(frm) {
         nxg_style_grid(frm);
+    },
+});
+
+frappe.ui.form.on("Sales Invoice Item", {
+    form_render(frm, cdt, cdn) {
+        const row = locals[cdt] && locals[cdt][cdn];
+        if (!row || !row.nxg_row_type) return;
+        const gr = frm.fields_dict.items.grid.grid_rows_by_docname[cdn];
+        if (!gr) return;
+        NXG_LOCKED_FIELDS.forEach((f) => {
+            try { gr.toggle_editable(f, false); } catch (e) { /* ignore */ }
+        });
     },
 });
