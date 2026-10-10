@@ -42,7 +42,7 @@ class HireOrderContract(Document):
 			self.total_contract_amount += d.contract_amount
 
 	def explode_materials(self):
-		"""Job type -> its rental items -> physical stock items, multiplied by the number of jobs."""
+		"""Job type -> its rental items -> physical stock items. Qty is the rental item's own qty, not multiplied by the number of jobs."""
 		self.set("materials", [])
 		for d in self.items:
 			for c in get_job_type_items(d.job_type):
@@ -54,7 +54,7 @@ class HireOrderContract(Document):
 						"item_name": c.item_name,
 						"uom": c.uom,
 						"qty_per_job": c.qty,
-						"qty": flt(c.qty) * flt(d.qty),
+						"qty": flt(c.qty),
 					},
 				)
 
