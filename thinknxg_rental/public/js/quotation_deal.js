@@ -163,3 +163,35 @@ frappe.ui.form.on("Quotation", {
 		}, __("Create"));
 	},
 });
+
+// Default Quotation Item grid: Item Code, UOM, Length, Breadth, Height, Duration/Rotation, Quantity, Period, Rate, Amount.
+// Frappe keeps each user's own column choice and it overrides the doctype defaults, so users who saved
+// their columns earlier would never see UOM / Period. When their saved columns lack either of those,
+// replace them with this layout once (after that the user can still adjust the grid as usual).
+const NXG_DEFAULT_ITEM_COLUMNS = [
+    { fieldname: "item_code", columns: 2 },
+    { fieldname: "uom", columns: 1 },
+    { fieldname: "nxg_length", columns: 1 },
+    { fieldname: "nxg_breadth", columns: 1 },
+    { fieldname: "nxg_height", columns: 1 },
+    { fieldname: "nxg_duration", columns: 1 },
+    { fieldname: "qty", columns: 1 },
+    { fieldname: "nxg_period", columns: 1 },
+    { fieldname: "rate", columns: 1 },
+    { fieldname: "amount", columns: 1 },
+];
+
+frappe.ui.form.on("Quotation", {
+    onload(frm) {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const saved = grid["Quotation Item"] || [];
+            if (!saved.length) return; // no saved choice: the doctype defaults apply
+            const names = saved.map((c) => c.fieldname);
+            if (names.includes("uom") && names.includes("nxg_period")) return;
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_DEFAULT_ITEM_COLUMNS }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid defaults not applied", e);
+        }
+    },
+});
