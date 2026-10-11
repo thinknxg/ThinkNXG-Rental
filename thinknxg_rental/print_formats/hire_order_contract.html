@@ -71,13 +71,13 @@
       {%- for row in doc.items %}
       {%- set item = frappe.db.get_value("Item", row.job_type, ["description", "stock_uom"], as_dict=True) or {} -%}
       {%- set item_desc = (item.description or "") | striptags | trim -%}
-      {%- set unit = row.get("uom") or item.stock_uom or "" -%}
-      {%- set amount = row.get("amount") or ((row.qty or 0) * (row.contract_rate or 0)) -%}
+      {%- set unit = item.stock_uom or "" -%}
+      {%- set amount = row.get("contract_amount") or ((row.qty or 0) * (row.contract_rate or 0)) -%}
       {%- set days = row.get("included_days") -%}
       {%- set ns.sum = ns.sum + amount %}
       <tr>
         <td class="c">{{ letters[loop.index0 % 26] }}</td>
-        <td class="d"><b>{{ row.job_type_name or row.job_type }}</b>{% if item_desc and item_desc != row.job_type_name %}<br>{{ item_desc }}{% endif %}</td>
+        <td class="d"><b>{{ row.job_type_name or row.job_type }}</b>{% if item_desc and item_desc != row.job_type_name %}<br>{{ item_desc }}{% endif %}{% if row.location %}<br>Location: {{ row.location }}{% endif %}</td>
         <td></td><td></td><td></td><td></td><td></td><td></td>
       </tr>
       <tr>
