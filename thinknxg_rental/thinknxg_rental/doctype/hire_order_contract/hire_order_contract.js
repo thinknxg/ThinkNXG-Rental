@@ -2,6 +2,7 @@ frappe.ui.form.on("Hire Order Contract", {
 	setup(frm) {
 		frm.set_query("job_type", "items", () => ({ filters: { nxg_is_job_type_item: 1, is_stock_item: 0, disabled: 0 } }));
 		frm.set_query("item_code", "materials", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
+		frm.set_query("job_type", "materials", () => ({ filters: { nxg_is_job_type_item: 1, is_stock_item: 0, disabled: 0 } }));
 		frm.set_query("rental_site", () => ({ filters: { customer: frm.doc.customer, disabled: 0 } }));
 		frm.set_query("taxes_and_charges", () => ({ filters: { company: frm.doc.company } }));
 		frm.set_query("cost_center", () => ({ filters: { company: frm.doc.company, is_group: 0 } }));
@@ -44,3 +45,52 @@ function set_contract_amount(cdt, cdn) {
 	const d = locals[cdt][cdn];
 	frappe.model.set_value(cdt, cdn, "contract_amount", flt(d.qty) * flt(d.contract_rate));
 }
+
+// Physical Rental Items (Materials): Job Type, Rental Item and Qty Per Job are editable and are filled
+// from the job type's rental items on the Item master. Total Qty follows Qty Per Job.
+function nxg_job_type_items(job_type) {
+        if (!job_type) return Promise.resolve([]);
+        return frappe.db.get_doc("Item", job_type).then((doc) => doc.nxg_job_type_items || []).catch(() => []);
+}
+
+function nxg_fill_material(row, c) {
+        Object.assign(row, { item_code: c.item_code, item_name: c.item_name, uom: c.uom, qty_per_job: flt(c.qty), qty: flt(c.qty) });
+}
+
+frappe.ui.form.on("Hire Order Contract Material", {
+        job_type(frm, cdt, cdn) {
+                const row = locals[cdt][cdn];
+                nxg_job_type_items(row.job_type).then((list) => {
+                        if (!list.length) return;
+                        const match = list.find((c) => c.item_code === row.item_code);
+                        if (match) {
+                                // the row's item belongs to this job type: only fetch its quantity
+                                row.qty_per_job = flt(match.qty);
+                                row.qty = flt(match.qty);
+                        } else {
+                                nxg_fill_material(row, list[0]);
+                                const present = new Set((frm.doc.materials || []).filter((m) => m.job_type === row.job_type).map((m) => m.item_code));
+                                list.slice(1).forEach((c) => {
+                                        if (present.has(c.item_code)) return;
+                                        const child = frm.add_child("materials");
+                                        child.job_type = row.job_type;
+                                        nxg_fill_material(child, c);
+                                });
+                        }
+                        frm.refresh_field("materials");
+                });
+        },
+        item_code(frm, cdt, cdn) {
+                const row = locals[cdt][cdn];
+                nxg_job_type_items(row.job_type).then((list) => {
+                        const match = list.find((c) => c.item_code === row.item_code);
+                        if (!match) return;
+                        row.qty_per_job = flt(match.qty);
+                        row.qty = flt(match.qty);
+                        frm.refresh_field("materials");
+                });
+        },
+        qty_per_job(frm, cdt, cdn) {
+                frappe.model.set_value(cdt, cdn, "qty", flt(locals[cdt][cdn].qty_per_job));
+        },
+});

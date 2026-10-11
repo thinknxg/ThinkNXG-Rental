@@ -20,7 +20,6 @@
    "fieldtype": "Link",
    "label": "Job Type",
    "options": "Item",
-   "read_only": 1,
    "in_list_view": 1,
    "columns": 2
   },
@@ -56,7 +55,6 @@
    "fieldname": "qty_per_job",
    "fieldtype": "Float",
    "label": "Qty Per Job",
-   "read_only": 1,
    "in_list_view": 1,
    "columns": 1
   },
