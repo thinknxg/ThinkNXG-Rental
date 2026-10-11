@@ -91,3 +91,38 @@ frappe.ui.form.on("Sales Invoice Item", {
         });
     },
 });
+
+// Create -> Hire Off-Hire Note from a submitted invoice: same mapper as the Rental Contract's Create menu.
+// A combined JCR invoice has no header contract, so the contract is taken from its JCR rows.
+frappe.ui.form.on("Sales Invoice", {
+    refresh(frm) {
+        if (frm.doc.docstatus !== 1 || frm.doc.is_return) return;
+        const has_job_rows = (frm.doc.items || []).some((r) => r.nxg_jcr);
+        if (!frm.doc.nxg_rental_contract && !has_job_rows) return;
+        frm.add_custom_button(__("Hire Off-Hire Note"), async () => {
+            let contract = frm.doc.nxg_rental_contract;
+            if (!contract) {
+                const jcrs = [...new Set((frm.doc.items || []).map((r) => r.nxg_jcr).filter(Boolean))];
+                const found = new Set();
+                for (const jcr of jcrs) {
+                    const r = await frappe.db.get_value("Job Completion Report", jcr, "rental_contract");
+                    if (r.message && r.message.rental_contract) found.add(r.message.rental_contract);
+                }
+                if (found.size !== 1) {
+                    frappe.msgprint(__("This invoice covers {0} Rental Contracts. Open the Rental Contract and use Create > Off-Hire Note there.", [found.size]));
+                    return;
+                }
+                contract = [...found][0];
+            }
+            const r = await frappe.db.get_value("Rental Contract", contract, "total_at_site_qty");
+            if (!r.message || !(r.message.total_at_site_qty > 0)) {
+                frappe.msgprint(__("No material is at site on Rental Contract {0}, so there is nothing to off-hire.", [contract]));
+                return;
+            }
+            frappe.model.open_mapped_doc({
+                method: "thinknxg_rental.thinknxg_rental.doctype.rental_contract.rental_contract.make_off_hire_note",
+                source_name: contract,
+            });
+        }, __("Create"));
+    },
+});
