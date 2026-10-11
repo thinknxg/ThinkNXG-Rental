@@ -56,6 +56,9 @@ def make_sales_invoice(settlement: str):
 			"remarks": _("Damage and loss settlement {0} - Contract {1}").format(doc.name, contract.name),
 		}
 	)
+	settings = get_settings()
+	# Repairable material is held in the repair warehouse, beyond-repair material in scrap
+	warehouse_for = {"Repairable": settings.repair_warehouse, "Beyond Repair": settings.scrap_warehouse}
 	for d in doc.items:
 		if flt(d.amount) <= 0:
 			continue
@@ -72,6 +75,7 @@ def make_sales_invoice(settlement: str):
 				"project": contract.project,
 				"cost_center": contract.cost_center,
 				"nxg_hire_item": d.item_code,
+				"warehouse": warehouse_for.get(d.classification),
 			},
 		)
 	for label, amount in (
