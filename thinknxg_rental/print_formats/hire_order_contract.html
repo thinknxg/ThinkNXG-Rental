@@ -1,0 +1,199 @@
+{#- Hire Order Contract print format. The logo and address bar come from the Letter Head (set it on the print). -#}
+{%- macro money(v) -%}{{ frappe.utils.fmt_money(v or 0, 2) }}{%- endmacro -%}
+{%- set company = frappe.db.get_value("Company", doc.company, ["default_currency", "tax_id", "abbr"], as_dict=True) or {} -%}
+{%- set cust = frappe.db.get_value("Customer", doc.customer, ["primary_address", "customer_primary_contact", "mobile_no", "tax_id"], as_dict=True) or {} -%}
+{%- set attn = "" -%}
+{%- if cust.customer_primary_contact -%}
+  {%- set contact = frappe.db.get_value("Contact", cust.customer_primary_contact, ["first_name", "last_name"], as_dict=True) or {} -%}
+  {%- set attn = ((contact.first_name or "") ~ " " ~ (contact.last_name or "")) | trim -%}
+{%- endif -%}
+{%- set project_name = (frappe.db.get_value("Project", doc.project, "project_name") if doc.project else "") or doc.project or "" -%}
+{%- set subject = doc.items | map(attribute="job_type_name") | select | unique | join(" / ") -%}
+{%- set letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" -%}
+{%- set ns = namespace(sum=0) -%}
+
+<div class="hoc">
+
+  <div class="hoc-title">HIRE ORDER CONTRACT</div>
+
+  <table class="hoc-info">
+    <tr>
+      <td class="hoc-info-left">
+        <table class="hoc-kv">
+          <tr><td>Name</td><td>: {{ doc.customer_name or doc.customer }}</td></tr>
+          <tr><td>Address</td><td>: {{ (cust.primary_address or "") | replace("<br>", ", ") | replace("<br/>", ", ") | replace("\n", ", ") | striptags | trim(", ") }}</td></tr>
+          <tr><td>Tel</td><td>: {{ cust.mobile_no or "" }}</td></tr>
+          <tr><td>Attn.</td><td>: {{ attn }}</td></tr>
+          <tr><td>TRN</td><td>: {{ cust.tax_id or "" }}</td></tr>
+        </table>
+      </td>
+      <td class="hoc-info-right">
+        <table class="hoc-kv">
+          <tr><td>Contract No</td><td>: {{ doc.name }}</td></tr>
+          <tr><td>Contract Date</td><td>: {{ frappe.utils.formatdate(doc.order_date, "dd/mm/yyyy") if doc.order_date else "" }}</td></tr>
+          <tr><td>Quotation</td><td>: {{ doc.quotation or "" }}</td></tr>
+          <tr><td>Revision of</td><td>: {{ doc.amended_from or "" }}</td></tr>
+          <tr><td>Currency</td><td>: {{ company.default_currency or "" }}</td></tr>
+          <tr><td>TRN</td><td>: {{ company.tax_id or "" }}</td></tr>
+          {%- if doc.customer_reference %}
+          <tr><td>Customer Ref.</td><td>: {{ doc.customer_reference }}{% if doc.customer_reference_date %} ({{ frappe.utils.formatdate(doc.customer_reference_date, "dd/mm/yyyy") }}){% endif %}</td></tr>
+          {%- endif %}
+          {%- if doc.required_from %}
+          <tr><td>Required From</td><td>: {{ frappe.utils.formatdate(doc.required_from, "dd/mm/yyyy") }}</td></tr>
+          {%- endif %}
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <table class="hoc-project">
+    <tr><td class="k">Project</td><td>: {{ project_name }}{% if doc.rental_site %} @ {{ doc.rental_site }}{% endif %}</td></tr>
+    <tr><td class="k">Subject</td><td>: {{ subject }}</td></tr>
+  </table>
+
+  <div class="hoc-intro">
+    <p>Dear Sir / Madam,</p>
+    <p>We would like to thank your good self for inviting us to submit our offer. With reference to above mentioned work, we are pleased to offer our best price as details given below.</p>
+  </div>
+
+  <table class="hoc-items">
+    <colgroup>
+      <col style="width:5%"><col style="width:38%"><col style="width:7%"><col style="width:7%">
+      <col style="width:9%"><col style="width:8%"><col style="width:12%"><col style="width:14%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>No</th><th>Description</th><th>Qty</th><th>Unit</th>
+        <th>Duration / Rotation</th><th>Period</th><th>Unit Price</th><th>Amount ({{ company.default_currency or "" }})</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for row in doc.items %}
+      {%- set item = frappe.db.get_value("Item", row.job_type, ["description", "stock_uom"], as_dict=True) or {} -%}
+      {%- set item_desc = (item.description or "") | striptags | trim -%}
+      {%- set unit = row.get("uom") or item.stock_uom or "" -%}
+      {%- set amount = row.get("amount") or ((row.qty or 0) * (row.contract_rate or 0)) -%}
+      {%- set days = row.get("included_days") -%}
+      {%- set ns.sum = ns.sum + amount %}
+      <tr>
+        <td class="c">{{ letters[loop.index0 % 26] }}</td>
+        <td class="d"><b>{{ row.job_type_name or row.job_type }}</b>{% if item_desc and item_desc != row.job_type_name %}<br>{{ item_desc }}{% endif %}</td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td class="c">1</td>
+        <td class="d">Lumpsum Price: -{% if days %} {{ days | int }} Days Hire{% endif %}</td>
+        <td class="c">{{ "%g" | format(row.qty or 0) }}</td>
+        <td class="c">{{ unit }}</td>
+        <td class="c">1</td>
+        <td class="c">Times</td>
+        <td class="r">{{ money(row.contract_rate) }}</td>
+        <td class="r">{{ money(amount) }}</td>
+      </tr>
+      {%- if row.get("excess_rate") %}
+      {%- set basis = row.get("excess_rate_basis") or "Daily" %}
+      <tr>
+        <td class="c">2</td>
+        <td class="d">Excess Hire after {% if days %}{{ days | int }} Days {% endif %}Contract: -</td>
+        <td></td>
+        <td class="c">1 {{ unit }}</td>
+        <td class="c">1</td>
+        <td class="c">{{ {"Daily": "Days", "Weekly": "Weeks", "Monthly": "Months"}.get(basis, basis) }}</td>
+        <td class="r">{{ money(row.excess_rate) }}</td>
+        <td></td>
+      </tr>
+      {%- endif %}
+      {%- endfor %}
+
+      <tr>
+        <td class="c">{{ letters[(doc.items | length) % 26] }}</td>
+        <td class="d"><b>SPECIAL NOTE: -</b></td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      <tr><td class="c">1</td><td class="d">NET COVERING / PLYWOOD COVERING: -<br>As per the customer request will be additional Charges</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="c">2</td><td class="d">THIRD PARTY: - Design approval, Inspection and Tagging will be additional Charges</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="c">3</td><td class="d">LPO TERMS:-<br>Contract / Rental Work should be “Open PO”</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="c">4</td><td class="d">Final quotation should be signed by customer along with PO</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr class="hoc-fill" style="height: {{ [56 - ((doc.items | length) * 26), 4] | max }}mm"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  {%- set total = doc.total_contract_amount or ns.sum -%}
+  {%- set discount = doc.get("discount_amount") or 0 -%}
+  {%- set net_total = total - discount -%}
+  {%- set taxes = (frappe.get_all("Sales Taxes and Charges", filters={"parent": doc.taxes_and_charges, "parenttype": "Sales Taxes and Charges Template"}, fields=["description", "rate", "charge_type", "tax_amount"], order_by="idx asc", parent_doctype="Sales Taxes and Charges Template") if doc.taxes_and_charges else []) -%}
+  {%- set tx = namespace(sum=0) -%}
+  {%- for t in taxes -%}
+    {%- if t.charge_type == "On Net Total" -%}{%- set tx.sum = tx.sum + net_total * (t.rate or 0) / 100 -%}
+    {%- elif t.charge_type == "Actual" -%}{%- set tx.sum = tx.sum + (t.tax_amount or 0) -%}{%- endif -%}
+  {%- endfor -%}
+  {%- set net = net_total + tx.sum -%}
+
+  <table class="hoc-totals">
+    <tr>
+      <td class="words" rowspan="{{ 3 + (taxes | length) }}">
+        <b>{{ frappe.utils.in_words(net, company.default_currency or "") | upper }}</b>
+      </td>
+      <td class="k">Total</td><td class="v">{{ money(total) }}</td>
+    </tr>
+    <tr><td class="k">Discount:</td><td class="v">{{ money(discount) }}</td></tr>
+    {%- for t in taxes %}
+    {%- set label = t.description -%}
+    {%- if company.abbr and label.endswith(" - " ~ company.abbr) -%}{%- set label = label[: -(company.abbr | length + 3)] -%}{%- endif %}
+    <tr>
+      <td class="k">{{ label }}</td>
+      <td class="v">{% if t.charge_type == "On Net Total" %}{{ money(net_total * (t.rate or 0) / 100) }}{% elif t.charge_type == "Actual" %}{{ money(t.tax_amount) }}{% endif %}</td>
+    </tr>
+    {%- endfor %}
+    <tr><td class="k">Net Amount</td><td class="v">{{ money(net) }}</td></tr>
+  </table>
+
+  <div class="hoc-terms">
+    <div class="hoc-terms-title">Terms and Conditions</div>
+    {%- if doc.terms %}
+    <div class="hoc-terms-body">{{ doc.terms | safe }}</div>
+    {%- else %}
+    <ol class="hoc-terms-body">
+      <li>All prices quoted are Net. in U.A.E. Dirhams and Excluding VAT as per UAE Law.</li>
+      <li>Material delivery / Contractual Operation will be within 48Hours from the receipt of your official order subject to our Management approval. Any operation activity will not accept without 24hours prior notice by email Conversation..</li>
+      <li>Material will be remains the Property of M/s {{ doc.company }} at all times but is the customer’s responsibility to keep it safe while in their custody.</li>
+      <li>Material delivery and Return will be the scope of M/s {{ doc.company }}.</li>
+      <li>All site approval, gate passes and legal permission from the related offices will be the Our Contractor’s Scope.</li>
+      <li>If required for the work convenience, Workers rest Room/Area, Drinking Water, Light Arrangements, Air Exhaust Fan, Vent Blower etc by customer scope.</li>
+      <li>For the material Loading, Unloading, internal mobilization Forklift or Crane will be provided by our customer free of cost.</li>
+      <li>M/s. {{ doc.company }} delivery tickets signed by your representative shall form the basis of any claim.</li>
+      <li>Scaffolding Rental starts from the date of Delivery from Yard &amp; ends on the date of return to Yard. Excess Rental charges will be as per quotation. If excess hire after contract period is not mentioned will be according to pro-rata basis.</li>
+      <li>If our quotation is not mentioned Third Party Certificate and Net Covering will be additional Charges.</li>
+      <li>It is your responsibility to either extend the LPO to cover the extra hire period or return the material within the limit of the LPO.</li>
+      <li>M/s {{ doc.company }} have right to stop the work and take out the material without any notice whether any payment delays from the customer side.</li>
+      <li>Any delay or stoppage of work due to customer, idle manpower will be charged AED 22/-per hour per Person.</li>
+      <li>Any scaffolding modification after Erection work will be chargeable</li>
+      <li>This quotation has a validity of 7days.</li>
+    </ol>
+    <div class="hoc-terms-sub">Documentation:</div>
+    <ol class="hoc-terms-body">
+      <li>Credit application filled and signed by the signing authority.</li>
+      <li>Sub Contractual agreement with both parties.</li>
+      <li>All documents as per the Credit application form before starting the work.</li>
+    </ol>
+    <div class="hoc-terms-sub">Payment terms:</div>
+    <ol class="hoc-terms-body">
+      <li>100% CDC along with order confirmation. (Contract Value)</li>
+      <li>Excess hire after contract period will be on the basis of monthly Invoices.</li>
+      <li>Non dated cheque AED 150,000/-for any loss or damages.</li>
+    </ol>
+    {%- endif %}
+    <p class="hoc-closing">We look forward to further discussions and an opportunity to assist with this prestigious project.<br>For {{ doc.company }}</p>
+    <div class="hoc-sign">
+      <div class="hoc-sign-box">
+        <div class="hoc-sign-title">Customer Acceptance</div>
+        <div class="hoc-sign-line">Signature &amp; Stamp</div>
+      </div>
+      <div class="hoc-sign-box">
+        <div class="hoc-sign-title">For {{ doc.company }}</div>
+        <div class="hoc-sign-line">Authorised Signatory</div>
+      </div>
+    </div>
+  </div>
+
+</div>

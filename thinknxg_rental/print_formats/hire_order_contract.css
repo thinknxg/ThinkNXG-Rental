@@ -1,0 +1,51 @@
+.hoc { padding-right: 1px; font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #000; line-height: 1.35; }
+.hoc table { width: 100%; border-collapse: collapse; }
+.hoc td, .hoc th { vertical-align: top; }
+
+/* title bar */
+.hoc-title { border: 1px solid #000; border-bottom: 0; text-align: center; font-size: 13pt; font-weight: 700; padding: 3px 0; }
+
+/* customer / contract details */
+.hoc-info { border: 1px solid #000; }
+.hoc-info > tbody > tr > td, .hoc-info > tr > td { padding: 4px 6px; }
+.hoc-info-left { width: 62%; border-right: 1px solid #000; }
+.hoc-kv td { padding: 1px 0; }
+.hoc-kv td:first-child { width: 26%; white-space: nowrap; }
+.hoc-info-right .hoc-kv td:first-child { width: 40%; }
+.hoc-project { border: 1px solid #000; border-top: 0; }
+.hoc-project td { padding: 3px 6px; }
+.hoc-project td.k { width: 10%; }
+.hoc-intro { border: 1px solid #000; border-top: 0; padding: 6px 6px 8px; }
+.hoc-intro p { margin: 0 0 6px; }
+.hoc-intro p:last-child { margin: 0; }
+
+/* items */
+.hoc-items { table-layout: fixed; border: 1px solid #000; border-top: 0; }
+.hoc-items th { border: 1px solid #000; padding: 4px 3px; text-align: center; font-weight: 700; }
+.hoc-items td { border-left: 1px solid #000; border-right: 1px solid #000; padding: 3px 4px; word-wrap: break-word; }
+.hoc-items tbody tr { page-break-inside: avoid; }
+.hoc-items td.c { text-align: center; }
+.hoc-items td.r { text-align: right; }
+.hoc-items td.d { text-align: left; }
+.hoc-items tr.hoc-fill td { padding: 0; }
+
+/* totals */
+.hoc-totals { border: 1px solid #000; border-top: 1px solid #000; page-break-inside: avoid; }
+.hoc-totals td { border: 1px solid #000; padding: 4px 6px; }
+.hoc-totals td.words { width: 66%; vertical-align: middle; }
+.hoc-totals td.k { width: 18%; font-weight: 700; }
+.hoc-totals td.v { width: 16%; text-align: right; font-weight: 700; }
+
+/* signatures */
+.hoc-sign { margin-top: 26px; display: table; width: 100%; page-break-inside: avoid; }
+.hoc-sign-box { display: table-cell; width: 50%; padding: 0 10px 0 0; }
+.hoc-sign-title { font-weight: 700; }
+.hoc-sign-line { margin-top: 38px; border-top: 1px solid #000; width: 70%; padding-top: 2px; }
+
+/* terms: always on a new page */
+.hoc-terms { page-break-before: always; padding-top: 4px; }
+.hoc-terms-title { font-weight: 700; margin-bottom: 4px; }
+.hoc-terms-sub { margin: 8px 0 3px; }
+.hoc-terms-body { margin: 0; padding-left: 22px; }
+.hoc-terms-body li { margin-bottom: 5px; padding-left: 2px; }
+.hoc-closing { margin-top: 14px; }

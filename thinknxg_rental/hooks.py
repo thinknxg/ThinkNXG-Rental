@@ -16,7 +16,10 @@ add_to_apps_screen = [
 ]
 
 after_install = "thinknxg_rental.services.setup.after_install"
-after_migrate = "thinknxg_rental.services.setup.after_migrate"
+after_migrate = [
+    "thinknxg_rental.services.setup.after_migrate",
+    "thinknxg_rental.services.print_formats.sync",
+]
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
 doc_events = {
