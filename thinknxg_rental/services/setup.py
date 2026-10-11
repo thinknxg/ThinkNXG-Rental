@@ -173,6 +173,7 @@ def after_migrate():
 	make_property_setter("Sales Invoice Item", "description", "columns", "3", "Int", validate_fields_for_doctype=False)
 	setup_uoms()
 	ensure_settings_defaults()
+	ensure_extra_warehouses()
 	frappe.clear_cache()
 
 
@@ -185,6 +186,21 @@ def ensure_settings_defaults():
 	for df in frappe.get_meta("Rental Settings").fields:
 		if df.default and df.fieldname not in stored and df.fieldtype not in ("Section Break", "Column Break", "Tab Break"):
 			frappe.db.set_single_value("Rental Settings", df.fieldname, df.default)
+
+
+def ensure_extra_warehouses():
+	"""Lost and Excess warehouses were added in an upgrade. Fill an empty setting with a warehouse of the
+	settings company; a value that is already saved is never changed."""
+	company = frappe.db.get_single_value("Rental Settings", "company")
+	if not company:
+		return  # no company chosen yet: the setup action creates the warehouses
+	for field, label in (("lost_warehouse", "Rental Lost"), ("excess_warehouse", "Rental Excess")):
+		if frappe.db.get_single_value("Rental Settings", field):
+			continue
+		try:
+			frappe.db.set_single_value("Rental Settings", field, ensure_warehouse(label, company))
+		except Exception:
+			frappe.log_error(title="thinkNXG Rental: %s setup failed" % field, message=frappe.get_traceback())
 
 
 def before_uninstall():
