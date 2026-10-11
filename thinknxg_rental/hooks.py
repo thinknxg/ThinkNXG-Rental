@@ -16,7 +16,7 @@ add_to_apps_screen = [
 ]
 
 after_install = "thinknxg_rental.services.setup.after_install"
-after_migrate = [
+after_migrate = ["thinknxg_rental.services.job_type_migration.run", 
     "thinknxg_rental.services.setup.after_migrate",
     "thinknxg_rental.services.print_formats.sync",
 ]
@@ -37,7 +37,6 @@ doc_events = {
 		"on_submit": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
-	"Item": {"validate": "thinknxg_rental.events.item.validate"},
 	"Quotation": {
 		"validate": "thinknxg_rental.events.quotation.validate",
 	},
@@ -55,7 +54,6 @@ app_include_js = "/assets/thinknxg_rental/js/rental_flow.js"
 doctype_js = {
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
-	"Item": "public/js/item.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
 	"Sales Invoice": "public/js/sales_invoice.js",

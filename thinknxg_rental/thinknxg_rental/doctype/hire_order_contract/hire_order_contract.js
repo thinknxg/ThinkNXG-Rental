@@ -1,8 +1,8 @@
 frappe.ui.form.on("Hire Order Contract", {
 	setup(frm) {
-		frm.set_query("job_type", "items", () => ({ filters: { nxg_is_job_type_item: 1, is_stock_item: 0, disabled: 0 } }));
+		frm.set_query("job_type", "items", () => ({ query: "thinknxg_rental.events.job_type.job_type_query" }));
 		frm.set_query("item_code", "materials", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
-		frm.set_query("job_type", "materials", () => ({ filters: { nxg_is_job_type_item: 1, is_stock_item: 0, disabled: 0 } }));
+		frm.set_query("job_type", "materials", () => ({ query: "thinknxg_rental.events.job_type.job_type_query" }));
 		frm.set_query("rental_site", () => ({ filters: { customer: frm.doc.customer, disabled: 0 } }));
 		frm.set_query("taxes_and_charges", () => ({ filters: { company: frm.doc.company } }));
 		frm.set_query("cost_center", () => ({ filters: { company: frm.doc.company, is_group: 0 } }));
@@ -50,7 +50,7 @@ function set_contract_amount(cdt, cdn) {
 // from the job type's rental items on the Item master. Total Qty follows Qty Per Job.
 function nxg_job_type_items(job_type) {
         if (!job_type) return Promise.resolve([]);
-        return frappe.db.get_doc("Item", job_type).then((doc) => doc.nxg_job_type_items || []).catch(() => []);
+        return frappe.db.get_doc("Job Type", job_type).then((doc) => doc.rental_items || []).catch(() => []);
 }
 
 function nxg_fill_material(row, c) {

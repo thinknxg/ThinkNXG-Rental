@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from thinknxg_rental.events.item import get_job_type_items
+from thinknxg_rental.events.job_type import get_job_type_items
 from thinknxg_rental.services.utils import get_available_qty, get_contract_for_source, get_settings
 
 
@@ -24,9 +24,8 @@ class HireOrderContract(Document):
 		seen = set()
 		self.total_jobs = self.total_contract_amount = 0
 		for d in self.items:
-			item = frappe.get_cached_value("Item", d.job_type, ["nxg_is_job_type_item", "is_stock_item"], as_dict=True)
-			if not cint(item.nxg_is_job_type_item) or cint(item.is_stock_item):
-				frappe.throw(_("Row #{0}: {1} is not a Job Type Item (non-stock, Is Job Type Item ticked)").format(d.idx, frappe.bold(d.job_type)))
+			if not frappe.db.exists("Job Type", {"name": d.job_type, "disabled": 0}):
+				frappe.throw(_("Row #{0}: {1} is not an active Job Type").format(d.idx, frappe.bold(d.job_type)))
 			key = (d.job_type, (d.location or "").strip().lower())
 			if key in seen:
 				frappe.throw(_("Row #{0}: {1} is entered twice for the same location. Raise the number of jobs instead.").format(d.idx, d.job_type))

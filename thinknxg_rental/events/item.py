@@ -30,11 +30,11 @@ def validate(doc, method=None):
 
 def get_job_type_items(job_type):
 	"""[{item_code, item_name, uom, qty}] for one job of this type."""
-	if not cint(frappe.get_cached_value("Item", job_type, "nxg_is_job_type_item")):
-		frappe.throw(_("{0} is not a Job Type Item").format(frappe.bold(job_type)))
+	if not frappe.db.exists("Job Type", job_type):
+		frappe.throw(_("{0} is not a Job Type").format(frappe.bold(job_type)))
 	return frappe.get_all(
 		"Job Type Rental Item",
-		filters={"parent": job_type, "parenttype": "Item", "parentfield": "nxg_job_type_items"},
+		filters={"parent": job_type, "parenttype": "Job Type", "parentfield": "rental_items"},
 		fields=["item_code", "item_name", "uom", "qty"],
 		order_by="idx asc",
 	)
