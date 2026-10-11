@@ -88,8 +88,10 @@ function nxg_toggle_period_column(frm) {
         const df = grid && grid.get_docfield && grid.get_docfield("nxg_period");
         if (!df) return;
         const show = frm.doc.deal_type === "Hire Order Contract";
-        if (!!df.hidden === !show) return;
+        const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_period");
+        if (show === drawn && !!df.hidden === !show) return; // already right
         grid.set_column_disp(["nxg_period"], show);
+        grid.reset_grid(); // the grid fixes its columns when it is built, so rebuild it
 }
 
 // ERPNext computes every item amount as Qty x Rate inside _calculate_taxes_and_totals(). For hire
