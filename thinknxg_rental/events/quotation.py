@@ -2,7 +2,8 @@
 
 For the deal types in HIRE_DEAL_TYPES a row can carry Length, Breadth, Height and Duration:
 
-* Qty is Length x Breadth x Height once all three are filled; otherwise the typed Qty is kept.
+* Qty is Length x Breadth x Height when Length, Breadth or Height is entered or changed on a row;
+  a Qty typed by hand is kept and the Amount follows it.
 * Amount is Qty x Unit Price x Duration. A blank Duration counts as 1.
 
 The same rule runs in the form (public/js/quotation_deal.js) and here on save. ERPNext's own totals
@@ -34,8 +35,16 @@ def validate(doc, method=None):
 		return
 
 	rows = doc.items
+	before = doc.get_doc_before_save()
+	previous = {r.name: r for r in (before.get("items") or [])} if before else {}
 	for row in rows:
-		set_dimension_qty(row)
+	    old = previous.get(row.name)
+	    if old is None:
+	        changed = not flt(row.qty)  # new row: only fill Qty from the dimensions if none was given
+	    else:
+	        changed = any(flt(old.get(f)) != flt(row.get(f)) for f in ("nxg_length", "nxg_breadth", "nxg_height"))
+	    if changed:
+	        set_dimension_qty(row)
 
 	typed_qty = [row.qty for row in rows]
 	try:

@@ -102,10 +102,6 @@ function nxg_install_calculation(frm) {
 	cscript._calculate_taxes_and_totals = function (...args) {
 		if (!nxg_is_hire(frm)) return original.apply(this, args);
 		const rows = frm.doc.items || [];
-		rows.forEach((row) => {
-			const qty = nxg_dimension_qty(row);
-			if (qty !== null) row.qty = qty;
-		});
 		const typed_qty = rows.map((row) => row.qty);
 		rows.forEach((row) => {
 			row.qty = flt(row.qty) * (cint(row.nxg_duration) || 1);
@@ -154,7 +150,9 @@ frappe.ui.form.on("Quotation Item", {
 	nxg_length: nxg_dimension_changed,
 	nxg_breadth: nxg_dimension_changed,
 	nxg_height: nxg_dimension_changed,
-	nxg_duration: nxg_dimension_changed,
+	nxg_duration(frm) {
+	    if (nxg_is_hire(frm)) frm.cscript.calculate_taxes_and_totals();
+	},
 });
 
 // Quotation made for a Lead or Prospect (saved or submitted): one click makes (or finds) the Customer.
