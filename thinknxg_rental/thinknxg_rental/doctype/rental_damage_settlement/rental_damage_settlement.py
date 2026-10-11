@@ -58,7 +58,7 @@ def make_sales_invoice(settlement: str):
 	)
 	settings = get_settings()
 	# Repairable material is held in the repair warehouse, beyond-repair material in scrap
-	warehouse_for = {"Repairable": settings.repair_warehouse, "Beyond Repair": settings.scrap_warehouse}
+	warehouse_for = {"Repairable": settings.repair_warehouse, "Beyond Repair": settings.scrap_warehouse, "Lost": settings.get("lost_warehouse")}
 	for d in doc.items:
 		if flt(d.amount) <= 0:
 			continue

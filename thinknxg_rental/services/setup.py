@@ -269,6 +269,8 @@ def setup_company(company: str | None = None):
 		"inspection_warehouse": ("Rental Under Inspection", 0),
 		"repair_warehouse": ("Rental Repair", 0),
 		"scrap_warehouse": ("Rental Scrap", 0),
+		"lost_warehouse": ("Rental Lost", 0),
+		"excess_warehouse": ("Rental Excess", 0),
 		"customer_sites_warehouse": ("Customer Sites", 1),
 	}
 	for field, (label, is_group) in warehouses.items():

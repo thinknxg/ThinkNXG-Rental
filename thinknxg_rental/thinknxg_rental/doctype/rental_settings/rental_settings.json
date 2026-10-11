@@ -16,6 +16,8 @@
   "inspection_warehouse",
   "repair_warehouse",
   "scrap_warehouse",
+  "lost_warehouse",
+  "excess_warehouse",
   "sb_4",
   "rental_charge_item",
   "damage_recovery_item",
@@ -225,10 +227,22 @@
    "fieldname": "portal_contact_phone",
    "fieldtype": "Data",
    "label": "Portal Help Phone"
+  },
+  {
+   "fieldname": "lost_warehouse",
+   "fieldtype": "Link",
+   "label": "Lost Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "excess_warehouse",
+   "fieldtype": "Link",
+   "label": "Excess Warehouse",
+   "options": "Warehouse"
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-11 16:05:51.201103",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Settings",

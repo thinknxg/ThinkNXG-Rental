@@ -15,6 +15,7 @@
   "at_site_qty",
   "returned_qty",
   "lost_qty",
+  "excess_qty",
   "pending_qty",
   "cb_67",
   "requires_inspection",
@@ -163,10 +164,17 @@
    "fieldname": "remarks",
    "fieldtype": "Data",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "excess_qty",
+   "fieldtype": "Float",
+   "label": "Excess Qty",
+   "in_list_view": 1,
+   "columns": 1
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-11 16:05:51.201103",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Off-Hire Item",
