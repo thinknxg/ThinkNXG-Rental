@@ -94,3 +94,38 @@ frappe.ui.form.on("Hire Order Contract Material", {
                 frappe.model.set_value(cdt, cdn, "qty", flt(locals[cdt][cdn].qty_per_job));
         },
 });
+
+
+// Default grid columns for the contract items: quotation details first, then the two charges users must fill.
+const NXG_HOC_ITEM_COLUMNS = [
+    ["nxg_item_code", 1], ["nxg_uom", 1], ["nxg_length", 1], ["nxg_breadth", 1], ["nxg_height", 1],
+    ["nxg_duration", 1], ["nxg_qty", 1], ["nxg_period", 1], ["included_days", 1], ["contract_rate", 1],
+];
+
+function nxg_apply_default_item_columns(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    if (!grid) return;
+    const flag = "nxg_hoc_item_cols_v1";
+    try {
+        if (localStorage.getItem(flag) === "1") return;
+    } catch (e) {}
+    const cols = NXG_HOC_ITEM_COLUMNS.map(([fieldname, columns]) => ({ fieldname, columns }));
+    const us = frappe.get_user_settings("Hire Order Contract") || {};
+    const gv = Object.assign({}, us.GridView || {});
+    gv["Hire Order Contract Item"] = cols;
+    frappe.model.user_settings.save("Hire Order Contract", "GridView", gv);
+    if (grid.setup_user_defined_columns) grid.setup_user_defined_columns();
+    if (grid.reset_grid) grid.reset_grid();
+    try {
+        localStorage.setItem(flag, "1");
+    } catch (e) {}
+}
+
+frappe.ui.form.on("Hire Order Contract", {
+    onload(frm) {
+        nxg_apply_default_item_columns(frm);
+    },
+    refresh(frm) {
+        nxg_apply_default_item_columns(frm);
+    },
+});

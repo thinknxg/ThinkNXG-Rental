@@ -182,6 +182,14 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, a
                 "job_type_name": row.item_name,
                 "qty": row.qty,
                 "contract_rate": row.rate,
+                "nxg_item_code": row.item_code,
+                "nxg_uom": row.uom,
+                "nxg_length": row.get("nxg_length"),
+                "nxg_breadth": row.get("nxg_breadth"),
+                "nxg_height": row.get("nxg_height"),
+                "nxg_duration": row.get("nxg_duration"),
+                "nxg_qty": row.qty,
+                "nxg_period": row.get("nxg_period"),
             })
 
     return _new_mapped_doc(source, "Hire Order Contract", target_doc, post_process)

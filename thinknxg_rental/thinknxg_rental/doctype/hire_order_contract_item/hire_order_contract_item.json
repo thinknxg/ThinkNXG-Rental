@@ -4,6 +4,17 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "nxg_item_code",
+  "nxg_uom",
+  "cb_q1",
+  "nxg_length",
+  "nxg_breadth",
+  "nxg_height",
+  "cb_q2",
+  "nxg_duration",
+  "nxg_qty",
+  "nxg_period",
+  "sb_job",
   "job_type",
   "job_type_name",
   "location",
@@ -19,6 +30,78 @@
   "jcr_qty"
  ],
  "fields": [
+  {
+   "fieldname": "nxg_item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cb_q1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nxg_length",
+   "fieldtype": "Float",
+   "label": "Length",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_breadth",
+   "fieldtype": "Float",
+   "label": "Breadth",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_height",
+   "fieldtype": "Float",
+   "label": "Height",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "cb_q2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nxg_duration",
+   "fieldtype": "Int",
+   "label": "Duration/Rotation",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_qty",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_period",
+   "fieldtype": "Select",
+   "label": "Period",
+   "options": "Days\nWeekly\nMonthly\nTimes",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "sb_job",
+   "fieldtype": "Section Break",
+   "label": "Job Details"
+  },
   {
    "fieldname": "job_type",
    "fieldtype": "Link",
@@ -115,7 +198,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-11 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",
