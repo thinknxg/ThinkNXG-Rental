@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "item_code",
+  "item_name",
+  "item_group",
   "job_type_name",
   "disabled",
   "column_break_1",
@@ -17,7 +19,7 @@
   {
    "fieldname": "item_code",
    "fieldtype": "Link",
-   "label": "Job Type Item",
+   "label": "Item Code",
    "options": "Item",
    "reqd": 1,
    "unique": 1,
@@ -26,12 +28,29 @@
    "description": "The non-stock service item billed for this job, such as External Scaffolding."
   },
   {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "fetch_from": "item_code.item_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "fetch_from": "item_code.item_group",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
    "fieldname": "job_type_name",
    "fieldtype": "Data",
    "label": "Job Type Name",
    "fetch_from": "item_code.item_name",
    "read_only": 1,
-   "in_list_view": 1
+   "hidden": 1
   },
   {
    "fieldname": "disabled",
@@ -61,7 +80,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-11 19:00:00.000000",
+ "modified": "2026-10-11 19:55:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Type",
@@ -74,10 +93,10 @@
   {"read": 1, "role": "Sales User"}
  ],
  "row_format": "Dynamic",
- "search_fields": "job_type_name",
+ "search_fields": "item_name,item_group",
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "title_field": "job_type_name",
+ "title_field": "item_name",
  "track_changes": 1
 }

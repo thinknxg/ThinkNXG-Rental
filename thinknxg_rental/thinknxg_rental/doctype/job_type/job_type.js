@@ -8,14 +8,15 @@ frappe.ui.form.on("Job Type", {
         frm.add_custom_button(__("Duplicate"), () => {
             frappe.prompt(
                 [
-                    { fieldname: "new_item_code", label: __("New Job Type Item Code"), fieldtype: "Data", reqd: 1 },
-                    { fieldname: "new_item_name", label: __("New Job Type Name"), fieldtype: "Data" },
+                    { fieldname: "new_item_code", label: __("New Item Code"), fieldtype: "Data", reqd: 1 },
+                    { fieldname: "new_item_name", label: __("New Item Name"), fieldtype: "Data" },
+                    { fieldname: "new_item_group", label: __("Item Group"), fieldtype: "Link", options: "Item Group", default: frm.doc.item_group },
                 ],
                 (values) => {
                     frappe
                         .call({
                             method: "thinknxg_rental.events.job_type.duplicate_job_type",
-                            args: { source: frm.doc.name, new_item_code: values.new_item_code, new_item_name: values.new_item_name },
+                            args: { source: frm.doc.name, new_item_code: values.new_item_code, new_item_name: values.new_item_name, new_item_group: values.new_item_group },
                             freeze: true,
                         })
                         .then((r) => {

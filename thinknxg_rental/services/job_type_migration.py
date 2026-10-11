@@ -3,8 +3,18 @@ import frappe
 LEGACY_FIELDS = ["nxg_job_type_items", "nxg_job_type_section", "nxg_is_job_type_item"]
 
 
+def backfill_job_type_fields():
+    """Fill Item Name and Item Group on Job Types saved before those fields existed."""
+    frappe.db.sql(
+        """update `tabJob Type` jt join `tabItem` i on i.name = jt.item_code
+        set jt.item_name = i.item_name, jt.job_type_name = i.item_name, jt.item_group = i.item_group
+        where ifnull(jt.item_name, '') = '' or ifnull(jt.item_group, '') = ''"""
+    )
+
+
 def run():
     """Idempotent: turn flagged Items into Job Types, then drop the old Item fields once all are copied."""
+    backfill_job_type_fields()
     if not frappe.db.has_column("Item", "nxg_is_job_type_item"):
         return
     items = frappe.get_all("Item", filters={"nxg_is_job_type_item": 1, "is_stock_item": 0}, fields=["name", "description"])

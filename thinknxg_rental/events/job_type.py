@@ -15,7 +15,7 @@ def job_type_query(doctype, txt, searchfield, start, page_len, filters):
 
 
 @frappe.whitelist()
-def duplicate_job_type(source, new_item_code, new_item_name=None):
+def duplicate_job_type(source, new_item_code, new_item_name=None, new_item_group=None):
     """Copy a Job Type: a new non-stock service Item plus a Job Type with the same rental items."""
     frappe.has_permission("Job Type", "create", throw=True)
     new_item_code = (new_item_code or "").strip()
@@ -29,6 +29,8 @@ def duplicate_job_type(source, new_item_code, new_item_name=None):
     item.item_code = new_item_code
     item.item_name = (new_item_name or "").strip() or new_item_code
     item.description = item.item_name
+    if new_item_group:
+        item.item_group = new_item_group
     if item.meta.has_field("nxg_is_job_type_item"):
         item.nxg_is_job_type_item = 0
         item.set("nxg_job_type_items", [])
