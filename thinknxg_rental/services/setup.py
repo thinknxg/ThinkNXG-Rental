@@ -2,6 +2,7 @@
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 
 # Quotation deal types that use Length / Breadth / Height / Duration. Keep in step with
@@ -164,7 +165,6 @@ def after_migrate():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
 	make_property_setter("Quotation Item", "uom", "in_list_view", "1", "Check", validate_fields_for_doctype=False)
 	make_property_setter("Quotation Item", "uom", "columns", "1", "Int", validate_fields_for_doctype=False)
-	from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 	make_property_setter("Sales Invoice Item", "description", "in_list_view", "1", "Check", validate_fields_for_doctype=False)
 	make_property_setter("Sales Invoice Item", "description", "columns", "3", "Int", validate_fields_for_doctype=False)
 	setup_uoms()
