@@ -8,6 +8,10 @@
   "item_code",
   "item_name",
   "item_group",
+  "tax_code",
+  "is_zero_rated",
+  "is_exempt",
+  "stock_uom",
   "job_type_name",
   "disabled",
   "column_break_1",
@@ -43,6 +47,35 @@
    "fetch_from": "item_code.item_group",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "tax_code",
+   "fieldtype": "Data",
+   "label": "Tax Code",
+   "fetch_from": "item_code.tax_code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_zero_rated",
+   "fieldtype": "Check",
+   "label": "Is Zero Rated",
+   "fetch_from": "item_code.is_zero_rated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "is_exempt",
+   "fieldtype": "Check",
+   "label": "Is Exempt",
+   "fetch_from": "item_code.is_exempt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "label": "Default Unit of Measure",
+   "options": "UOM",
+   "fetch_from": "item_code.stock_uom",
+   "read_only": 1
   },
   {
    "fieldname": "job_type_name",
