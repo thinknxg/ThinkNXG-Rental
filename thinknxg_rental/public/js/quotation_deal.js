@@ -61,7 +61,7 @@ frappe.ui.form.on("Quotation", {
 // The same rule runs on save in thinknxg_rental/events/quotation.py. Keep both lists in step.
 // ---------------------------------------------------------------------------------------------
 const NXG_HIRE_DEAL_TYPES = ["Material Hire", "Hire Order Contract"];
-const NXG_DIMENSION_FIELDS = ["nxg_length", "nxg_breadth", "nxg_height", "nxg_duration"];
+const NXG_DIMENSION_FIELDS = ["nxg_length", "nxg_breadth", "nxg_height", "nxg_duration", "nxg_period"];
 
 function nxg_is_hire(frm) {
 	return NXG_HIRE_DEAL_TYPES.includes(frm.doc.deal_type);
