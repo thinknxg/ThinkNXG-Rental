@@ -53,6 +53,7 @@ class HireOffHireNote(Document):
 		balance = ledger.get_site_balance(self.rental_contract)
 		seen = set()
 		self.total_returned_qty = self.total_lost_qty = 0
+		excess_total = 0
 		for d in self.items:
 			key = (d.item_code, d.ownership, d.cross_hire_order or "")
 			if key in seen:
@@ -60,7 +61,7 @@ class HireOffHireNote(Document):
 			seen.add(key)
 			d.at_site_qty = balance.get(key, 0)
 			moved = flt(d.returned_qty) + flt(d.lost_qty)
-			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0:
+			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0 or flt(d.excess_qty) < 0:
 				frappe.throw(_("Row #{0}: quantities cannot be negative").format(d.idx))
 			if moved > flt(d.at_site_qty) + 1e-6:
 				frappe.throw(
@@ -86,8 +87,13 @@ class HireOffHireNote(Document):
 				frappe.throw(_("Row #{0}: Return Warehouse is required. Check Rental Settings.").format(d.idx))
 			self.total_returned_qty += flt(d.returned_qty)
 			self.total_lost_qty += flt(d.lost_qty)
-		if not (self.total_returned_qty or self.total_lost_qty):
+			if flt(d.excess_qty) > 0 and d.ownership == "Cross Hire":
+				frappe.throw(_("Row #{0}: Excess Qty is only for own stock").format(d.idx))
+			excess_total += flt(d.excess_qty)
+		if not (self.total_returned_qty or self.total_lost_qty or excess_total):
 			frappe.throw(_("Enter a returned or lost quantity on at least one row"))
+		if excess_total and not settings.get("excess_warehouse"):
+			frappe.throw(_("Set the Excess Warehouse in Rental Settings first"))
 		remaining = sum(balance.values()) - self.total_returned_qty - self.total_lost_qty
 		self.off_hire_type = "Full" if remaining <= 1e-6 else "Partial"
 
@@ -121,6 +127,11 @@ class HireOffHireNote(Document):
 			"loss_stock_entry",
 			stock.make_stock_entry(self, "Material Issue", losses, self.return_date, remarks=f"Lost at site - {self.name}"),
 		)
+
+		# material received over and above what was delivered goes into the excess warehouse, at zero value
+		excess = [{"item_code": d.item_code, "qty": d.excess_qty, "t_warehouse": get_settings().excess_warehouse, "zero_value": True} for d in self.items if flt(d.excess_qty) > 0]
+		if excess:
+			stock.make_stock_entry(self, "Material Receipt", excess, self.return_date, remarks=f"Excess received - {self.name}")
 
 		billing_date = add_days(self.last_billable_date, 1)
 		common = dict(
