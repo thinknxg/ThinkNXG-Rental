@@ -61,7 +61,7 @@ frappe.ui.form.on("Quotation", {
 // The same rule runs on save in thinknxg_rental/events/quotation.py. Keep both lists in step.
 // ---------------------------------------------------------------------------------------------
 const NXG_HIRE_DEAL_TYPES = ["Material Hire", "Hire Order Contract"];
-const NXG_DIMENSION_FIELDS = ["nxg_length", "nxg_breadth", "nxg_height", "nxg_duration", "nxg_period"];
+const NXG_DIMENSION_FIELDS = ["nxg_length", "nxg_breadth", "nxg_height", "nxg_duration"];
 
 function nxg_is_hire(frm) {
 	return NXG_HIRE_DEAL_TYPES.includes(frm.doc.deal_type);
@@ -80,6 +80,16 @@ function nxg_toggle_dimension_columns(frm) {
 	const show = nxg_is_hire(frm);
 	if (!!df.hidden === !show) return; // already in the right state
 	grid.set_column_disp(NXG_DIMENSION_FIELDS, show);
+}
+
+// Period is for Hire Order Contract quotations only: hidden for Material Hire (and every other deal type).
+function nxg_toggle_period_column(frm) {
+        const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+        const df = grid && grid.get_docfield && grid.get_docfield("nxg_period");
+        if (!df) return;
+        const show = frm.doc.deal_type === "Hire Order Contract";
+        if (!!df.hidden === !show) return;
+        grid.set_column_disp(["nxg_period"], show);
 }
 
 // ERPNext computes every item amount as Qty x Rate inside _calculate_taxes_and_totals(). For hire
@@ -119,9 +129,11 @@ frappe.ui.form.on("Quotation", {
 	refresh(frm) {
 		nxg_install_calculation(frm);
 		nxg_toggle_dimension_columns(frm);
+		nxg_toggle_period_column(frm);
 	},
 	deal_type(frm) {
 		nxg_toggle_dimension_columns(frm);
+		nxg_toggle_period_column(frm);
 		frm.cscript.calculate_taxes_and_totals();
 		frm.refresh_field("items");
 	},
