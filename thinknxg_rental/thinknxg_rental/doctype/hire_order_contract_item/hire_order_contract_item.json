@@ -181,6 +181,7 @@
    "fieldname": "excess_rate",
    "fieldtype": "Currency",
    "label": "Excess Charge per Job",
+   "reqd": 1,
    "in_list_view": 1,
    "columns": 1,
    "description": "Charged per job for each day / week / month beyond the included days"
@@ -198,7 +199,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-11 19:30:00.000000",
+ "modified": "2026-10-12 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",

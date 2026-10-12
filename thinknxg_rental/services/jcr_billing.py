@@ -111,7 +111,7 @@ def _create_invoice(schedule_names):
     for r in rows:
         r.check_permission("read")
         if r.sales_invoice: frappe.throw(_("Sales Invoice {0} already exists for this period").format(r.sales_invoice))
-        if flt(r.amount)<=0: frappe.throw(_("Nothing to invoice for {0}").format(r.name))
+        if flt(r.amount)<=0 and not (r.status=="No Charge" and r.billing_type!="Contract" and cint(r.days)>0): frappe.throw(_("Nothing to invoice for {0}").format(r.name))
     if len({r.customer for r in rows})>1: frappe.throw(_("All JCRs on one invoice must belong to the same customer"))
     if len({r.company for r in rows})>1: frappe.throw(_("All JCRs on one invoice must belong to the same company"))
     by_jcr={}
@@ -144,7 +144,7 @@ def _create_invoice(schedule_names):
     append_taxes(si,"Sales Taxes and Charges Template",first_hoc.taxes_and_charges); si.flags.ignore_permissions=True
     with as_system():
         si.insert()
-        for r in rows: frappe.db.set_value("JCR Billing Schedule",r.name,{"sales_invoice":si.name,"status":"Invoiced","billed":1})
+        for r in rows: frappe.db.set_value("JCR Billing Schedule",r.name,{"sales_invoice":si.name,"status":"Invoiced" if flt(r.amount)>0 else r.status,"billed":1})
     if cint(get_settings().auto_submit_sales_invoice): si.submit()
     for n in jcrs: update_jcr_progress(n)
     return si.name
@@ -181,7 +181,9 @@ def make_combined_invoice(jcrs: str):
     pending=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"Pending","amount":[">",0]},fields=["name","sales_invoice"])
     pending=[r.name for r in pending if not r.sales_invoice]
     if not pending: frappe.throw(_("No billing period is due for the selected JCRs."))
-    return _create_invoice(pending)
+    free=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"No Charge","billing_type":["in",["Excess","Final Excess"]],"days":[">",0]},fields=["name","sales_invoice"])
+    free=[r.name for r in free if not r.sales_invoice]
+    return _create_invoice(pending+free)
 
 
 def update_jcr_progress(jcr_name):
