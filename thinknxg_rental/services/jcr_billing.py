@@ -10,12 +10,12 @@ def get_contract_end(erection_date, included_days):
     return add_days(getdate(erection_date), max(cint(included_days),1)-1)
 
 
-def plan_periods(line, today=None):
+def plan_periods(line, today=None, on_demand=False):
     today=getdate(today or nowdate()); erection=getdate(line.erection_date)
     contract_end=getdate(line.contract_end_date or get_contract_end(erection,line.included_days))
     dismantle=getdate(line.dismantle_date) if line.dismantle_date else None
     qty=flt(line.job_qty) or 1; month_basis=get_settings().month_basis; periods=[]
-    if line.contract_charge_billing=="At Contract End": contract_due=min(contract_end,dismantle) if dismantle else contract_end
+    if line.contract_charge_billing=="At Contract End" and not on_demand: contract_due=min(contract_end,dismantle) if dismantle else contract_end
     else: contract_due=erection
     if today>=contract_due:
         charge=flt(line.contract_rate)*qty
@@ -46,14 +46,14 @@ def _make_schedule(doc,line,p):
 
 
 @frappe.whitelist()
-def generate_jcr_billing(jcr: str, invoice: int = 1):
+def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0):
     """Create the due billing periods of a JCR. With invoice=0 only the schedules are created (they stay Pending)."""
     doc=frappe.get_doc("Job Completion Report",jcr); doc.check_permission("write")
     if doc.docstatus!=1: frappe.throw(_("Submit the JCR first"))
     created=[]
     for line in doc.job_lines:
         existing={(getdate(s.period_from),s.billing_type):s for s in get_schedules(doc.name,line.name)}
-        for p in plan_periods(line):
+        for p in plan_periods(line,on_demand=cint(on_demand)):
             row=existing.get((getdate(p.period_from),p.billing_type))
             if row:
                 if row.status=="Pending" and not row.sales_invoice:
@@ -177,7 +177,7 @@ def make_combined_invoice(jcrs: str):
     if not names: frappe.throw(_("Select at least one JCR"))
     for n in names:
         frappe.get_doc("Job Completion Report",n).check_permission("write")
-        generate_jcr_billing(n,invoice=0)
+        generate_jcr_billing(n,invoice=0,on_demand=1)
     pending=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"Pending","amount":[">",0]},fields=["name","sales_invoice"])
     pending=[r.name for r in pending if not r.sales_invoice]
     if not pending: frappe.throw(_("No billing period is due for the selected JCRs."))

@@ -124,7 +124,7 @@ frappe.ui.form.on("Job Completion Report", {
         if (frm.doc.status !== "Completed") {
             frm.add_custom_button(__("Generate Billing"), () => frappe.call({
                 method: "thinknxg_rental.services.jcr_billing.generate_jcr_billing",
-                args: { jcr: frm.doc.name }, freeze: true
+                args: { jcr: frm.doc.name, on_demand: 1 }, freeze: true
             }).then(r => {
                 frappe.msgprint((r.message || []).length ? __("Billing periods processed: {0}", [r.message.join(", ")]) : __("No billing period is due yet."));
                 frm.reload_doc();
