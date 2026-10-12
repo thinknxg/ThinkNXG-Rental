@@ -16,6 +16,7 @@
 
     // Buttons that jump to related documents of one Rental Contract.
     function add_view_buttons(frm, rc, extra) {
+        return; // Flow group removed
         const group = __("Flow");
         const views = [
             { label: __("Rental Contract"), route: () => frappe.set_route("Form", "Rental Contract", rc) },
@@ -106,7 +107,7 @@
                 frm.page.set_inner_btn_group_as_primary(__("Create"));
             });
             if (frm.doc.nxg_rental_contract) {
-                frm.add_custom_button(__("Rental Contract"), () => frappe.set_route("Form", "Rental Contract", frm.doc.nxg_rental_contract), __("Flow"));
+                {} // Flow button removed
             }
         },
     });
