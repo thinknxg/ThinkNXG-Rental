@@ -111,11 +111,11 @@ frappe.ui.form.on("Job Completion Report", {
         if (active.length) {
             frm.add_custom_button(__("Record Dismantle"), () => {
                 const opts = active.map(r => ({
-                    label: `${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty})`,
+                    label: `${r.idx}. ${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty})`,
                     value: r.name
                 }));
                 frappe.prompt([
-                    { fieldname: "line_name", fieldtype: "Select", label: __("JCR Job Line"), options: opts.map(x => x.value).join("\n"), reqd: 1 },
+                    { fieldname: "line_name", fieldtype: "Select", label: __("JCR Job Line"), options: opts, default: opts.length === 1 ? opts[0].value : undefined, reqd: 1 },
                     { fieldname: "dismantle_date", fieldtype: "Date", label: __("Dismantle Date"), reqd: 1, default: frappe.datetime.get_today() },
                     { fieldname: "remarks", fieldtype: "Small Text", label: __("Remarks") }
                 ], v => frm.call("record_dismantle", v).then(() => frm.reload_doc()), __("Record Dismantle"), __("Stop the Clock"));
