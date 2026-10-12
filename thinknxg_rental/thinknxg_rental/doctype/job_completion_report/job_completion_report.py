@@ -80,7 +80,7 @@ class JobCompletionReport(Document):
                 frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, max(remaining,0), row.job_type))
             row.job_type = src.job_type
             row.job_type_name = src.job_type_name
-            row.location = src.location
+            row.location = row.location or src.location
             row.included_days = cint(src.included_days)
             row.contract_rate = flt(src.contract_rate)
             row.excess_rate_basis = src.excess_rate_basis
