@@ -7,6 +7,7 @@
   "contract_item",
   "job_type",
   "job_type_name",
+  "description",
   "location",
   "job_qty",
   "erection_date",
@@ -150,10 +151,18 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Site detail for this job, for example the area or size. Printed under the job name on the JCR."
   }
  ],
  "links": [],
- "modified": "2026-10-08 00:00:00.000000",
+ "modified": "2026-10-12 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",

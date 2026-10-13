@@ -182,3 +182,33 @@ frappe.ui.form.on("Job Completion Report Line", {
     },
     job_qty(frm,cdt,cdn) { if (frm.doc.docstatus===0) frm.dirty(); }
 });
+
+// Description is a new grid column. Frappe keeps each user's own column choice and it overrides the
+// doctype defaults, so users who saved their columns earlier would not see it. Add it once, next to
+// the job name; after that the user can still remove or move it.
+frappe.ui.form.on("Job Completion Report", {
+    onload(frm) {
+        try {
+            const KEY = "NxgGridDefaults";
+            const done = frappe.get_user_settings("Job Completion Report", KEY) || {};
+            if (done.job_lines_description) return;
+            const mark = { job_lines_description: 1 };
+            const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
+            const saved = grid["Job Completion Report Line"] || [];
+            if (!saved.length || saved.some((c) => c.fieldname === "description")) {
+                frappe.model.user_settings.save("Job Completion Report", KEY, mark); // doctype defaults already include it
+                return;
+            }
+            const columns = saved.slice();
+            let at = columns.findIndex((c) => c.fieldname === "job_type_name") + 1;
+            if (!at) at = columns.findIndex((c) => c.fieldname === "job_type") + 1;
+            if (!at) at = columns.length;
+            columns.splice(at, 0, { fieldname: "description", columns: 2 });
+            frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": columns })
+                .then(() => frappe.model.user_settings.save("Job Completion Report", KEY, mark))
+                .then(() => location.reload());
+        } catch (e) {
+            console.warn("JCR grid defaults not applied", e);
+        }
+    },
+});
