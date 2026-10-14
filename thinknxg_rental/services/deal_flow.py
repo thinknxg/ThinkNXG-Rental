@@ -190,6 +190,9 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, a
                 "nxg_duration": row.get("nxg_duration"),
                 "nxg_qty": row.qty,
                 "nxg_period": row.get("nxg_period"),
+                "included_days": row.get("nxg_included_days") or 0,
+                "excess_rate_basis": row.get("nxg_excess_basis") or "Daily",
+                "excess_rate": row.get("nxg_excess_rate") or 0,
             })
 
     return _new_mapped_doc(source, "Hire Order Contract", target_doc, post_process)

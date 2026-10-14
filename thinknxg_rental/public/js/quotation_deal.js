@@ -207,3 +207,63 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// Contract Days / Excess Basis / Excess Rate on the item rows: Hire Order Contract quotations only.
+// They are carried into the Hire Order Contract lines (services/deal_flow.py).
+// ---------------------------------------------------------------------------------------------
+const NXG_CONTRACT_COLUMNS = ["nxg_included_days", "nxg_excess_basis", "nxg_excess_rate"];
+
+function nxg_toggle_contract_columns(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    const df = grid && grid.get_docfield && grid.get_docfield("nxg_included_days");
+    if (!df) return; // custom fields not created yet (migrate pending)
+    const show = frm.doc.deal_type === "Hire Order Contract";
+    const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_included_days");
+    if (show === drawn && !!df.hidden === !show) return;
+    grid.set_column_disp(NXG_CONTRACT_COLUMNS, show);
+    grid.reset_grid();
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        nxg_toggle_contract_columns(frm);
+    },
+    deal_type(frm) {
+        nxg_toggle_contract_columns(frm);
+    },
+});
+
+// Default layout with the three contract columns, applied once to each user's saved grid settings.
+const NXG_QUOTE_COLUMNS_V2 = [
+    { fieldname: "item_code", columns: 2 },
+    { fieldname: "uom", columns: 1 },
+    { fieldname: "nxg_length", columns: 1 },
+    { fieldname: "nxg_breadth", columns: 1 },
+    { fieldname: "nxg_height", columns: 1 },
+    { fieldname: "nxg_duration", columns: 1 },
+    { fieldname: "qty", columns: 1 },
+    { fieldname: "nxg_period", columns: 1 },
+    { fieldname: "rate", columns: 1 },
+    { fieldname: "amount", columns: 1 },
+    { fieldname: "nxg_included_days", columns: 1 },
+    { fieldname: "nxg_excess_basis", columns: 1 },
+    { fieldname: "nxg_excess_rate", columns: 1 },
+];
+
+frappe.ui.form.on("Quotation", {
+    onload(frm) {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const names = (grid["Quotation Item"] || []).map((c) => c.fieldname);
+            if (names.includes("nxg_included_days")) return;
+            if (names.length && !(names.includes("uom") && names.includes("nxg_period"))) return; // the earlier default above handles this first
+            if (sessionStorage.getItem("nxg_quote_cols_v2") === "1") return; // never reload more than once
+            sessionStorage.setItem("nxg_quote_cols_v2", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation contract columns not applied", e);
+        }
+    },
+});
