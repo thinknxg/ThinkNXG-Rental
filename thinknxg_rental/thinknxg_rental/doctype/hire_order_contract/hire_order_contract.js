@@ -99,13 +99,13 @@ frappe.ui.form.on("Hire Order Contract Material", {
 // Default grid columns for the contract items: quotation details first, then the two charges users must fill.
 const NXG_HOC_ITEM_COLUMNS = [
     ["nxg_item_code", 1], ["nxg_uom", 1], ["nxg_length", 1], ["nxg_breadth", 1], ["nxg_height", 1],
-    ["nxg_duration", 1], ["nxg_qty", 1], ["nxg_period", 1], ["included_days", 1], ["contract_rate", 1],
+    ["nxg_duration", 1], ["nxg_qty", 1], ["nxg_period", 1], ["qty", 1], ["included_days", 1], ["contract_rate", 1],
 ];
 
 function nxg_apply_default_item_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     if (!grid) return;
-    const flag = "nxg_hoc_item_cols_v1";
+    const flag = "nxg_hoc_item_cols_v2";
     try {
         if (localStorage.getItem(flag) === "1") return;
     } catch (e) {}
