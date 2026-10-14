@@ -181,7 +181,7 @@ def get_open_job_lines(doc):
 	return [
 		frappe._dict(
 			idx=d.idx, name=d.name, job_type=d.job_type, job_type_name=d.job_type_name, location=d.location, qty=flt(d.qty),
-			remaining=flt(d.qty) - flt(reported.get(d.name)), included_days=cint(d.included_days),
+			remaining=flt(d.qty) - flt(reported.get(d.name)), included_days=cint(d.included_days), nxg_duration=cint(d.nxg_duration),
 			contract_rate=flt(d.contract_rate), excess_rate_basis=d.excess_rate_basis, excess_rate=flt(d.excess_rate),
 		)
 		for d in doc.items
@@ -214,7 +214,7 @@ def make_jcr(source_name: str, target_doc=None, args=None):
     for line in lines:
         target.append("job_lines",{
             "contract_item":line.name,"job_type":line.job_type,"job_type_name":line.job_type_name,"location":line.location,
-            "job_qty":line.remaining,"erection_date":nowdate(),"included_days":line.included_days,
+            "job_qty":line.remaining,"erection_date":nowdate(),"included_days":line.included_days,"nxg_duration":line.nxg_duration,
             "contract_end_date":add_days(nowdate(),max(line.included_days,1)-1),"contract_rate":line.contract_rate,
             "contract_charge_billing":source.contract_charge_billing,"excess_rate_basis":line.excess_rate_basis,
             "excess_rate":line.excess_rate,"status":"Draft"

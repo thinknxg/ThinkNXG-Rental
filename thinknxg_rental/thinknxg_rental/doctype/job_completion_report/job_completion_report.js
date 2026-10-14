@@ -65,6 +65,7 @@ frappe.ui.form.on("Job Completion Report", {
                 row.location = l.location;
                 row.job_qty = l.remaining;
                 row.included_days = l.included_days;
+                row.nxg_duration = l.nxg_duration;
                 row.contract_rate = l.contract_rate;
                 row.contract_charge_billing = m.contract_charge_billing;
                 row.excess_rate_basis = l.excess_rate_basis;

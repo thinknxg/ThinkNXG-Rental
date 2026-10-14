@@ -52,6 +52,7 @@ class JobCompletionReport(Document):
             "job_qty": flt(line.remaining if hasattr(line, "remaining") else line.qty),
             "erection_date": erection,
             "included_days": cint(line.included_days),
+            "nxg_duration": cint(line.get("nxg_duration")),
             "contract_end_date": jcr_billing.get_contract_end(erection, line.included_days),
             "contract_rate": flt(line.contract_rate),
             "contract_charge_billing": self.contract_charge_billing or "On Erection",
@@ -82,6 +83,7 @@ class JobCompletionReport(Document):
             row.job_type_name = src.job_type_name
             row.location = row.location or src.location
             row.included_days = cint(src.included_days)
+            row.nxg_duration = cint(src.nxg_duration)
             row.contract_rate = flt(src.contract_rate)
             row.excess_rate_basis = src.excess_rate_basis
             row.excess_rate = flt(src.excess_rate)

@@ -12,6 +12,7 @@
   "job_qty",
   "erection_date",
   "included_days",
+  "nxg_duration",
   "contract_end_date",
   "dismantle_date",
   "actual_days",
@@ -67,6 +68,14 @@
    "label": "Erection Date",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "nxg_duration",
+   "fieldtype": "Int",
+   "label": "Duration/Rotation",
+   "in_list_view": 1,
+   "columns": 1,
+   "read_only": 1
   },
   {
    "fieldname": "included_days",
@@ -162,7 +171,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-12 12:00:00.000000",
+ "modified": "2026-10-14 14:30:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",
