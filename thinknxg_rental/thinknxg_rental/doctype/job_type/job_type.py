@@ -13,8 +13,6 @@ class JobType(Document):
             frappe.throw(_("A Job Type Item must be a non-stock item. Untick Maintain Stock on {0}.").format(frappe.bold(self.item_code)))
         if cint(item.is_fixed_asset):
             frappe.throw(_("A Job Type Item cannot be a fixed asset."))
-        if not self.rental_items and not self.flags.from_migration:
-            frappe.throw(_("Add at least one rental item for one job."))
         seen = set()
         for r in self.rental_items:
             if r.item_code in seen:
