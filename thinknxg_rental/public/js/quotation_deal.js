@@ -267,3 +267,22 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+// Job Type items are offered only on Hire Order Contract quotations; other deals never list them.
+function nxg_set_item_query(frm) {
+    frm.set_query("item_code", "items", (doc) => {
+        const filters = { is_sales_item: 1, has_variants: 0 };
+        if (doc.customer) filters.customer = doc.customer;
+        if (doc.deal_type === "Hire Order Contract") filters.nxg_job_types_only = 1;
+        return { query: "thinknxg_rental.events.job_type.quotation_item_query", filters };
+    });
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        nxg_set_item_query(frm);
+    },
+    deal_type(frm) {
+        nxg_set_item_query(frm);
+    },
+});
