@@ -27,7 +27,9 @@
   "excess_rate_basis",
   "excess_rate",
   "cb_130",
-  "jcr_qty"
+  "jcr_qty",
+  "balance_qty",
+  "rotation_no"
  ],
  "fields": [
   {
@@ -196,10 +198,24 @@
    "label": "Jobs on JCR",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "balance_qty",
+   "fieldtype": "Float",
+   "label": "Balance Jobs",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "rotation_no",
+   "fieldtype": "Int",
+   "label": "Rotation",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "links": [],
- "modified": "2026-10-12 16:00:00.000000",
+ "modified": "2026-10-15 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",

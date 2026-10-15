@@ -13,6 +13,7 @@
   "erection_date",
   "included_days",
   "nxg_duration",
+  "nxg_rotation",
   "contract_end_date",
   "dismantle_date",
   "actual_days",
@@ -168,10 +169,16 @@
    "in_list_view": 1,
    "columns": 2,
    "description": "Site detail for this job, for example the area or size. Printed under the job name on the JCR."
+  },
+  {
+   "fieldname": "nxg_rotation",
+   "fieldtype": "Int",
+   "label": "Rotation No.",
+   "read_only": 1
   }
  ],
  "links": [],
- "modified": "2026-10-14 14:30:00.000000",
+ "modified": "2026-10-15 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",
