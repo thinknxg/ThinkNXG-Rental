@@ -219,7 +219,7 @@ function nxg_toggle_contract_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     const df = grid && grid.get_docfield && grid.get_docfield("nxg_included_days");
     if (!df) return; // custom fields not created yet (migrate pending)
-    const show = frm.doc.deal_type === "Hire Order Contract";
+    const show = nxg_is_hire(frm);
     const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_included_days");
     if (show === drawn && !!df.hidden === !show) return;
     grid.set_column_disp(NXG_CONTRACT_COLUMNS, show);
@@ -245,11 +245,8 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "nxg_duration", columns: 1 },
     { fieldname: "qty", columns: 1 },
     { fieldname: "nxg_period", columns: 1 },
-    { fieldname: "rate", columns: 1 },
-    { fieldname: "amount", columns: 1 },
     { fieldname: "nxg_included_days", columns: 1 },
-    { fieldname: "nxg_excess_basis", columns: 1 },
-    { fieldname: "nxg_excess_rate", columns: 1 },
+    { fieldname: "rate", columns: 1 },
 ];
 
 frappe.ui.form.on("Quotation", {
@@ -284,5 +281,21 @@ frappe.ui.form.on("Quotation", {
     },
     deal_type(frm) {
         nxg_set_item_query(frm);
+    },
+});
+
+// Users who were given the earlier 13-column layout (too wide for the grid) get the Hire Order Contract style layout once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const names = (grid["Quotation Item"] || []).map((c) => c.fieldname);
+            if (!names.includes("nxg_excess_basis")) return;
+            if (localStorage.getItem("nxg_quote_cols_v3") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v3", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
     },
 });
