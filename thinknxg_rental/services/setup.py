@@ -9,6 +9,7 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 # events/quotation.py and public/js/quotation_deal.js.
 HIRE_DEPENDS_ON = 'eval:["Material Hire", "Hire Order Contract"].includes(parent.deal_type)'
 HOC_DEPENDS_ON = 'eval:parent.deal_type=="Hire Order Contract"'
+MH_DEPENDS_ON = 'eval:parent.deal_type=="Material Hire"'
 
 
 def get_custom_fields():
@@ -33,13 +34,16 @@ def get_custom_fields():
 			dict(fieldname="nxg_height", label="Height", fieldtype="Float", insert_after="nxg_breadth", in_list_view=1, columns=1,
 				depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_duration", label="Duration/Rotation", fieldtype="Int", insert_after="nxg_height", in_list_view=1, columns=1,
-				depends_on=HIRE_DEPENDS_ON,
+				depends_on=HOC_DEPENDS_ON,
 				description="Number of periods. Amount = Qty x Unit Price x Duration. Blank counts as 1."),
 			dict(fieldname="nxg_period", label="Period", fieldtype="Select", options="Days\nWeekly\nMonthly\nTimes",
-				insert_after="nxg_duration", in_list_view=1, columns=1, depends_on=HIRE_DEPENDS_ON),
+				insert_after="nxg_duration", in_list_view=1, columns=1, depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_included_days", label="Contract Days", fieldtype="Int", insert_after="nxg_period", in_list_view=0, columns=1, depends_on=HIRE_DEPENDS_ON, description="Included contract days per job. Carried into the Hire Order Contract line."),
 			dict(fieldname="nxg_excess_basis", label="Excess Basis", fieldtype="Select", options="Daily\nWeekly\nMonthly", default="Daily", insert_after="nxg_included_days", in_list_view=0, columns=1, depends_on=HIRE_DEPENDS_ON),
 			dict(fieldname="nxg_excess_rate", label="Excess Rate", fieldtype="Currency", options="currency", insert_after="nxg_excess_basis", in_list_view=0, columns=1, depends_on=HIRE_DEPENDS_ON, description="Excess charge per job for each day / week / month beyond the contract days."),
+			dict(fieldname="nxg_rate_basis", label="Rate Basis", fieldtype="Select", options="Monthly\nWeekly\nDaily", default="Monthly", insert_after="nxg_excess_rate", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_hire_days", label="Hire Days", fieldtype="Int", insert_after="nxg_rate_basis", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON, description="Amount = Qty x Hire Days / basis days x Rate. Blank counts as one rate period."),
+			dict(fieldname="nxg_estimated_amount", label="Estimated Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_hire_days", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
 		],
 		"Purchase Order": [
 			dict(fieldname="nxg_is_cross_hire", label="Is Cross Hire Order", fieldtype="Check", read_only=1, no_copy=1,

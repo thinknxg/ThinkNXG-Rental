@@ -12,6 +12,7 @@ temporarily multiplied by Duration, then the typed Qty is put back. The unit pri
 which keeps price list, margin and discount fields intact. Other deal types use the standard Qty x Rate.
 """
 from frappe.utils import cint, flt
+from thinknxg_rental.services.utils import BASIS_FACTOR
 
 # Keep in step with HIRE_DEPENDS_ON in services/setup.py and quotation_deal.js
 HIRE_DEAL_TYPES = ("Material Hire", "Hire Order Contract")
@@ -30,6 +31,14 @@ def duration_of(row):
 	return cint(row.get("nxg_duration")) or 1
 
 
+def multiplier_of(doc, row):
+    """Material Hire: Hire Days / basis days (blank Hire Days = one rate period). Other hire deals: Duration."""
+    if doc.get("deal_type") == "Material Hire":
+        days = cint(row.get("nxg_hire_days"))
+        return days / BASIS_FACTOR.get(row.get("nxg_rate_basis") or "Monthly", 30) if days > 0 else 1
+    return duration_of(row)
+
+
 def validate(doc, method=None):
 	if doc.get("deal_type") not in HIRE_DEAL_TYPES or not doc.get("items"):
 		return
@@ -46,10 +55,13 @@ def validate(doc, method=None):
 	    if changed:
 	        set_dimension_qty(row)
 
+	if doc.get("deal_type") == "Material Hire":
+	    for row in rows:
+	        row.nxg_estimated_amount = flt(row.qty) * multiplier_of(doc, row) * flt(row.rate)
 	typed_qty = [row.qty for row in rows]
 	try:
 		for row in rows:
-			row.qty = flt(row.qty) * duration_of(row)
+			row.qty = flt(row.qty) * multiplier_of(doc, row)
 		doc.calculate_taxes_and_totals()
 	finally:
 		for row, qty in zip(rows, typed_qty):

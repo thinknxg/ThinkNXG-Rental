@@ -152,6 +152,8 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
                     "uom": row.uom,
                     "qty": row.qty,
                     "rate": row.rate,
+                    "rate_basis": row.get("nxg_rate_basis") or "Monthly",
+                    "expected_hire_days": row.get("nxg_hire_days") or 0,
                 })
 
     return _new_mapped_doc(

@@ -77,7 +77,7 @@ function nxg_toggle_dimension_columns(frm) {
 	const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
 	const df = grid && grid.get_docfield && grid.get_docfield("nxg_length");
 	if (!df) return; // custom fields not created yet (bench migrate pending)
-	const show = nxg_is_hire(frm);
+	const show = frm.doc.deal_type === "Hire Order Contract";
 	const show_dims = frm.doc.deal_type === "Hire Order Contract";
 	const dur = grid.get_docfield("nxg_duration");
 	if (!!df.hidden === !show_dims && (!dur || !!dur.hidden === !show)) return; // already in the right state
@@ -110,7 +110,7 @@ function nxg_install_calculation(frm) {
 		const rows = frm.doc.items || [];
 		const typed_qty = rows.map((row) => row.qty);
 		rows.forEach((row) => {
-			row.qty = flt(row.qty) * (cint(row.nxg_duration) || 1);
+			row.qty = flt(row.qty) * nxg_multiplier(frm, row);
 		});
 		try {
 			return original.apply(this, args);
@@ -248,9 +248,12 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "nxg_height", columns: 1 },
     { fieldname: "nxg_duration", columns: 1 },
     { fieldname: "qty", columns: 1 },
+    { fieldname: "nxg_rate_basis", columns: 1 },
+    { fieldname: "rate", columns: 1 },
+    { fieldname: "nxg_hire_days", columns: 1 },
+    { fieldname: "nxg_estimated_amount", columns: 1 },
     { fieldname: "nxg_period", columns: 1 },
     { fieldname: "nxg_included_days", columns: 1 },
-    { fieldname: "rate", columns: 1 },
 ];
 
 frappe.ui.form.on("Quotation", {
@@ -301,5 +304,74 @@ frappe.ui.form.on("Quotation", {
         } catch (e) {
             console.warn("Quotation grid layout not updated", e);
         }
+    },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Material Hire quotations use the Hire Order item columns: Rate Basis, Hire Days, Estimated Amount.
+// Amount = Qty x Hire Days / basis days x Rate, the same estimate as the Hire Order (services/utils.py).
+// ---------------------------------------------------------------------------------------------
+const NXG_BASIS_FACTOR = {"Daily": 1, "Weekly": 7, "Monthly": 30};
+const NXG_HIRE_ORDER_COLUMNS = ["nxg_rate_basis", "nxg_hire_days", "nxg_estimated_amount"];
+
+function nxg_multiplier(frm, row) {
+    if (frm.doc.deal_type === "Material Hire") {
+        const days = cint(row.nxg_hire_days);
+        return days > 0 ? days / (NXG_BASIS_FACTOR[row.nxg_rate_basis || "Monthly"] || 30) : 1;
+    }
+    return cint(row.nxg_duration) || 1;
+}
+
+function nxg_update_estimate(frm, cdt, cdn) {
+    if (frm.doc.deal_type !== "Material Hire") return;
+    const row = locals[cdt][cdn];
+    frappe.model.set_value(cdt, cdn, "nxg_estimated_amount", flt(row.qty) * nxg_multiplier(frm, row) * flt(row.rate));
+}
+
+function nxg_toggle_hire_order_columns(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    const df = grid && grid.get_docfield && grid.get_docfield("nxg_rate_basis");
+    if (!df) return; // custom fields not created yet (migrate pending)
+    const show = frm.doc.deal_type === "Material Hire";
+    if (!!df.hidden === !show) return;
+    grid.set_column_disp(NXG_HIRE_ORDER_COLUMNS, show);
+    grid.reset_grid();
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        nxg_toggle_hire_order_columns(frm);
+    },
+    deal_type(frm) {
+        nxg_toggle_hire_order_columns(frm);
+    },
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const names = (grid["Quotation Item"] || []).map((c) => c.fieldname);
+            if (!names.length || names.includes("nxg_rate_basis")) return;
+            if (localStorage.getItem("nxg_quote_cols_v4") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v4", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
+    },
+});
+
+frappe.ui.form.on("Quotation Item", {
+    qty(frm, cdt, cdn) {
+        nxg_update_estimate(frm, cdt, cdn);
+    },
+    rate(frm, cdt, cdn) {
+        nxg_update_estimate(frm, cdt, cdn);
+    },
+    nxg_hire_days(frm, cdt, cdn) {
+        nxg_update_estimate(frm, cdt, cdn);
+        frm.cscript.calculate_taxes_and_totals();
+    },
+    nxg_rate_basis(frm, cdt, cdn) {
+        nxg_update_estimate(frm, cdt, cdn);
+        frm.cscript.calculate_taxes_and_totals();
     },
 });
