@@ -38,6 +38,7 @@ class HireOrder(Document):
 				d.security_deposit_rate = flt(d.security_deposit_rate) or details["security_deposit_rate"]
 				d.replacement_value = flt(d.replacement_value) or details["replacement_value"]
 			d.expected_hire_days = cint(d.expected_hire_days) or self.expected_hire_days
+			d.rate_basis_amount = flt(d.qty) * flt(d.rate)
 			d.estimated_amount = estimate_amount(d.qty, d.expected_hire_days, d.rate_basis, d.rate)
 			d.security_deposit = flt(d.qty) * flt(d.security_deposit_rate)
 			if self.docstatus == 0:

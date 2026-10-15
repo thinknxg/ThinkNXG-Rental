@@ -55,3 +55,37 @@ frappe.ui.form.on("Hire Order Item", {
 		thinknxg_rental.fetch_rental_details(frm, cdt, cdn);
 	},
 });
+
+// Rate Basis Amount = Qty x Hire Rate
+function nxg_rate_basis_amount(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    frappe.model.set_value(cdt, cdn, "rate_basis_amount", flt(row.qty) * flt(row.rate));
+}
+
+frappe.ui.form.on("Hire Order Item", {
+    qty(frm, cdt, cdn) {
+        nxg_rate_basis_amount(frm, cdt, cdn);
+    },
+    rate(frm, cdt, cdn) {
+        nxg_rate_basis_amount(frm, cdt, cdn);
+    },
+});
+
+// A user who saved their own grid columns gets the new column next to Estimated Amount, once.
+frappe.ui.form.on("Hire Order", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Hire Order", "GridView") || {};
+            const cols = grid["Hire Order Item"];
+            if (!cols || !cols.length || cols.some((c) => c.fieldname === "rate_basis_amount")) return;
+            if (localStorage.getItem("nxg_ho_cols_v1") === "1") return;
+            localStorage.setItem("nxg_ho_cols_v1", "1");
+            const next = cols.slice();
+            const at = next.findIndex((c) => c.fieldname === "estimated_amount");
+            next.splice(at >= 0 ? at : next.length, 0, { fieldname: "rate_basis_amount", columns: 1 });
+            frappe.model.user_settings.save("Hire Order", "GridView", { "Hire Order Item": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Hire Order grid layout not updated", e);
+        }
+    },
+});

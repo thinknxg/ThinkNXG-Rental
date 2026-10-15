@@ -12,6 +12,7 @@
   "rate_basis",
   "rate",
   "expected_hire_days",
+  "rate_basis_amount",
   "estimated_amount",
   "sb_22",
   "security_deposit_rate",
@@ -29,7 +30,7 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 3
+   "columns": 2
   },
   {
    "fieldname": "item_name",
@@ -126,10 +127,18 @@
    "label": "Shortfall (Cross Hire Needed)",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "rate_basis_amount",
+   "fieldtype": "Currency",
+   "label": "Rate Basis Amount",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-15 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Item",
