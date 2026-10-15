@@ -22,12 +22,16 @@ def get_line_returns(line):
     return out
 
 
-def plan_periods(line, today=None, on_demand=False):
+def plan_periods(line, today=None, on_demand=False, partial=False):
     today=getdate(today or nowdate()); erection=getdate(line.erection_date)
     contract_end=getdate(line.contract_end_date or get_contract_end(erection,line.included_days))
     dismantle=getdate(line.dismantle_date) if line.dismantle_date else None
     full_qty=flt(line.job_qty) or 1; month_basis=get_settings().month_basis; periods=[]
     basis=line.excess_rate_basis or "Daily"
+    billed_upto=None  # excess already billed: never charge those days again
+    if line.get("parent") and line.get("name"):
+        done=[getdate(x.period_to) for x in get_schedules(line.parent,line.name) if x.billing_type!="Contract" and (x.sales_invoice or x.status!="Pending")]
+        billed_upto=max(done) if done else None
     if line.contract_charge_billing=="At Contract End" and not on_demand: contract_due=min(contract_end,dismantle) if dismantle else contract_end
     else: contract_due=erection
     if today>=contract_due:
@@ -42,15 +46,17 @@ def plan_periods(line, today=None, on_demand=False):
     last=len(segments)-1
     for i,(seg_start,seg_end,qty) in enumerate(segments):
         all_back=seg_end is not None and i==last
-        start=max(seg_start,add_days(contract_end,1))
+        start=max(seg_start,add_days(contract_end,1),add_days(billed_upto,1) if billed_upto else seg_start)
         while seg_end is None or seg_end>=start:
-            period_to=getdate(get_last_day(start)); final=bool(seg_end and seg_end<=period_to)
+            period_to=getdate(get_last_day(start)); final=bool(seg_end and seg_end<=period_to); part=False
             if final: period_to=seg_end
-            elif today<=period_to: break
+            elif today<=period_to:
+                if not partial or today<start: break  # a part month is billed only when a bill-as-on date is given
+                period_to=today; part=True
             units=billable_units(qty,start,period_to,basis,month_basis)
             charge=flt(units*flt(line.excess_rate),3)
             periods.append(frappe._dict(period_from=start,period_to=period_to,billing_type="Final Excess" if (final and all_back) else "Excess",days=date_diff(period_to,start)+1,contract_charge=0,excess_charge=charge,amount=charge,qty=qty))
-            if final: break
+            if final or part: break
             start=add_days(period_to,1)
     return periods
 
@@ -68,23 +74,23 @@ def _make_schedule(doc,line,p):
 
 
 @frappe.whitelist()
-def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0):
+def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0, as_on: str | None = None):
     """Create the due billing periods of a JCR. With invoice=0 only the schedules are created (they stay Pending)."""
     doc=frappe.get_doc("Job Completion Report",jcr); doc.check_permission("write")
     if doc.docstatus!=1: frappe.throw(_("Submit the JCR first"))
     created=[]
     for line in doc.job_lines:
         existing={(getdate(s.period_from),s.billing_type):s for s in get_schedules(doc.name,line.name)}
-        for p in plan_periods(line,on_demand=cint(on_demand)):
+        for p in plan_periods(line,today=as_on,on_demand=cint(on_demand),partial=bool(as_on)):
             row=existing.get((getdate(p.period_from),p.billing_type))
             if row:
                 if row.status=="Pending" and not row.sales_invoice:
                     if getdate(row.period_to)!=getdate(p.period_to) or flt(row.job_qty)!=flt(p.qty): frappe.db.set_value("JCR Billing Schedule",row.name,{"job_qty":p.qty,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
-                    if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name); created.append(row.name)
+                    if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name,as_on); created.append(row.name)
                 continue
             schedule=_make_schedule(doc,line,p)
             if flt(p.amount)>0:
-                if cint(invoice): make_sales_invoice(schedule.name)
+                if cint(invoice): make_sales_invoice(schedule.name,as_on)
                 created.append(schedule.name)
     update_jcr_progress(doc.name); return created
 
@@ -121,7 +127,7 @@ def _period_rows(jcr,line,row,hoc):
     return values
 
 
-def _create_invoice(schedule_names):
+def _create_invoice(schedule_names, posting_date=None):
     """One Sales Invoice for the given pending JCR billing periods, possibly of several JCRs.
 
     Per JCR job line the invoice carries a title row ("JCR-no item @ location") followed by one
@@ -146,7 +152,7 @@ def _create_invoice(schedule_names):
     first_jcr=next(iter(jcrs.values())); first_hoc=hocs[first_jcr.name]
     contracts={j.rental_contract for j in jcrs.values()}; projects={h.project for h in hocs.values()}; centers={h.cost_center for h in hocs.values()}; terms={h.payment_terms_template or "" for h in hocs.values()}
     si=frappe.new_doc("Sales Invoice")
-    si.update({"company":first_jcr.company,"customer":first_jcr.customer,"posting_date":nowdate(),
+    si.update({"company":first_jcr.company,"customer":first_jcr.customer,"posting_date":getdate(posting_date) if posting_date else nowdate(),"set_posting_time":1 if posting_date else 0,
                "project":first_hoc.project if len(projects)==1 else None,"cost_center":first_hoc.cost_center if len(centers)==1 else None,
                "payment_terms_template":first_hoc.payment_terms_template if len(terms)==1 else None,
                "nxg_rental_contract":first_jcr.rental_contract if len(contracts)==1 else None,
@@ -173,9 +179,9 @@ def _create_invoice(schedule_names):
 
 
 @frappe.whitelist()
-def make_sales_invoice(schedule: str):
+def make_sales_invoice(schedule: str, posting_date: str | None = None):
     """Invoice a single billing period (used by the schedule form and the daily job)."""
-    return _create_invoice([schedule])
+    return _create_invoice([schedule],posting_date)
 
 
 @frappe.whitelist()
