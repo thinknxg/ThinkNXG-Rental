@@ -34,6 +34,7 @@ class HireOrderContract(Document):
 				frappe.throw(_("Row #{0}: No. of Jobs must be greater than zero").format(d.idx))
 			if cint(d.included_days) < 1:
 				frappe.throw(_("Row #{0}: Included Contract Days must be at least 1").format(d.idx))
+			nxg_apply_dimensions(self, d)
 			d.contract_amount = flt(d.qty) * flt(d.contract_rate)
 			if self.docstatus == 0:
 				d.jcr_qty = 0
@@ -173,19 +174,20 @@ def make_reservation(source_name: str, target_doc=None):
 
 def get_open_job_lines(doc):
 	"""Job lines of a Hire Order Contract that still have jobs without a JCR."""
-	from thinknxg_rental.thinknxg_rental.doctype.job_completion_report.job_completion_report import get_reported_qty
+	from thinknxg_rental.thinknxg_rental.doctype.job_completion_report.job_completion_report import get_reported_qty, get_returned_qty_by_line, remaining_jobs
 
 	# counted from the submitted JCRs themselves, never from a stored counter (a duplicated or
 	# amended contract would otherwise inherit the old one)
 	reported = get_reported_qty(doc.name)
+	returned = get_returned_qty_by_line(doc.name)
 	return [
 		frappe._dict(
 			idx=d.idx, name=d.name, job_type=d.job_type, job_type_name=d.job_type_name, location=d.location, qty=flt(d.qty),
-			remaining=flt(d.qty) - flt(reported.get(d.name)), included_days=cint(d.included_days), nxg_duration=cint(d.nxg_duration),
+			remaining=remaining_jobs(d, reported, returned), included_days=cint(d.included_days), nxg_duration=cint(d.nxg_duration),
 			contract_rate=flt(d.contract_rate), excess_rate_basis=d.excess_rate_basis, excess_rate=flt(d.excess_rate),
 		)
 		for d in doc.items
-		if flt(d.qty) - flt(reported.get(d.name)) > 1e-6
+		if remaining_jobs(d, reported, returned) > 1e-6
 	]
 
 
@@ -221,3 +223,15 @@ def make_jcr(source_name: str, target_doc=None, args=None):
         })
     return target
 
+
+def nxg_apply_dimensions(doc, row):
+    """Quantity = Length x Breadth x Height when all three are given and they are new or changed;
+    No. of Jobs follows the Quantity, as on the Quotation."""
+    length, breadth, height = flt(row.get("nxg_length")), flt(row.get("nxg_breadth")), flt(row.get("nxg_height"))
+    if not (length and breadth and height):
+        return
+    before = doc.get_doc_before_save()
+    old = next((r for r in (before.get("items") or []) if r.name == row.name), None) if before else None
+    if old is None or any(flt(old.get(f)) != flt(row.get(f)) for f in ("nxg_length", "nxg_breadth", "nxg_height")):
+        row.nxg_qty = flt(length * breadth * height, row.precision("nxg_qty"))
+        row.qty = row.nxg_qty

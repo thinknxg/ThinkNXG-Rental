@@ -112,12 +112,13 @@ frappe.ui.form.on("Job Completion Report", {
         if (active.length) {
             frm.add_custom_button(__("Record Dismantle"), () => {
                 const opts = active.map(r => ({
-                    label: `${r.idx}. ${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty})`,
+                    label: `${r.idx}. ${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty}${nxg_returned(frm, r) ? ", " + __("{0} returned", [nxg_returned(frm, r)]) : ""})`,
                     value: r.name
                 }));
                 frappe.prompt([
                     { fieldname: "line_name", fieldtype: "Select", label: __("JCR Job Line"), options: opts, default: opts.length === 1 ? opts[0].value : undefined, reqd: 1 },
                     { fieldname: "dismantle_date", fieldtype: "Date", label: __("Dismantle Date"), reqd: 1, default: frappe.datetime.get_today() },
+                    { fieldname: "return_qty", fieldtype: "Float", label: __("Qty Returned"), description: __("Leave blank when everything still outstanding is returned") },
                     { fieldname: "remarks", fieldtype: "Small Text", label: __("Remarks") }
                 ], v => frm.call("record_dismantle", v).then(() => frm.reload_doc()), __("Record Dismantle"), __("Stop the Clock"));
             }).addClass("btn-primary");
@@ -213,3 +214,7 @@ frappe.ui.form.on("Job Completion Report", {
         }
     },
 });
+
+function nxg_returned(frm, row) {
+    return (frm.doc.jcr_returns || []).filter((x) => x.jcr_line === row.name).reduce((a, x) => a + flt(x.return_qty), 0);
+}

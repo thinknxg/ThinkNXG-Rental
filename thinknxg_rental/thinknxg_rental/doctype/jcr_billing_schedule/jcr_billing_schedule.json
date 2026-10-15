@@ -23,7 +23,8 @@
   "cb_150",
   "contract_charge",
   "excess_charge",
-  "amount"
+  "amount",
+  "job_qty"
  ],
  "fields": [
   {
@@ -169,10 +170,16 @@
    "read_only": 1,
    "in_list_view": 1,
    "bold": 1
+  },
+  {
+   "fieldname": "job_qty",
+   "fieldtype": "Float",
+   "label": "Job Qty",
+   "read_only": 1
   }
  ],
  "links": [],
- "modified": "2026-10-08 00:00:00.000000",
+ "modified": "2026-10-14 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "JCR Billing Schedule",

@@ -66,6 +66,7 @@ class JobCompletionReport(Document):
             frappe.throw(_("Add at least one JCR Job Line"))
         contract_lines = {d.name:d for d in hoc.items}
         reported_other = get_reported_qty_by_line(hoc.name, exclude=self.name)
+        returned_other = get_returned_qty_by_line(hoc.name, exclude=self.name)
         seen = set()
         for row in self.job_lines:
             if not row.contract_item or row.contract_item not in contract_lines:
@@ -76,7 +77,7 @@ class JobCompletionReport(Document):
             src = contract_lines[row.contract_item]
             if flt(row.job_qty) <= 0:
                 frappe.throw(_("Row {0}: No. of Jobs must be greater than zero").format(row.idx))
-            remaining = flt(src.qty) - flt(reported_other.get(row.contract_item, 0))
+            remaining = remaining_jobs(src, reported_other, returned_other)
             if flt(row.job_qty) > remaining + 1e-6:
                 frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, max(remaining,0), row.job_type))
             row.job_type = src.job_type
@@ -144,7 +145,7 @@ class JobCompletionReport(Document):
 
     def on_update_after_submit(self):
         jcr_billing.update_jcr_progress(self.name)
-        if any(r.dismantle_date for r in self.job_lines):
+        if any(r.dismantle_date for r in self.job_lines) or self.get("jcr_returns"):
             jcr_billing.generate_jcr_billing(self.name, invoice=0)
 
     def on_cancel(self):
@@ -163,7 +164,7 @@ class JobCompletionReport(Document):
         for d in hoc.items: d.db_set("jcr_qty",flt(reported.get(d.name)),update_modified=False)
 
     @frappe.whitelist()
-    def record_dismantle(self, dismantle_date: str, line_name: str | None = None, remarks: str | None = None):
+    def record_dismantle(self, dismantle_date: str, line_name: str | None = None, remarks: str | None = None, return_qty: float | None = None):
         self.check_permission("write")
         if self.docstatus!=1: frappe.throw(_("Submit the JCR first"))
         candidates=[r for r in self.job_lines if not r.dismantle_date]
@@ -171,9 +172,19 @@ class JobCompletionReport(Document):
         elif len(candidates)==1: row=candidates[0]
         else: frappe.throw(_("Select the JCR Job Line to dismantle"))
         if not row: frappe.throw(_("JCR Job Line not found"))
-        row.dismantle_date=dismantle_date
+        billed=[x for x in jcr_billing.get_schedules(self.name,row.name) if x.billing_type!="Contract" and (x.sales_invoice or x.status!="Pending")]
+        if billed and getdate(dismantle_date)<=max(getdate(x.period_to) for x in billed):
+            frappe.throw(_("Excess is already billed up to {0} for {1}. Use a later return date or cancel the later billing first.").format(frappe.format(max(getdate(x.period_to) for x in billed),{"fieldtype":"Date"}),row.job_type))
+        if getdate(dismantle_date)<getdate(row.erection_date): frappe.throw(_("Return date cannot be before the Erection Date"))
+        back=[r for r in self.get("jcr_returns") if r.jcr_line==row.name]
+        left=flt(row.job_qty)-sum(flt(r.return_qty) for r in back)
+        qty=flt(return_qty) or left
+        if qty<=0 or qty>left+1e-6: frappe.throw(_("Qty Returned must be more than 0 and not above the {0} still outstanding").format(left))
+        self.append("jcr_returns",{"jcr_line":row.name,"job_type":row.job_type,"return_date":dismantle_date,"return_qty":qty,"remarks":remarks})
         if remarks: row.remarks=remarks
-        row.status="Dismantled"
+        if left-qty<=1e-6:
+            row.dismantle_date=max([getdate(dismantle_date)]+[getdate(r.return_date) for r in back])
+            row.status="Dismantled"
         self.flags.ignore_validate_update_after_submit=True
         self.save()
         return row.name
@@ -193,3 +204,31 @@ def get_reported_qty_by_line(hire_order_contract, exclude=None):
 def get_reported_qty(hire_order_contract, exclude=None):
     """Legacy API: {contract job line: jobs on submitted JCRs}."""
     return get_reported_qty_by_line(hire_order_contract, exclude)
+
+
+def get_returned_qty_by_line(hire_order_contract, exclude=None):
+    """{contract job line: jobs already returned on submitted JCRs}. A full dismantle recorded before returns existed counts as all returned."""
+    result = {}
+    names = frappe.get_all("Job Completion Report", filters={"docstatus": 1, "hire_order_contract": hire_order_contract, "name": ["!=", exclude or ""]}, pluck="name")
+    for name in names:
+        doc = frappe.get_doc("Job Completion Report", name)
+        by_line = {}
+        for x in doc.get("jcr_returns") or []:
+            by_line[x.jcr_line] = by_line.get(x.jcr_line, 0) + flt(x.return_qty)
+        for r in doc.job_lines:
+            qty = by_line.get(r.name)
+            if qty is None and r.dismantle_date:
+                qty = flt(r.job_qty)
+            if qty:
+                result[r.contract_item] = result.get(r.contract_item, 0) + qty
+    return result
+
+
+def remaining_jobs(item, reported, returned):
+    """Jobs that can still be reported on a contract line: never more than the line's No. of Jobs at the site at once,
+    and never more than No. of Jobs x Duration/Rotation in total."""
+    qty = flt(item.qty)
+    rotations = max(cint(item.get("nxg_duration")), 1)
+    done = flt(reported.get(item.name))
+    at_site = done - flt(returned.get(item.name))
+    return max(min(qty * rotations - done, qty - at_site), 0)

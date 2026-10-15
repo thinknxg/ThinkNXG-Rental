@@ -10,38 +10,60 @@ def get_contract_end(erection_date, included_days):
     return add_days(getdate(erection_date), max(cint(included_days),1)-1)
 
 
+def get_line_returns(line):
+    """[(return date, qty)] of a JCR line. A line dismantled before returns existed counts as one full return."""
+    rows = []
+    if line.get("parent") and line.get("name"):
+        rows = frappe.get_all("JCR Return", filters={"parent": line.parent, "parenttype": "Job Completion Report", "jcr_line": line.name},
+                              fields=["return_date", "return_qty"], order_by="return_date asc")
+    out = [(getdate(r.return_date), flt(r.return_qty)) for r in rows]
+    if not out and line.dismantle_date:
+        out = [(getdate(line.dismantle_date), flt(line.job_qty) or 1)]
+    return out
+
+
 def plan_periods(line, today=None, on_demand=False):
     today=getdate(today or nowdate()); erection=getdate(line.erection_date)
     contract_end=getdate(line.contract_end_date or get_contract_end(erection,line.included_days))
     dismantle=getdate(line.dismantle_date) if line.dismantle_date else None
-    qty=flt(line.job_qty) or 1; month_basis=get_settings().month_basis; periods=[]
+    full_qty=flt(line.job_qty) or 1; month_basis=get_settings().month_basis; periods=[]
+    basis=line.excess_rate_basis or "Daily"
     if line.contract_charge_billing=="At Contract End" and not on_demand: contract_due=min(contract_end,dismantle) if dismantle else contract_end
     else: contract_due=erection
     if today>=contract_due:
-        charge=flt(line.contract_rate)*qty
-        periods.append(frappe._dict(period_from=erection,period_to=contract_end,billing_type="Contract",days=date_diff(contract_end,erection)+1,contract_charge=charge,excess_charge=0,amount=charge))
-    start=add_days(contract_end,1)
-    while not dismantle or dismantle>=start:
-        period_to=getdate(get_last_day(start)); final=bool(dismantle and dismantle<=period_to)
-        if final: period_to=dismantle
-        elif today<=period_to: break
-        units=billable_units(qty,start,period_to,line.excess_rate_basis or "Daily",month_basis)
-        charge=flt(units*flt(line.excess_rate),3)
-        periods.append(frappe._dict(period_from=start,period_to=period_to,billing_type="Final Excess" if final else "Excess",days=date_diff(period_to,start)+1,contract_charge=0,excess_charge=charge,amount=charge))
-        if final: break
-        start=add_days(period_to,1)
+        charge=flt(line.contract_rate)*full_qty
+        periods.append(frappe._dict(period_from=erection,period_to=contract_end,billing_type="Contract",days=date_diff(contract_end,erection)+1,contract_charge=charge,excess_charge=0,amount=charge,qty=full_qty))
+    # jobs still out over time: a return stops the clock for its jobs from the day after its return date
+    segments=[]; seg_from=erection; left=full_qty
+    for d,q in sorted(get_line_returns(line),key=lambda x:x[0]):
+        segments.append((seg_from,d,left)); left=left-q; seg_from=add_days(d,1)
+        if left<=1e-6: left=0; break
+    if left>1e-6: segments.append((seg_from,None,left))
+    last=len(segments)-1
+    for i,(seg_start,seg_end,qty) in enumerate(segments):
+        all_back=seg_end is not None and i==last
+        start=max(seg_start,add_days(contract_end,1))
+        while seg_end is None or seg_end>=start:
+            period_to=getdate(get_last_day(start)); final=bool(seg_end and seg_end<=period_to)
+            if final: period_to=seg_end
+            elif today<=period_to: break
+            units=billable_units(qty,start,period_to,basis,month_basis)
+            charge=flt(units*flt(line.excess_rate),3)
+            periods.append(frappe._dict(period_from=start,period_to=period_to,billing_type="Final Excess" if (final and all_back) else "Excess",days=date_diff(period_to,start)+1,contract_charge=0,excess_charge=charge,amount=charge,qty=qty))
+            if final: break
+            start=add_days(period_to,1)
     return periods
 
 
 def get_schedules(jcr_name,line_name=None):
     filters={"jcr":jcr_name}
     if line_name: filters["jcr_line"]=line_name
-    return frappe.get_all("JCR Billing Schedule",filters=filters,fields=["name","jcr","jcr_line","period_from","period_to","billing_type","amount","status","billed","sales_invoice","job_type"],order_by="period_from asc")
+    return frappe.get_all("JCR Billing Schedule",filters=filters,fields=["name","jcr","jcr_line","period_from","period_to","billing_type","amount","status","billed","sales_invoice","job_type","job_qty"],order_by="period_from asc")
 
 
 def _make_schedule(doc,line,p):
     schedule=frappe.new_doc("JCR Billing Schedule")
-    schedule.update({"jcr":doc.name,"jcr_line":line.name,"rental_contract":doc.rental_contract,"hire_order_contract":doc.hire_order_contract,"customer":doc.customer,"job_type":line.job_type,"company":doc.company,"billing_type":p.billing_type,"status":"Pending" if flt(p.amount)>0 else "No Charge","period_from":p.period_from,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
+    schedule.update({"jcr":doc.name,"jcr_line":line.name,"rental_contract":doc.rental_contract,"hire_order_contract":doc.hire_order_contract,"customer":doc.customer,"job_type":line.job_type,"job_qty":p.qty,"company":doc.company,"billing_type":p.billing_type,"status":"Pending" if flt(p.amount)>0 else "No Charge","period_from":p.period_from,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
     schedule.flags.ignore_permissions=True; schedule.insert(); return schedule
 
 
@@ -57,7 +79,7 @@ def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0):
             row=existing.get((getdate(p.period_from),p.billing_type))
             if row:
                 if row.status=="Pending" and not row.sales_invoice:
-                    if getdate(row.period_to)!=getdate(p.period_to): frappe.db.set_value("JCR Billing Schedule",row.name,{"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
+                    if getdate(row.period_to)!=getdate(p.period_to) or flt(row.job_qty)!=flt(p.qty): frappe.db.set_value("JCR Billing Schedule",row.name,{"job_qty":p.qty,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
                     if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name); created.append(row.name)
                 continue
             schedule=_make_schedule(doc,line,p)
@@ -83,7 +105,7 @@ def _title_text(jcr,line):
 
 def _period_rows(jcr,line,row,hoc):
     """Invoice row values for one billing period (contract or excess) of a JCR line."""
-    qty=flt(line.job_qty) or 1; qty=qty if qty==int(qty) else 1
+    qty=flt(row.get("job_qty")) or flt(line.job_qty) or 1; qty=qty if qty==int(qty) else 1
     span=f"{_dmy(row.period_from)} to {_dmy(row.period_to)}"; amount=flt(row.amount); unit=flt(amount/qty,3)
     values={"item_code":line.job_type,"item_name":line.job_type_name,"qty":qty,"rate":unit,"project":hoc.project,"cost_center":hoc.cost_center,
             "nxg_jcr":jcr.name,"nxg_jcr_billing_schedule":row.name,"nxg_locked_rate":unit,"nxg_locked_amount":amount}

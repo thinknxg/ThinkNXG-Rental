@@ -40,7 +40,8 @@
   "total_billed_amount",
   "sb_147",
   "remarks",
-  "amended_from"
+  "amended_from",
+  "jcr_returns"
  ],
  "fields": [
   {
@@ -309,6 +310,14 @@
    "fieldname": "sb_job_lines",
    "fieldtype": "Section Break",
    "label": "Job Lines"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "jcr_returns",
+   "fieldtype": "Table",
+   "label": "Returns",
+   "options": "JCR Return",
+   "read_only": 1
   }
  ],
  "links": [
@@ -321,7 +330,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-09 12:00:00.000000",
+ "modified": "2026-10-14 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",

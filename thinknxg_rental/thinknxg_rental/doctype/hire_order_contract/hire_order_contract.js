@@ -129,3 +129,21 @@ frappe.ui.form.on("Hire Order Contract", {
         nxg_apply_default_item_columns(frm);
     },
 });
+
+// Quantity = Length x Breadth x Height (as on the Quotation); No. of Jobs follows the Quantity.
+function nxg_dimension_qty(cdt, cdn) {
+    const row = locals[cdt][cdn];
+    const length = flt(row.nxg_length), breadth = flt(row.nxg_breadth), height = flt(row.nxg_height);
+    if (!(length && breadth && height)) return;
+    frappe.model.set_value(cdt, cdn, "nxg_qty", flt(length * breadth * height, precision("nxg_qty", row)));
+}
+
+frappe.ui.form.on("Hire Order Contract Item", {
+    nxg_length: (frm, cdt, cdn) => nxg_dimension_qty(cdt, cdn),
+    nxg_breadth: (frm, cdt, cdn) => nxg_dimension_qty(cdt, cdn),
+    nxg_height: (frm, cdt, cdn) => nxg_dimension_qty(cdt, cdn),
+    nxg_qty: (frm, cdt, cdn) => {
+        const row = locals[cdt][cdn];
+        if (flt(row.nxg_qty) > 0) frappe.model.set_value(cdt, cdn, "qty", flt(row.nxg_qty));
+    },
+});
