@@ -78,8 +78,12 @@ function nxg_toggle_dimension_columns(frm) {
 	const df = grid && grid.get_docfield && grid.get_docfield("nxg_length");
 	if (!df) return; // custom fields not created yet (bench migrate pending)
 	const show = nxg_is_hire(frm);
-	if (!!df.hidden === !show) return; // already in the right state
-	grid.set_column_disp(NXG_DIMENSION_FIELDS, show);
+	const show_dims = frm.doc.deal_type === "Hire Order Contract";
+	const dur = grid.get_docfield("nxg_duration");
+	if (!!df.hidden === !show_dims && (!dur || !!dur.hidden === !show)) return; // already in the right state
+	grid.set_column_disp(["nxg_duration"], show);
+	grid.set_column_disp(["nxg_length", "nxg_breadth", "nxg_height"], show_dims);
+	grid.reset_grid();
 }
 
 // Period is for Hire Order Contract quotations only: hidden for Material Hire (and every other deal type).

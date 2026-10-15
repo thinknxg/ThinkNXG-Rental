@@ -27,11 +27,11 @@ def get_custom_fields():
 		# Qty x Unit Price x Duration (see events/quotation.py and public/js/quotation_deal.js).
 		"Quotation Item": [
 			dict(fieldname="nxg_length", label="Length", fieldtype="Float", insert_after="item_name", in_list_view=1, columns=1,
-				depends_on=HIRE_DEPENDS_ON),
+				depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_breadth", label="Breadth", fieldtype="Float", insert_after="nxg_length", in_list_view=1, columns=1,
-				depends_on=HIRE_DEPENDS_ON),
+				depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_height", label="Height", fieldtype="Float", insert_after="nxg_breadth", in_list_view=1, columns=1,
-				depends_on=HIRE_DEPENDS_ON),
+				depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_duration", label="Duration/Rotation", fieldtype="Int", insert_after="nxg_height", in_list_view=1, columns=1,
 				depends_on=HIRE_DEPENDS_ON,
 				description="Number of periods. Amount = Qty x Unit Price x Duration. Blank counts as 1."),
