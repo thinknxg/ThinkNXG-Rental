@@ -99,6 +99,7 @@ def make_cross_hire_receipt(cross_hire_order: str):
 	pr = make_purchase_receipt(cho.purchase_order)
 	pr.nxg_is_cross_hire_receipt = 1
 	pr.nxg_cross_hire_order = cho.name
+	pr.set_posting_time = 1  # let the user change Posting Date / Time
 	pr.set_warehouse = cho.receipt_warehouse
 	apply_cross_hire_receipt_rules(pr)
 	for row in pr.items:
