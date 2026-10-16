@@ -43,7 +43,8 @@ def get_custom_fields():
 			dict(fieldname="nxg_excess_rate", label="Excess Rate", fieldtype="Currency", options="currency", insert_after="nxg_excess_basis", in_list_view=0, columns=1, depends_on=HIRE_DEPENDS_ON, description="Excess charge per job for each day / week / month beyond the contract days."),
 			dict(fieldname="nxg_rate_basis", label="Rate Basis", fieldtype="Select", options="Monthly\nWeekly\nDaily", default="Monthly", insert_after="nxg_excess_rate", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
 			dict(fieldname="nxg_hire_days", label="Hire Days", fieldtype="Int", insert_after="nxg_rate_basis", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON, description="Amount = Qty x Hire Days / basis days x Rate. Blank counts as one rate period."),
-			dict(fieldname="nxg_estimated_amount", label="Estimated Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_hire_days", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_rate_basis_amount", label="Rate Basis Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_hire_days", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON, description="Qty x Rate"),
+			dict(fieldname="nxg_estimated_amount", label="Estimated Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_rate_basis_amount", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
 		],
 		"Purchase Order": [
 			dict(fieldname="nxg_is_cross_hire", label="Is Cross Hire Order", fieldtype="Check", read_only=1, no_copy=1,

@@ -251,6 +251,7 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "nxg_rate_basis", columns: 1 },
     { fieldname: "rate", columns: 1 },
     { fieldname: "nxg_hire_days", columns: 1 },
+    { fieldname: "nxg_rate_basis_amount", columns: 1 },
     { fieldname: "nxg_estimated_amount", columns: 1 },
     { fieldname: "nxg_period", columns: 1 },
     { fieldname: "nxg_included_days", columns: 1 },
@@ -312,7 +313,7 @@ frappe.ui.form.on("Quotation", {
 // Amount = Qty x Hire Days / basis days x Rate, the same estimate as the Hire Order (services/utils.py).
 // ---------------------------------------------------------------------------------------------
 const NXG_BASIS_FACTOR = {"Daily": 1, "Weekly": 7, "Monthly": 30};
-const NXG_HIRE_ORDER_COLUMNS = ["nxg_rate_basis", "nxg_hire_days", "nxg_estimated_amount"];
+const NXG_HIRE_ORDER_COLUMNS = ["nxg_rate_basis", "nxg_hire_days", "nxg_rate_basis_amount", "nxg_estimated_amount"];
 
 function nxg_multiplier(frm, row) {
     if (frm.doc.deal_type === "Material Hire") {
@@ -325,7 +326,10 @@ function nxg_multiplier(frm, row) {
 function nxg_update_estimate(frm, cdt, cdn) {
     if (frm.doc.deal_type !== "Material Hire") return;
     const row = locals[cdt][cdn];
-    frappe.model.set_value(cdt, cdn, "nxg_estimated_amount", flt(row.qty) * nxg_multiplier(frm, row) * flt(row.rate));
+    frappe.model.set_value(cdt, cdn, {
+        nxg_rate_basis_amount: flt(row.qty) * flt(row.rate),
+        nxg_estimated_amount: flt(row.qty) * nxg_multiplier(frm, row) * flt(row.rate),
+    });
 }
 
 function nxg_toggle_hire_order_columns(frm) {
@@ -373,5 +377,25 @@ frappe.ui.form.on("Quotation Item", {
     nxg_rate_basis(frm, cdt, cdn) {
         nxg_update_estimate(frm, cdt, cdn);
         frm.cscript.calculate_taxes_and_totals();
+    },
+});
+
+// Users with a saved Quotation grid layout get Rate Basis Amount before Estimated Amount, once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const cols = grid["Quotation Item"];
+            if (!cols || !cols.length || !cols.some((c) => c.fieldname === "nxg_rate_basis")) return;
+            if (cols.some((c) => c.fieldname === "nxg_rate_basis_amount")) return;
+            if (localStorage.getItem("nxg_quote_cols_v5") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v5", "1");
+            const next = cols.slice();
+            const at = next.findIndex((c) => c.fieldname === "nxg_estimated_amount");
+            next.splice(at >= 0 ? at : next.length, 0, { fieldname: "nxg_rate_basis_amount", columns: 1 });
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
     },
 });

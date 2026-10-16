@@ -57,6 +57,7 @@ def validate(doc, method=None):
 
 	if doc.get("deal_type") == "Material Hire":
 	    for row in rows:
+	        row.nxg_rate_basis_amount = flt(row.qty) * flt(row.rate)
 	        row.nxg_estimated_amount = flt(row.qty) * multiplier_of(doc, row) * flt(row.rate)
 	typed_qty = [row.qty for row in rows]
 	try:
