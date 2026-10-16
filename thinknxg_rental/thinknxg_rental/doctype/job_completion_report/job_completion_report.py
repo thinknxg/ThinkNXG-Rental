@@ -232,7 +232,7 @@ def get_returned_qty_by_line(hire_order_contract, exclude=None):
 def rotation_state(item, reported, returned):
     """(balance, rotation, rotations) of a contract line.
     Rotation 1 is jobs 1..N, rotation 2 is N+1..2N and so on (N = No. of Jobs). A JCR cannot run past the end of the
-    current rotation, the jobs at the site can never exceed N, and the total is capped at N x Duration/Rotation."""
+    current rotation, the jobs at the site can never exceed N, and the total is capped at N x Rotation."""
     qty = flt(item.qty)
     rotations = max(cint(item.get("nxg_duration")), 1)
     if qty <= 0:

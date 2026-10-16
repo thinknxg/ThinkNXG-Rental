@@ -33,7 +33,7 @@ def get_custom_fields():
 				depends_on=HOC_DEPENDS_ON),
 			dict(fieldname="nxg_height", label="Height", fieldtype="Float", insert_after="nxg_breadth", in_list_view=1, columns=1,
 				depends_on=HOC_DEPENDS_ON),
-			dict(fieldname="nxg_duration", label="Duration/Rotation", fieldtype="Int", insert_after="nxg_height", in_list_view=1, columns=1,
+			dict(fieldname="nxg_duration", label="Rotation", fieldtype="Int", insert_after="nxg_height", in_list_view=1, columns=1,
 				depends_on=HOC_DEPENDS_ON,
 				description="Number of periods. Amount = Qty x Unit Price x Duration. Blank counts as 1."),
 			dict(fieldname="nxg_period", label="Period", fieldtype="Select", options="Days\nWeekly\nMonthly\nTimes",

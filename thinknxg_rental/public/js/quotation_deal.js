@@ -180,7 +180,7 @@ frappe.ui.form.on("Quotation", {
 	},
 });
 
-// Default Quotation Item grid: Item Code, UOM, Length, Breadth, Height, Duration/Rotation, Quantity, Period, Rate, Amount.
+// Default Quotation Item grid: Item Code, UOM, Length, Breadth, Height, Rotation, Quantity, Period, Rate, Amount.
 // Frappe keeps each user's own column choice and it overrides the doctype defaults, so users who saved
 // their columns earlier would never see UOM / Period. When their saved columns lack either of those,
 // replace them with this layout once (after that the user can still adjust the grid as usual).

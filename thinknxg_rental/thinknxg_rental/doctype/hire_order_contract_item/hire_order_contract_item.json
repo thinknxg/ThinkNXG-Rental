@@ -80,7 +80,7 @@
   {
    "fieldname": "nxg_duration",
    "fieldtype": "Int",
-   "label": "Duration/Rotation",
+   "label": "Rotation",
    "in_list_view": 1,
    "columns": 1
   },
@@ -209,13 +209,13 @@
   {
    "fieldname": "rotation_no",
    "fieldtype": "Int",
-   "label": "Rotation",
+   "label": "Current Rotation",
    "read_only": 1,
    "no_copy": 1
   }
  ],
  "links": [],
- "modified": "2026-10-15 16:00:00.000000",
+ "modified": "2026-10-16 11:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",
