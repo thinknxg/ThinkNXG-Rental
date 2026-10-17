@@ -75,10 +75,29 @@ class JobCompletionReport(Document):
                 frappe.throw(_("Row {0}: the same contract job line cannot be added twice to one JCR").format(row.idx))
             seen.add(row.contract_item)
             src = contract_lines[row.contract_item]
+            n_rot = flt(row.get("nxg_rotations_done"))
+            if n_rot < 0:
+                frappe.throw(_("Row {0}: Rotations Done cannot be negative").format(row.idx))
+            if n_rot > 0:
+                row.job_qty = n_rot * flt(src.qty)
             if flt(row.job_qty) <= 0:
                 frappe.throw(_("Row {0}: No. of Jobs must be greater than zero").format(row.idx))
             remaining = remaining_jobs(src, reported_other, returned_other)
-            row.nxg_rotation = rotation_state(src, reported_other, returned_other)[1]
+            current_rotation = rotation_state(src, reported_other, returned_other)[1]
+            if n_rot > 0 and flt(row.job_qty) > remaining + 1e-6:
+                # several rotations in one JCR: allowed once the earlier jobs are back, up to No. of Jobs x Rotation in total
+                done_other = flt(reported_other.get(src.name))
+                at_site_other = done_other - flt(returned_other.get(src.name))
+                if at_site_other <= 1e-6:
+                    remaining = max(flt(src.qty) * max(cint(src.nxg_duration), 1) - done_other, 0)
+            rot_no = cint(row.get("nxg_rotation"))
+            if rot_no:
+                if rot_no < 1 or rot_no > max(cint(src.nxg_duration), 1):
+                    frappe.throw(_("Row {0}: Rotation No. must be between 1 and {1}").format(row.idx, max(cint(src.nxg_duration), 1)))
+                if rot_no > current_rotation:
+                    frappe.throw(_("Row {0}: Rotation {1} is not open yet. The current rotation is {2}").format(row.idx, rot_no, current_rotation))
+            else:
+                row.nxg_rotation = current_rotation
             if flt(row.job_qty) > remaining + 1e-6:
                 frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, max(remaining,0), row.job_type))
             row.job_type = src.job_type

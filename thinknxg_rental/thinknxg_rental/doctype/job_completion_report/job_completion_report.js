@@ -191,12 +191,34 @@ frappe.ui.form.on("Job Completion Report", {
     }
 });
 
+let nxg_syncing = false;
+
 frappe.ui.form.on("Job Completion Report Line", {
     erection_date(frm, cdt, cdn) {
         const r=locals[cdt][cdn];
         if (r.erection_date && r.included_days) frappe.model.set_value(cdt,cdn,"contract_end_date",frappe.datetime.add_days(r.erection_date,Math.max(cint(r.included_days),1)-1));
     },
-    job_qty(frm,cdt,cdn) { if (frm.doc.docstatus===0) frm.dirty(); }
+    job_qty(frm,cdt,cdn) {
+        if (frm.doc.docstatus!==0) return;
+        const row = locals[cdt][cdn];
+        if (!nxg_syncing && flt(row.nxg_rotations_done)) frappe.model.set_value(cdt, cdn, "nxg_rotations_done", 0);
+        frm.dirty();
+    },
+    nxg_rotations_done(frm,cdt,cdn) {
+        if (frm.doc.docstatus!==0) return;
+        const row = locals[cdt][cdn];
+        if (!row.contract_item || !flt(row.nxg_rotations_done)) return;
+        frappe.call({
+            method: "frappe.client.get_value",
+            args: { doctype: "Hire Order Contract Item", filters: { name: row.contract_item }, fieldname: "qty", parent: "Hire Order Contract" },
+            callback: (r) => {
+                const n = flt(r.message && r.message.qty);
+                if (!n) return;
+                nxg_syncing = true;
+                frappe.model.set_value(cdt, cdn, "job_qty", n * flt(row.nxg_rotations_done)).then(() => { nxg_syncing = false; });
+            }
+        });
+    }
 });
 
 // Description is a new grid column. Frappe keeps each user's own column choice and it overrides the

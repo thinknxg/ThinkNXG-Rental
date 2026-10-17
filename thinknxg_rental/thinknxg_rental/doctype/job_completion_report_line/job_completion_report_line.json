@@ -10,6 +10,7 @@
   "description",
   "location",
   "job_qty",
+  "nxg_rotations_done",
   "erection_date",
   "included_days",
   "nxg_duration",
@@ -174,11 +175,21 @@
    "fieldname": "nxg_rotation",
    "fieldtype": "Int",
    "label": "Rotation No.",
-   "read_only": 1
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "nxg_rotations_done",
+   "fieldtype": "Float",
+   "label": "Rotations Done",
+   "non_negative": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Enter the rotations completed. No. of Jobs is filled as rotations x jobs per rotation."
   }
  ],
  "links": [],
- "modified": "2026-10-16 11:00:00.000000",
+ "modified": "2026-10-17 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",
