@@ -19,6 +19,7 @@ after_install = "thinknxg_rental.services.setup.after_install"
 after_migrate = ["thinknxg_rental.services.job_type_migration.run", 
     "thinknxg_rental.services.setup.after_migrate",
     "thinknxg_rental.services.print_formats.sync",
+    "thinknxg_rental.services.hide_rotation.run",
 ]
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
