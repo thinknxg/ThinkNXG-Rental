@@ -180,7 +180,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-22 09:50:14.510887",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Ownership Ledger",
@@ -220,6 +220,5 @@
  "states": [],
  "autoname": "hash",
  "naming_rule": "Random",
- "in_create": 1,
- "read_only": 1
+ "in_create": 1
 }
