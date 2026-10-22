@@ -74,7 +74,7 @@
    "fieldname": "job_qty",
    "fieldtype": "Float",
    "label": "Qty Done",
-   "reqd": 1,
+   "reqd": 0,
    "in_list_view": 1,
    "columns": 1
   },
@@ -233,7 +233,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-22 18:34:44.859704",
+ "modified": "2026-10-22 18:48:39.132938",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",
