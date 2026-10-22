@@ -317,7 +317,8 @@
    "fieldtype": "Table",
    "label": "Returns",
    "options": "JCR Return",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   }
  ],
  "links": [
@@ -330,7 +331,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-14 15:00:00.000000",
+ "modified": "2026-10-22 17:37:00.533338",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",

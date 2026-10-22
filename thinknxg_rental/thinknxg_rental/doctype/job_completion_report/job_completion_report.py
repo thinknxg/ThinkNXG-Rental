@@ -49,7 +49,7 @@ class JobCompletionReport(Document):
             "job_type": line.job_type,
             "job_type_name": line.job_type_name,
             "location": line.location,
-            "job_qty": flt(line.remaining if hasattr(line, "remaining") else line.qty),
+            "job_qty": None,  # Qty Done starts blank; the user enters it
             "nxg_contract_qty": flt(line.get("qty")),
             "erection_date": erection,
             "included_days": cint(line.included_days),
@@ -82,7 +82,7 @@ class JobCompletionReport(Document):
             if n_rot > 0:
                 row.job_qty = n_rot * flt(src.qty)
             if flt(row.job_qty) <= 0:
-                frappe.throw(_("Row {0}: No. of Jobs must be greater than zero").format(row.idx))
+                frappe.throw(_("Row {0}: Enter Qty Done (it must be greater than zero)").format(row.idx))
             remaining = remaining_jobs(src, reported_other, returned_other)
             current_rotation = rotation_state(src, reported_other, returned_other)[1]
             if n_rot > 0 and flt(row.job_qty) > remaining + 1e-6:

@@ -63,7 +63,7 @@ frappe.ui.form.on("Job Completion Report", {
                 row.job_type = l.job_type;
                 row.job_type_name = l.job_type_name;
                 row.location = l.location;
-                row.job_qty = l.remaining;
+                // Qty Done starts blank; the user enters it.
                 row.nxg_contract_qty = l.qty;
                 row.included_days = l.included_days;
                 row.nxg_duration = l.nxg_duration;
@@ -113,13 +113,12 @@ frappe.ui.form.on("Job Completion Report", {
         if (active.length) {
             frm.add_custom_button(__("Record Dismantle"), () => {
                 const opts = active.map(r => ({
-                    label: `${r.idx}. ${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty}${nxg_returned(frm, r) ? ", " + __("{0} returned", [nxg_returned(frm, r)]) : ""})`,
+                    label: `${r.idx}. ${r.job_type_name || r.job_type}${r.location ? " - " + r.location : ""} (${r.job_qty})`,
                     value: r.name
                 }));
                 frappe.prompt([
                     { fieldname: "line_name", fieldtype: "Select", label: __("JCR Job Line"), options: opts, default: opts.length === 1 ? opts[0].value : undefined, reqd: 1 },
                     { fieldname: "dismantle_date", fieldtype: "Date", label: __("Dismantle Date"), reqd: 1, default: frappe.datetime.get_today() },
-                    { fieldname: "return_qty", fieldtype: "Float", label: __("Qty Returned"), description: __("Leave blank when everything still outstanding is returned") },
                     { fieldname: "remarks", fieldtype: "Small Text", label: __("Remarks") }
                 ], v => frm.call("record_dismantle", v).then(() => frm.reload_doc()), __("Record Dismantle"), __("Stop the Clock"));
             }).addClass("btn-primary");
