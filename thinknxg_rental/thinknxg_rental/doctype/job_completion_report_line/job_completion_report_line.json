@@ -10,7 +10,9 @@
   "description",
   "location",
   "job_qty",
+  "nxg_balance_qty",
   "nxg_rotations_done",
+  "nxg_balance_rotation",
   "erection_date",
   "included_days",
   "nxg_duration",
@@ -63,6 +65,16 @@
    "label": "No. of Jobs",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "nxg_balance_qty",
+   "fieldtype": "Float",
+   "label": "Balance Qty",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Contracted jobs still to do after this row: No. of Jobs x Rotations less jobs done so far."
   },
   {
    "fieldname": "erection_date",
@@ -186,10 +198,20 @@
    "in_list_view": 1,
    "columns": 1,
    "description": "Enter the rotations completed. No. of Jobs is filled as rotations x jobs per rotation."
+  },
+  {
+   "fieldname": "nxg_balance_rotation",
+   "fieldtype": "Float",
+   "label": "Balance Rotation",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Rotations still to do after this row."
   }
  ],
  "links": [],
- "modified": "2026-10-17 09:00:00.000000",
+ "modified": "2026-10-22 13:51:18.205990",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",

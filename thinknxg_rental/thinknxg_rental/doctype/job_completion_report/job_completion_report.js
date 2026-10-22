@@ -254,3 +254,36 @@ frappe.ui.form.on("Job Completion Report", {
 function nxg_returned(frm, row) {
     return (frm.doc.jcr_returns || []).filter((x) => x.jcr_line === row.name).reduce((a, x) => a + flt(x.return_qty), 0);
 }
+
+
+// ---- Balance Qty / Balance Rotation beside the entered values (draft JCRs) ----
+function nxg_update_balance(frm, cdt, cdn) {
+    const row = locals[cdt] && locals[cdt][cdn];
+    if (!row || frm.doc.docstatus !== 0 || !row.contract_item || !frm.doc.hire_order_contract) return;
+    frappe.call({
+        method: "thinknxg_rental.thinknxg_rental.doctype.job_completion_report.job_completion_report.get_line_balance",
+        args: {
+            hire_order_contract: frm.doc.hire_order_contract,
+            contract_item: row.contract_item,
+            job_qty: flt(row.job_qty),
+            exclude: frm.doc.name,
+        },
+        callback: (r) => {
+            const m = r.message || {};
+            if (flt(row.nxg_balance_qty) !== flt(m.balance_qty)) frappe.model.set_value(cdt, cdn, "nxg_balance_qty", flt(m.balance_qty));
+            if (flt(row.nxg_balance_rotation) !== flt(m.balance_rotation)) frappe.model.set_value(cdt, cdn, "nxg_balance_rotation", flt(m.balance_rotation));
+        },
+    });
+}
+
+frappe.ui.form.on("Job Completion Report", {
+    refresh(frm) {
+        if (frm.doc.docstatus !== 0) return;
+        (frm.doc.job_lines || []).forEach((r) => nxg_update_balance(frm, r.doctype, r.name));
+    },
+});
+
+frappe.ui.form.on("Job Completion Report Line", {
+    job_qty(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
+    contract_item(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
+});

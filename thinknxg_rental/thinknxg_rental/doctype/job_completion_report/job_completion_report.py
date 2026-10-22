@@ -117,6 +117,7 @@ class JobCompletionReport(Document):
             upto = getdate(row.dismantle_date) if row.dismantle_date else max(getdate(nowdate()), getdate(row.erection_date))
             row.actual_days = max(date_diff(upto, row.erection_date) + 1, 0)
             row.excess_days = max(date_diff(upto, row.contract_end_date), 0)
+            row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)
 
     def sync_legacy_fields(self):
         """Keep old fields populated from the first row for compatibility with old reports/integrations."""
@@ -266,3 +267,25 @@ def rotation_state(item, reported, returned):
 
 def remaining_jobs(item, reported, returned):
     return rotation_state(item, reported, returned)[0]
+
+
+def line_balances(qty, rotations, done_other, job_qty):
+    """(balance jobs, balance rotations) of a contract line after this JCR row.
+    Total = jobs per rotation x rotations; done = other submitted JCRs + this row."""
+    qty = flt(qty)
+    rotations = max(cint(rotations), 1)
+    done = flt(done_other) + flt(job_qty)
+    balance_qty = max(qty * rotations - done, 0)
+    balance_rotation = max(rotations - done / qty, 0) if qty > 0 else 0
+    return flt(balance_qty, 3), flt(balance_rotation, 3)
+
+
+@frappe.whitelist()
+def get_line_balance(hire_order_contract, contract_item, job_qty=0, exclude=None):
+    frappe.has_permission("Job Completion Report", "read", throw=True)
+    src = frappe.db.get_value("Hire Order Contract Item", contract_item, ["qty", "nxg_duration"], as_dict=True)
+    if not src:
+        return {"balance_qty": 0, "balance_rotation": 0}
+    reported = get_reported_qty_by_line(hire_order_contract, exclude=exclude)
+    bq, br = line_balances(src.qty, src.nxg_duration, reported.get(contract_item), job_qty)
+    return {"balance_qty": bq, "balance_rotation": br}
