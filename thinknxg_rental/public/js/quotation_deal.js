@@ -250,6 +250,7 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "qty", columns: 1 },
     { fieldname: "nxg_rate_basis", columns: 1 },
     { fieldname: "rate", columns: 1 },
+    { fieldname: "amount", columns: 1 },
     { fieldname: "nxg_hire_days", columns: 1 },
     { fieldname: "nxg_rate_basis_amount", columns: 1 },
     { fieldname: "nxg_estimated_amount", columns: 1 },
@@ -387,7 +388,7 @@ frappe.ui.form.on("Quotation", {
             const grid = frappe.get_user_settings("Quotation", "GridView") || {};
             const cols = grid["Quotation Item"];
             if (!cols || !cols.length || !cols.some((c) => c.fieldname === "nxg_rate_basis")) return;
-            if (cols.some((c) => c.fieldname === "nxg_rate_basis_amount")) return;
+            if (cols.some((c) => c.fieldname === "nxg_rate_basis_amount" || c.fieldname === "amount")) return;
             if (localStorage.getItem("nxg_quote_cols_v5") === "1") return;
             localStorage.setItem("nxg_quote_cols_v5", "1");
             const next = cols.slice();
@@ -439,5 +440,24 @@ frappe.ui.form.on("Quotation Item", {
         const days = nxg_period_days(frm);
         if (frm.doc.nxg_default_rate_basis) frappe.model.set_value(cdt, cdn, "nxg_rate_basis", frm.doc.nxg_default_rate_basis);
         if (days !== null) frappe.model.set_value(cdt, cdn, "nxg_hire_days", days);
+    },
+});
+
+// Amount shown by default: users whose saved Quotation grid has no Amount get it right after Rate, once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const cols = grid["Quotation Item"];
+            if (!cols || !cols.length || cols.some((c) => c.fieldname === "amount")) return;
+            if (localStorage.getItem("nxg_quote_cols_v6") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v6", "1");
+            const next = cols.slice();
+            const at = next.findIndex((c) => c.fieldname === "rate");
+            next.splice(at >= 0 ? at + 1 : next.length, 0, { fieldname: "amount", columns: 1 });
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation Amount column not added", e);
+        }
     },
 });
