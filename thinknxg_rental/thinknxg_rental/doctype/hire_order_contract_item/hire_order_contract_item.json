@@ -151,7 +151,7 @@
   {
    "fieldname": "contract_rate",
    "fieldtype": "Currency",
-   "label": "Contract Charge per Job",
+   "label": "Contract Charge",
    "reqd": 1,
    "in_list_view": 1,
    "columns": 1
@@ -215,7 +215,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-16 11:00:00.000000",
+ "modified": "2026-10-22 16:04:31.339769",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",

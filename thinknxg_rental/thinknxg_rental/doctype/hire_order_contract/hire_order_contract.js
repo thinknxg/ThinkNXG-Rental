@@ -44,7 +44,7 @@ frappe.ui.form.on("Hire Order Contract Item", {
 
 function set_contract_amount(cdt, cdn) {
 	const d = locals[cdt][cdn];
-	frappe.model.set_value(cdt, cdn, "contract_amount", flt(d.qty) * flt(d.contract_rate));
+	frappe.model.set_value(cdt, cdn, "contract_amount", flt(d.qty) * (cint(d.nxg_duration) || 1) * flt(d.contract_rate));
 }
 
 // Physical Rental Items (Materials): Job Type, Rental Item and Qty Per Job are editable and are filled
@@ -147,4 +147,9 @@ frappe.ui.form.on("Hire Order Contract Item", {
         const row = locals[cdt][cdn];
         if (flt(row.nxg_qty) > 0) frappe.model.set_value(cdt, cdn, "qty", flt(row.nxg_qty));
     },
+});
+
+// Contract Amount = No. of Jobs x Rotation x Contract Charge: recalculate when Rotation changes.
+frappe.ui.form.on("Hire Order Contract Item", {
+    nxg_duration: (frm, cdt, cdn) => set_contract_amount(cdt, cdn),
 });
