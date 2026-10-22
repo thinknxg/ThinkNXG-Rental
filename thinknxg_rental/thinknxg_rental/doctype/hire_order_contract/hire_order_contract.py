@@ -216,8 +216,8 @@ def make_jcr(source_name: str, target_doc=None, args=None):
     for line in lines:
         target.append("job_lines",{
             "contract_item":line.name,"job_type":line.job_type,"job_type_name":line.job_type_name,"location":line.location,
-            "job_qty":line.remaining,"erection_date":nowdate(),"included_days":line.included_days,"nxg_duration":line.nxg_duration,
-            "contract_end_date":add_days(nowdate(),max(line.included_days,1)-1),"contract_rate":line.contract_rate,
+            "job_qty":line.remaining,"erection_date":None,"included_days":line.included_days,"nxg_duration":line.nxg_duration,
+            "contract_end_date":None,"contract_rate":line.contract_rate,
             "contract_charge_billing":source.contract_charge_billing,"excess_rate_basis":line.excess_rate_basis,
             "excess_rate":line.excess_rate,"status":"Draft"
         })

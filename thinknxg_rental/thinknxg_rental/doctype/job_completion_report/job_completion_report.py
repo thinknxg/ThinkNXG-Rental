@@ -40,10 +40,10 @@ class JobCompletionReport(Document):
         lines = get_open_job_lines(hoc)
         self.set("job_lines", [])
         for line in lines:
-            self.append("job_lines", self.line_values(line, default_erection=nowdate()))
+            self.append("job_lines", self.line_values(line))
 
     def line_values(self, line, default_erection=None):
-        erection = default_erection or nowdate()
+        erection = default_erection  # blank unless a date is passed in; the user enters the real erection date
         return {
             "contract_item": line.name,
             "job_type": line.job_type,
@@ -53,7 +53,7 @@ class JobCompletionReport(Document):
             "erection_date": erection,
             "included_days": cint(line.included_days),
             "nxg_duration": cint(line.get("nxg_duration")),
-            "contract_end_date": jcr_billing.get_contract_end(erection, line.included_days),
+            "contract_end_date": jcr_billing.get_contract_end(erection, line.included_days) if erection else None,
             "contract_rate": flt(line.contract_rate),
             "contract_charge_billing": self.contract_charge_billing or "On Erection",
             "excess_rate_basis": line.excess_rate_basis,
