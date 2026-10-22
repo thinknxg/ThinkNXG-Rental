@@ -399,3 +399,45 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+// ---- Hire period -> item rows: rate basis follows Default Rate Basis, hire days = Return - From ----
+function nxg_is_material_hire(frm) {
+    return frm.doc.deal_type === "Material Hire";
+}
+
+function nxg_period_days(frm) {
+    if (!frm.doc.nxg_required_from || !frm.doc.nxg_expected_return_date) return null;
+    const d = frappe.datetime.get_diff(frm.doc.nxg_expected_return_date, frm.doc.nxg_required_from);
+    return d >= 0 ? d : null;
+}
+
+function nxg_apply_hire_period(frm, what) {
+    if (!nxg_is_material_hire(frm)) return;
+    const days = nxg_period_days(frm);
+    (frm.doc.items || []).forEach((row) => {
+        if ((what === "all" || what === "basis") && frm.doc.nxg_default_rate_basis
+            && row.nxg_rate_basis !== frm.doc.nxg_default_rate_basis) {
+            frappe.model.set_value(row.doctype, row.name, "nxg_rate_basis", frm.doc.nxg_default_rate_basis);
+        }
+        if ((what === "all" || what === "days") && days !== null && row.nxg_hire_days !== days) {
+            frappe.model.set_value(row.doctype, row.name, "nxg_hire_days", days);
+        }
+    });
+}
+
+frappe.ui.form.on("Quotation", {
+    nxg_default_rate_basis(frm) { nxg_apply_hire_period(frm, "basis"); },
+    nxg_required_from(frm) { nxg_apply_hire_period(frm, "days"); },
+    nxg_expected_return_date(frm) { nxg_apply_hire_period(frm, "days"); },
+    deal_type(frm) { nxg_apply_hire_period(frm, "all"); },
+});
+
+// new rows pick up the header values; Hire Days stays editable afterwards
+frappe.ui.form.on("Quotation Item", {
+    items_add(frm, cdt, cdn) {
+        if (!nxg_is_material_hire(frm)) return;
+        const days = nxg_period_days(frm);
+        if (frm.doc.nxg_default_rate_basis) frappe.model.set_value(cdt, cdn, "nxg_rate_basis", frm.doc.nxg_default_rate_basis);
+        if (days !== null) frappe.model.set_value(cdt, cdn, "nxg_hire_days", days);
+    },
+});
