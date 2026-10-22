@@ -179,11 +179,12 @@ def _live_contract(source):
 def make_reservation(source_name: str, target_doc=None):
 	def post_process(source, target):
 		_live_contract(source)
-		target.reservation_date = nowdate()
+		target.reservation_date = source.contract_date or nowdate()
 		target.required_from = source.start_date
 		target.required_to = source.end_date
 		target.source_warehouse = get_settings().rental_yard_warehouse
 		target.source_type, target.source_document = source.source_type, source.source_document
+		target.customer = source.customer
 
 	return get_mapped_doc(
 		"Rental Contract",
@@ -214,6 +215,8 @@ def make_delivery_order(source_name: str, target_doc=None):
 			"rental_contract": source.name,
 			"source_type": source.source_type,
 			"source_document": source.source_document,
+			"customer": source.customer,
+			"customer_name": source.customer_name,
 			"posting_date": nowdate(),
 		}
 	)

@@ -90,3 +90,21 @@ frappe.ui.form.on("Rental Material Reservation Item", {
 	required_qty: (frm, cdt, cdn) => refresh_row(frm, cdt, cdn, !!locals[cdt][cdn].source_warehouse),
 	source_warehouse: (frm, cdt, cdn) => refresh_row(frm, cdt, cdn, true),
 });
+
+
+// ---- Customer, Rental Source and Reservation Date follow the Rental Contract ----
+function nxg_rmr_fill_from_contract(frm) {
+    if (!frm.doc.rental_contract || frm.doc.docstatus !== 0) return;
+    frappe.db.get_value("Rental Contract", frm.doc.rental_contract, ["customer", "customer_name", "source_type", "source_document", "contract_date"]).then((r) => {
+        const v = (r && r.message) || {};
+        const vals = {};
+        ["customer", "customer_name", "source_type", "source_document"].forEach((f) => { if (v[f] && frm.doc[f] !== v[f]) vals[f] = v[f]; });
+        if (v.contract_date && frm.doc.reservation_date !== v.contract_date) vals.reservation_date = v.contract_date;
+        if (Object.keys(vals).length) frm.set_value(vals);
+    });
+}
+
+frappe.ui.form.on("Rental Material Reservation", {
+    refresh(frm) { if (frm.is_new()) nxg_rmr_fill_from_contract(frm); },
+    rental_contract(frm) { nxg_rmr_fill_from_contract(frm); },
+});

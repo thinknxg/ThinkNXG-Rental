@@ -56,3 +56,20 @@ frappe.ui.form.on("Hire Delivery Order", {
 		});
 	},
 });
+
+
+// ---- Customer and Rental Source follow the Rental Contract, also when the form is pre-filled ----
+function nxg_hdo_fill_from_contract(frm) {
+    if (!frm.doc.rental_contract || frm.doc.docstatus !== 0) return;
+    frappe.db.get_value("Rental Contract", frm.doc.rental_contract, ["customer", "customer_name", "source_type", "source_document"]).then((r) => {
+        const v = (r && r.message) || {};
+        const vals = {};
+        ["customer", "customer_name", "source_type", "source_document"].forEach((f) => { if (v[f] && frm.doc[f] !== v[f]) vals[f] = v[f]; });
+        if (Object.keys(vals).length) frm.set_value(vals);
+    });
+}
+
+frappe.ui.form.on("Hire Delivery Order", {
+    refresh(frm) { if (frm.is_new()) nxg_hdo_fill_from_contract(frm); },
+    rental_contract(frm) { nxg_hdo_fill_from_contract(frm); },
+});

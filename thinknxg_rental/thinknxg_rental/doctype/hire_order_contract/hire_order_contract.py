@@ -160,7 +160,7 @@ def make_reservation(source_name: str, target_doc=None):
 			"rental_contract": data["rental_contract"],
 			"source_type": "Hire Order Contract",
 			"source_document": source.name,
-			"reservation_date": nowdate(),
+			"reservation_date": source.get("order_date") or nowdate(),
 			"required_from": source.required_from,
 			"source_warehouse": get_settings().rental_yard_warehouse,
 		}
