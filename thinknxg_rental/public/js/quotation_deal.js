@@ -250,7 +250,7 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "nxg_rate_basis", columns: 1 },
     { fieldname: "rate", columns: 1 },
     { fieldname: "amount", columns: 1 },
-    { fieldname: "nxg_estimated_amount", columns: 1 },
+    { fieldname: "nxg_included_days", columns: 1 },
     { fieldname: "nxg_excess_basis", columns: 1 },
     { fieldname: "nxg_excess_rate", columns: 1 },
 ];
@@ -468,6 +468,22 @@ frappe.ui.form.on("Quotation", {
             if (!cols || !cols.length) return;
             if (localStorage.getItem("nxg_quote_cols_v7") === "1") return;
             localStorage.setItem("nxg_quote_cols_v7", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
+    },
+});
+
+// Contract Days is a default column again: apply the new default layout to saved grids, once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const cols = grid["Quotation Item"];
+            if (!cols || !cols.length) return;
+            if (localStorage.getItem("nxg_quote_cols_v8") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v8", "1");
             frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
         } catch (e) {
             console.warn("Quotation grid layout not updated", e);

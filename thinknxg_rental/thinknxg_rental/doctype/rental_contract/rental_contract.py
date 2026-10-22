@@ -217,7 +217,7 @@ def make_delivery_order(source_name: str, target_doc=None):
 			"source_document": source.source_document,
 			"customer": source.customer,
 			"customer_name": source.customer_name,
-			"posting_date": nowdate(),
+			"posting_date": source.start_date or nowdate(),
 		}
 	)
 	for row in get_dispatch_items(source.name):
