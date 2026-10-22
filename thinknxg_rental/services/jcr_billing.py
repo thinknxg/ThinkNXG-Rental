@@ -154,7 +154,7 @@ def _create_invoice(schedule_names, posting_date=None, due_date=None):
     si=frappe.new_doc("Sales Invoice")
     si.update({"company":first_jcr.company,"customer":first_jcr.customer,"posting_date":nowdate(),**({"due_date":getdate(due_date)} if due_date else {}),
                "project":first_hoc.project if len(projects)==1 else None,"cost_center":first_hoc.cost_center if len(centers)==1 else None,
-               "payment_terms_template":first_hoc.payment_terms_template if len(terms)==1 else None,
+               "payment_terms_template":first_hoc.payment_terms_template if len(terms)==1 and not due_date else None,
                "nxg_rental_contract":first_jcr.rental_contract if len(contracts)==1 else None,
                "nxg_jcr":first_jcr.name if len(jcrs)==1 else None,
                "nxg_jcr_billing_schedule":rows[0].name if len(rows)==1 else None,
@@ -172,6 +172,10 @@ def _create_invoice(schedule_names, posting_date=None, due_date=None):
     append_taxes(si,"Sales Taxes and Charges Template",first_hoc.taxes_and_charges); si.flags.ignore_permissions=True
     with as_system():
         si.insert()
+        if due_date:
+            frappe.db.set_value("Sales Invoice",si.name,"due_date",getdate(due_date),update_modified=False)
+            frappe.db.sql("update `tabPayment Schedule` set due_date=%s where parent=%s and parenttype='Sales Invoice'",(getdate(due_date),si.name))
+            si.reload()
         for r in rows: frappe.db.set_value("JCR Billing Schedule",r.name,{"sales_invoice":si.name,"status":"Invoiced" if flt(r.amount)>0 else r.status,"billed":1})
     if cint(get_settings().auto_submit_sales_invoice): si.submit()
     for n in jcrs: update_jcr_progress(n)
