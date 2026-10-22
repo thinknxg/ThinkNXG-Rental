@@ -198,7 +198,7 @@
    "fieldname": "nxg_rotation",
    "fieldtype": "Int",
    "label": "Rotation No.",
-   "in_list_view": 1,
+   "in_list_view": 0,
    "columns": 1
   },
   {
@@ -213,7 +213,7 @@
   {
    "fieldname": "nxg_balance_rotation",
    "fieldtype": "Float",
-   "label": "Balance Rotation",
+   "label": "Rotation Balance",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 1,
@@ -222,7 +222,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-22 17:04:01.299855",
+ "modified": "2026-10-22 17:21:09.397945",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",
