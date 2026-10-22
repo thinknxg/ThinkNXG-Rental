@@ -23,6 +23,12 @@ def get_custom_fields():
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
 				description="Carries the Deal Type from the Lead and selects the next document."),
+			dict(fieldname="nxg_hire_period_sb", label="Hire Period", fieldtype="Section Break", insert_after="amended_from", depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_required_from", label="Required From", fieldtype="Date", insert_after="nxg_hire_period_sb", depends_on="eval:doc.deal_type=='Material Hire'", mandatory_depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_expected_return_date", label="Expected Return Date", fieldtype="Date", insert_after="nxg_required_from", depends_on="eval:doc.deal_type=='Material Hire'", mandatory_depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_hire_period_cb", label="", fieldtype="Column Break", insert_after="nxg_expected_return_date"),
+			dict(fieldname="nxg_default_rate_basis", label="Default Rate Basis", fieldtype="Select", options="Monthly\nWeekly\nDaily", default="Monthly", insert_after="nxg_hire_period_cb", depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_billing_cycle", label="Billing Cycle", fieldtype="Select", options="Monthly\nWeekly\nDaily\nCustom", default="Monthly", insert_after="nxg_default_rate_basis", depends_on="eval:doc.deal_type=='Material Hire'"),
 		],
 		# Dimensions and duration for hire quotations. Shown only for the hire deal types; the amount is
 		# Qty x Unit Price x Duration (see events/quotation.py and public/js/quotation_deal.js).

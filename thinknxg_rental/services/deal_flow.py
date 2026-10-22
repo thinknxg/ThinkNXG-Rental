@@ -139,6 +139,11 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.order_date = None
         target.rental_site = _site_for_quotation(customer, site_arg)
+        target.required_from = src.get("nxg_required_from") or nowdate()
+        target.expected_return_date = src.get("nxg_expected_return_date") or target.required_from
+        target.rate_basis = src.get("nxg_default_rate_basis") or "Monthly"
+        target.billing_cycle = src.get("nxg_billing_cycle") or "Monthly"
+        target.payment_terms_template = src.get("payment_terms_template")
         if src.get("items"):
             # Preserve the existing Hire Order validation/rate logic; quotation values
             # are only used as initial values for the existing fields.
