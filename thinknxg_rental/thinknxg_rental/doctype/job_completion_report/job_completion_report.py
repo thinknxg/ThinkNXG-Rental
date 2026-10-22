@@ -81,7 +81,7 @@ class JobCompletionReport(Document):
                 frappe.throw(_("Row {0}: Rotations Done cannot be negative").format(row.idx))
             if n_rot > 0:
                 row.job_qty = n_rot * flt(src.qty)
-            if flt(row.job_qty) <= 0:
+            if flt(row.job_qty) <= 0 and self.docstatus == 1:  # a draft may be saved blank; Submit needs Qty Done
                 frappe.throw(_("Row {0}: Enter Qty Done (it must be greater than zero)").format(row.idx))
             remaining = remaining_jobs(src, reported_other, returned_other)
             current_rotation = rotation_state(src, reported_other, returned_other)[1]
