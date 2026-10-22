@@ -19,6 +19,10 @@
   "required_from",
   "sb_133",
   "items",
+  "sb_137",
+  "total_jobs",
+  "cb_138",
+  "total_contract_amount",
   "sb_134",
   "materials",
   "sb_135",
@@ -27,10 +31,6 @@
   "cb_136",
   "payment_terms_template",
   "cost_center",
-  "sb_137",
-  "total_jobs",
-  "cb_138",
-  "total_contract_amount",
   "sb_139",
   "terms",
   "remarks",
@@ -143,6 +143,28 @@
    "reqd": 1
   },
   {
+   "fieldname": "sb_137",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_jobs",
+   "fieldtype": "Float",
+   "label": "Total Jobs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_138",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_contract_amount",
+   "fieldtype": "Currency",
+   "label": "Total Contract Amount",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
    "fieldname": "sb_134",
    "fieldtype": "Section Break",
    "label": "Materials"
@@ -190,28 +212,6 @@
    "options": "Cost Center"
   },
   {
-   "fieldname": "sb_137",
-   "fieldtype": "Section Break",
-   "label": "Totals"
-  },
-  {
-   "fieldname": "total_jobs",
-   "fieldtype": "Float",
-   "label": "Total Jobs",
-   "read_only": 1
-  },
-  {
-   "fieldname": "cb_138",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_contract_amount",
-   "fieldtype": "Currency",
-   "label": "Total Contract Amount",
-   "read_only": 1,
-   "in_list_view": 1
-  },
-  {
    "fieldname": "sb_139",
    "fieldtype": "Section Break",
    "label": "Terms",
@@ -255,7 +255,7 @@
    "link_fieldname": "hire_order_contract"
   }
  ],
- "modified": "2026-10-08 12:00:00.000000",
+ "modified": "2026-10-22 16:39:11.852500",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract",

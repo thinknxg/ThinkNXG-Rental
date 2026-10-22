@@ -100,13 +100,13 @@ frappe.ui.form.on("Hire Order Contract Material", {
 // Default grid columns for the contract items: quotation details first, then the two charges users must fill.
 const NXG_HOC_ITEM_COLUMNS = [
     ["nxg_item_code", 1], ["nxg_uom", 1], ["nxg_length", 1], ["nxg_breadth", 1], ["nxg_height", 1],
-    ["nxg_duration", 1], ["nxg_qty", 1], ["qty", 1], ["included_days", 1], ["contract_rate", 1], ["contract_amount", 1],
+    ["nxg_duration", 1], ["qty", 1], ["included_days", 1], ["contract_rate", 1], ["contract_amount", 1],
 ];
 
 function nxg_apply_default_item_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     if (!grid) return;
-    const flag = "nxg_hoc_item_cols_v3";
+    const flag = "nxg_hoc_item_cols_v4";
     try {
         if (localStorage.getItem(flag) === "1") return;
     } catch (e) {}
@@ -152,4 +152,25 @@ frappe.ui.form.on("Hire Order Contract Item", {
 // Contract Amount = No. of Jobs x Rotation x Contract Charge: recalculate when Rotation changes.
 frappe.ui.form.on("Hire Order Contract Item", {
     nxg_duration: (frm, cdt, cdn) => set_contract_amount(cdt, cdn),
+});
+
+// Totals follow the lines live in the form (the server recalculates them again on save).
+function nxg_update_totals(frm) {
+    let jobs = 0, amount = 0;
+    (frm.doc.items || []).forEach((d) => {
+        jobs += flt(d.qty);
+        amount += flt(d.qty) * (cint(d.nxg_duration) || 1) * flt(d.contract_rate);
+    });
+    if (flt(frm.doc.total_jobs) !== jobs) frm.set_value("total_jobs", jobs);
+    if (flt(frm.doc.total_contract_amount) !== amount) frm.set_value("total_contract_amount", amount);
+}
+
+frappe.ui.form.on("Hire Order Contract Item", {
+    qty: (frm) => nxg_update_totals(frm),
+    contract_rate: (frm) => nxg_update_totals(frm),
+    nxg_duration: (frm) => nxg_update_totals(frm),
+});
+
+frappe.ui.form.on("Hire Order Contract", {
+    items_remove: (frm) => nxg_update_totals(frm),
 });

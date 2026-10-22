@@ -88,8 +88,9 @@
    "fieldname": "nxg_qty",
    "fieldtype": "Float",
    "label": "Quantity",
-   "in_list_view": 1,
-   "columns": 1
+   "in_list_view": 0,
+   "columns": 1,
+   "hidden": 1
   },
   {
    "fieldname": "nxg_period",
@@ -130,7 +131,7 @@
   {
    "fieldname": "qty",
    "fieldtype": "Float",
-   "label": "No. of Jobs",
+   "label": "Quantity",
    "reqd": 1,
    "in_list_view": 1,
    "columns": 1,
@@ -215,7 +216,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-22 16:04:31.339769",
+ "modified": "2026-10-22 16:39:11.852500",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order Contract Item",
