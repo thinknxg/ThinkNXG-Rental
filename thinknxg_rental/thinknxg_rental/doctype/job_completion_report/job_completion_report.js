@@ -302,7 +302,7 @@ frappe.ui.form.on("Job Completion Report", {
             const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
             const cols = grid["Job Completion Report Line"];
             if (!cols || !cols.length) return;
-            if (localStorage.getItem("nxg_jcr_cols_v2") === "1") return;
+            return; // superseded by the v4 layout handler below
             localStorage.setItem("nxg_jcr_cols_v2", "1");
             let next = cols.slice();
             if (next.some((c) => c.fieldname === "job_type_name")) next = next.filter((c) => c.fieldname !== "job_type");
@@ -332,13 +332,53 @@ frappe.ui.form.on("Job Completion Report", {
             const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
             const cols = grid["Job Completion Report Line"];
             if (!cols || !cols.length) return;
-            if (localStorage.getItem("nxg_jcr_cols_v3") === "1") return;
+            return; // superseded by the v4 layout handler below
             localStorage.setItem("nxg_jcr_cols_v3", "1");
             if (cols.some((c) => c.fieldname === "nxg_rotations_completed")) return;
             const at = cols.findIndex((c) => c.fieldname === "nxg_rotations_done");
             if (at < 0) return;
             const next = cols.slice();
             next.splice(at, 1, { fieldname: "nxg_rotations_completed", columns: 1 });
+            frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("JCR grid layout not updated", e);
+        }
+    },
+});
+
+// Saved JCR line grids, once: Qty Balance right after Qty Done, plus the earlier column changes (replaces v2 and v3).
+frappe.ui.form.on("Job Completion Report", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
+            const cols = grid["Job Completion Report Line"];
+            if (!cols || !cols.length) return;
+            if (localStorage.getItem("nxg_jcr_cols_v4") === "1") return;
+            localStorage.setItem("nxg_jcr_cols_v4", "1");
+            let next = cols.slice();
+            const idx = (n) => next.findIndex((c) => c.fieldname === n);
+            const col = (n) => ({ fieldname: n, columns: 1 });
+            const swap = (from, to) => {
+                const i = idx(from);
+                if (i < 0) return;
+                if (idx(to) >= 0) next.splice(i, 1);
+                else next.splice(i, 1, col(to));
+            };
+            if (idx("job_type_name") >= 0) next = next.filter((c) => c.fieldname !== "job_type");
+            swap("nxg_rotations_done", "nxg_rotations_completed");
+            swap("nxg_rotation", "nxg_balance_rotation");
+            if (idx("nxg_contract_qty") < 0) {
+                const q = idx("job_qty");
+                next.splice(q >= 0 ? q : next.length, 0, col("nxg_contract_qty"));
+            }
+            const b = idx("nxg_balance_qty");
+            if (b >= 0) next.splice(b, 1);
+            const q2 = idx("job_qty");
+            next.splice(q2 >= 0 ? q2 + 1 : next.length, 0, col("nxg_balance_qty"));
+            if (idx("nxg_rotations_completed") < 0) {
+                const r = idx("nxg_balance_rotation");
+                next.splice(r >= 0 ? r : next.length, 0, col("nxg_rotations_completed"));
+            }
             frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": next }).then(() => location.reload());
         } catch (e) {
             console.warn("JCR grid layout not updated", e);
