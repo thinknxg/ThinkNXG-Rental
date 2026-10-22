@@ -86,11 +86,11 @@ def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0, as_on: 
             if row:
                 if row.status=="Pending" and not row.sales_invoice:
                     if getdate(row.period_to)!=getdate(p.period_to) or flt(row.job_qty)!=flt(p.qty): frappe.db.set_value("JCR Billing Schedule",row.name,{"job_qty":p.qty,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
-                    if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name,as_on); created.append(row.name)
+                    if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name,None,as_on); created.append(row.name)
                 continue
             schedule=_make_schedule(doc,line,p)
             if flt(p.amount)>0:
-                if cint(invoice): make_sales_invoice(schedule.name,as_on)
+                if cint(invoice): make_sales_invoice(schedule.name,None,as_on)
                 created.append(schedule.name)
     update_jcr_progress(doc.name); return created
 
@@ -127,7 +127,7 @@ def _period_rows(jcr,line,row,hoc):
     return values
 
 
-def _create_invoice(schedule_names, posting_date=None):
+def _create_invoice(schedule_names, posting_date=None, due_date=None):
     """One Sales Invoice for the given pending JCR billing periods, possibly of several JCRs.
 
     Per JCR job line the invoice carries a title row ("JCR-no item @ location") followed by one
@@ -152,7 +152,7 @@ def _create_invoice(schedule_names, posting_date=None):
     first_jcr=next(iter(jcrs.values())); first_hoc=hocs[first_jcr.name]
     contracts={j.rental_contract for j in jcrs.values()}; projects={h.project for h in hocs.values()}; centers={h.cost_center for h in hocs.values()}; terms={h.payment_terms_template or "" for h in hocs.values()}
     si=frappe.new_doc("Sales Invoice")
-    si.update({"company":first_jcr.company,"customer":first_jcr.customer,"posting_date":getdate(posting_date) if posting_date else nowdate(),"set_posting_time":1 if posting_date else 0,
+    si.update({"company":first_jcr.company,"customer":first_jcr.customer,"posting_date":nowdate(),**({"due_date":getdate(due_date)} if due_date else {}),
                "project":first_hoc.project if len(projects)==1 else None,"cost_center":first_hoc.cost_center if len(centers)==1 else None,
                "payment_terms_template":first_hoc.payment_terms_template if len(terms)==1 else None,
                "nxg_rental_contract":first_jcr.rental_contract if len(contracts)==1 else None,
@@ -179,9 +179,9 @@ def _create_invoice(schedule_names, posting_date=None):
 
 
 @frappe.whitelist()
-def make_sales_invoice(schedule: str, posting_date: str | None = None):
+def make_sales_invoice(schedule: str, posting_date: str | None = None, due_date: str | None = None):
     """Invoice a single billing period (used by the schedule form and the daily job)."""
-    return _create_invoice([schedule],posting_date)
+    return _create_invoice([schedule],posting_date,due_date)
 
 
 @frappe.whitelist()
