@@ -132,20 +132,6 @@ frappe.ui.form.on("Job Completion Report", {
                 frm.reload_doc();
             }));
         }
-        if (frm.doc.status !== "Completed") {
-            frm.add_custom_button(__("Bill As On Date"), () => {
-                frappe.prompt([
-                    { fieldname: "as_on", fieldtype: "Date", label: __("Bill As On"), reqd: 1, default: frappe.datetime.get_today(),
-                      description: __("Charges are calculated up to this date, a part month included, and the Sales Invoice is dated this day.") }
-                ], v => frappe.call({
-                    method: "thinknxg_rental.services.jcr_billing.generate_jcr_billing",
-                    args: { jcr: frm.doc.name, on_demand: 1, as_on: v.as_on }, freeze: true
-                }).then(r => {
-                    frappe.msgprint((r.message || []).length ? __("Billing periods processed: {0}", [r.message.join(", ")]) : __("Nothing to bill as on {0}.", [frappe.datetime.str_to_user(v.as_on)]));
-                    frm.reload_doc();
-                }), __("Bill As On Date"), __("Create Invoice"));
-            });
-        }
         frm.add_custom_button(__("Billing Schedule"), () => frappe.set_route("List", "JCR Billing Schedule", { jcr: frm.doc.name }));
         if (frm.doc.status !== "Completed") {
             const make_invoice = (jcrs) => frappe.call({

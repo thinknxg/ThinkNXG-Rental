@@ -32,6 +32,8 @@
   "auto_generate_billing",
   "auto_submit_sales_invoice",
   "auto_generate_jcr_billing",
+  "jcr_bill_before_month_end",
+  "jcr_bill_days_before",
   "sb_8",
   "auto_submit_purchase_order",
   "sb_9",
@@ -188,6 +190,20 @@
    "default": "1"
   },
   {
+   "fieldname": "jcr_bill_before_month_end",
+   "fieldtype": "Check",
+   "label": "Bill JCRs Before Month End",
+   "description": "Once a month, a few days before month end, create the JCR billing and Sales Invoices for the whole month, worked out as on the last day of the month."
+  },
+  {
+   "fieldname": "jcr_bill_days_before",
+   "fieldtype": "Int",
+   "label": "Days Before Month End",
+   "default": "7",
+   "depends_on": "eval:doc.jcr_bill_before_month_end",
+   "description": "7 means the run happens 7 days before the last day of the month."
+  },
+  {
    "fieldname": "sb_8",
    "fieldtype": "Section Break",
    "label": "Cross Hire"
@@ -242,7 +258,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-11 16:05:51.201103",
+ "modified": "2026-10-22 15:06:42.792591",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Settings",

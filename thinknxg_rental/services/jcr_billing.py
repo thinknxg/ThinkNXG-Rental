@@ -238,7 +238,12 @@ def update_jcr_progress(jcr_name):
 
 
 def run_daily_jcr_billing():
-    if not cint(get_settings().auto_generate_jcr_billing): return
+    settings=get_settings(); today=getdate(nowdate())
+    before=settings.get("jcr_bill_days_before"); before=7 if before in (None,"") else cint(before)
+    month_end=getdate(get_last_day(today))
+    month_end_run=bool(cint(settings.get("jcr_bill_before_month_end"))) and today==add_days(month_end,-before)
+    if not cint(settings.auto_generate_jcr_billing) and not month_end_run: return
+    as_on=str(month_end) if month_end_run else None  # month-end run bills the whole month as on its last day
     for name in frappe.get_all("Job Completion Report",filters={"docstatus":1,"status":["not in",["Completed","Cancelled"]]},pluck="name"):
-        try: generate_jcr_billing(name); frappe.db.commit()
+        try: generate_jcr_billing(name,as_on=as_on); frappe.db.commit()
         except Exception: frappe.db.rollback(); frappe.log_error(title=f"JCR billing failed for {name}",message=frappe.get_traceback())
