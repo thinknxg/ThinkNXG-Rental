@@ -64,6 +64,7 @@ frappe.ui.form.on("Job Completion Report", {
                 row.job_type_name = l.job_type_name;
                 row.location = l.location;
                 row.job_qty = l.remaining;
+                row.nxg_contract_qty = l.qty;
                 row.included_days = l.included_days;
                 row.nxg_duration = l.nxg_duration;
                 row.contract_rate = l.contract_rate;
@@ -272,4 +273,24 @@ frappe.ui.form.on("Job Completion Report", {
 frappe.ui.form.on("Job Completion Report Line", {
     job_qty(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
     contract_item(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
+});
+
+// Users with a saved JCR line grid get the Qty column before Qty Done, once.
+frappe.ui.form.on("Job Completion Report", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
+            const cols = grid["Job Completion Report Line"];
+            if (!cols || !cols.length || cols.some((c) => c.fieldname === "nxg_contract_qty")) return;
+            if (localStorage.getItem("nxg_jcr_cols_v1") === "1") return;
+            localStorage.setItem("nxg_jcr_cols_v1", "1");
+            const hasName = cols.some((c) => c.fieldname === "job_type_name");
+            const next = cols.filter((c) => !(hasName && c.fieldname === "job_type"));
+            const at = next.findIndex((c) => c.fieldname === "job_qty");
+            next.splice(at >= 0 ? at : next.length, 0, { fieldname: "nxg_contract_qty", columns: 1 });
+            frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("JCR grid layout not updated", e);
+        }
+    },
 });
