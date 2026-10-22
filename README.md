@@ -55,7 +55,7 @@ deliveries and the ledger always carry stock items, never the non-stock job type
 **Job Type Item:** an Item with Maintain Stock off and *Is Job Type Item* ticked. Its *Job Type Rental
 Items* table lists the stock items one job needs.
 
-**Hire Order Contract:** one line per job type with number of jobs, included contract days, contract
+**Hire Order Contract:** one line per job type with number of jobs, contract days, contract
 charge and excess charge. On first save the job types are exploded into the Physical Rental Items table,
 which can be adjusted to the actual job.
 
