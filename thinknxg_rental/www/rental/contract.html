@@ -36,7 +36,7 @@
 	<h2>{{ _("Jobs") }}</h2>
 	<table class="rp-table">
 		<thead><tr>
-			<th>{{ _("Job") }}</th><th>{{ _("Erected") }}</th><th>{{ _("Included days end") }}</th>
+			<th>{{ _("Job") }}</th><th>{{ _("Erected") }}</th><th>{{ _("Contract days end") }}</th>
 			<th>{{ _("Dismantled") }}</th><th class="rp-num">{{ _("Excess days") }}</th><th>{{ _("Status") }}</th>
 		</tr></thead>
 		<tbody>
@@ -44,7 +44,7 @@
 		<tr>
 			<td class="rp-first">{{ j.job_type_name | e }}<span class="rp-sub">{% if j.location %}{{ j.location | e }}, {% endif %}{{ j.name | e }}</span></td>
 			<td data-label="{{ _('Erected') }}">{{ date(j.erection_date) }}</td>
-			<td data-label="{{ _('Included days end') }}">{{ date(j.contract_end_date) }}<span class="rp-sub">{{ _("{0} days included").format(j.included_days) }}</span></td>
+			<td data-label="{{ _('Contract days end') }}">{{ date(j.contract_end_date) }}<span class="rp-sub">{{ _("{0} contract days").format(j.included_days) }}</span></td>
 			<td data-label="{{ _('Dismantled') }}">{% if j.dismantle_date %}{{ date(j.dismantle_date) }}{% else %}{{ _("Still standing") }}{% endif %}</td>
 			<td data-label="{{ _('Excess days') }}" class="rp-num {% if j.excess_days %}rp-strong{% endif %}">{{ j.excess_days }}</td>
 			<td data-label="{{ _('Status') }}">{{ pill(j.status) }}</td>

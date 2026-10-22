@@ -181,7 +181,7 @@
   {
    "fieldname": "included_days",
    "fieldtype": "Int",
-   "label": "Included Contract Days",
+   "label": "Contract Days",
    "read_only": 1,
    "hidden": 1
   },
@@ -331,7 +331,7 @@
    "link_fieldname": "nxg_jcr"
   }
  ],
- "modified": "2026-10-22 17:37:00.533338",
+ "modified": "2026-10-22 18:34:44.859704",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report",

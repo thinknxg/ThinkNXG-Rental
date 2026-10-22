@@ -60,7 +60,7 @@ charge and excess charge. On first save the job types are exploded into the Phys
 which can be adjusted to the actual job.
 
 **JCR:** raised against a Hire Order Contract job. The erection date starts the clock;
-contract end = erection + included days - 1. While the job stands, excess is billed at each month end;
+contract end = erection + contract days - 1. While the job stands, excess is billed at each month end;
 **Record Dismantle** stops the clock and raises the final excess bill. Each period gets one JCR Billing
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
@@ -68,7 +68,7 @@ contract end, as chosen on the Hire Order Contract.
 ### Changes in 2.0.2
 
 - **JCR with several job types.** Create > Job Completion Report on a Hire Order Contract now asks which job
-  line was erected, and the JCR form fills that line's location, included days and charges. Changing the
+  line was erected, and the JCR form fills that line's location, contract days and charges. Changing the
   Job Type on the form switches to that line; the same job type at two locations asks which one. Each
   JCR is linked to its job line, so every job type (and each location) has its own JCR and erection date.
   One job erected in stages can be split over several JCRs with part quantities (for example 0.5 + 0.5).

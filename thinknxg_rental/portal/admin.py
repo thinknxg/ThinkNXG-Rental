@@ -104,7 +104,7 @@ def get_board():
 		(_("Contracts due for billing"), billing_due, "/rental/admin/billing", "act"),
 		(_("Job periods waiting for an invoice"), count("JCR Billing Schedule", {"status": "Pending"}),
 			desk("JCR Billing Schedule", status="Pending"), "act"),
-		(_("Jobs past their included days and still standing"), count("Job Completion Report", {"docstatus": 1, "status": "In Excess"}),
+		(_("Jobs past their contract days and still standing"), count("Job Completion Report", {"docstatus": 1, "status": "In Excess"}),
 			desk("Job Completion Report", status="In Excess"), "late"),
 		(_("Billing schedules without an invoice"), count("Rental Billing Schedule", {"docstatus": 1, "status": "Unbilled"}),
 			desk("Rental Billing Schedule", status="Unbilled"), "act"),
