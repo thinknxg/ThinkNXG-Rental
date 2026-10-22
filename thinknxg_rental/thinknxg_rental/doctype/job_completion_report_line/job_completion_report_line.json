@@ -12,6 +12,7 @@
   "nxg_contract_qty",
   "job_qty",
   "nxg_balance_qty",
+  "nxg_rotations_completed",
   "nxg_rotations_done",
   "nxg_balance_rotation",
   "erection_date",
@@ -202,11 +203,21 @@
    "columns": 1
   },
   {
-   "fieldname": "nxg_rotations_done",
+   "fieldname": "nxg_rotations_completed",
    "fieldtype": "Float",
    "label": "Rotations Done",
-   "non_negative": 1,
+   "read_only": 1,
+   "no_copy": 1,
    "in_list_view": 1,
+   "columns": 1,
+   "description": "Rotations completed so far (Qty Done / contract Qty, across all JCRs of this line)."
+  },
+  {
+   "fieldname": "nxg_rotations_done",
+   "fieldtype": "Float",
+   "label": "Enter Rotations",
+   "non_negative": 1,
+   "in_list_view": 0,
    "columns": 1,
    "description": "Enter the rotations completed. No. of Jobs is filled as rotations x jobs per rotation."
   },
@@ -222,7 +233,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-22 17:21:09.397945",
+ "modified": "2026-10-22 18:14:37.727657",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Job Completion Report Line",

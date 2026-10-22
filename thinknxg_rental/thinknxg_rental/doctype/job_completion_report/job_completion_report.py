@@ -120,6 +120,7 @@ class JobCompletionReport(Document):
             row.actual_days = max(date_diff(upto, row.erection_date) + 1, 0)
             row.excess_days = max(date_diff(upto, row.contract_end_date), 0)
             row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)
+            row.nxg_rotations_completed = flt((flt(reported_other.get(src.name)) + flt(row.job_qty)) / flt(src.qty), 3) if flt(src.qty) > 0 else 0
 
     def sync_legacy_fields(self):
         """Keep old fields populated from the first row for compatibility with old reports/integrations."""
@@ -290,4 +291,5 @@ def get_line_balance(hire_order_contract, contract_item, job_qty=0, exclude=None
         return {"balance_qty": 0, "balance_rotation": 0}
     reported = get_reported_qty_by_line(hire_order_contract, exclude=exclude)
     bq, br = line_balances(src.qty, src.nxg_duration, reported.get(contract_item), job_qty)
-    return {"balance_qty": bq, "balance_rotation": br}
+    rd = flt((flt(reported.get(contract_item)) + flt(job_qty)) / flt(src.qty), 3) if flt(src.qty) > 0 else 0
+    return {"balance_qty": bq, "balance_rotation": br, "rotations_done": rd}

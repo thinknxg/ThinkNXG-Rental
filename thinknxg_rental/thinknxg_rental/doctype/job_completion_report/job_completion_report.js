@@ -258,6 +258,7 @@ function nxg_update_balance(frm, cdt, cdn) {
             const m = r.message || {};
             if (flt(row.nxg_balance_qty) !== flt(m.balance_qty)) frappe.model.set_value(cdt, cdn, "nxg_balance_qty", flt(m.balance_qty));
             if (flt(row.nxg_balance_rotation) !== flt(m.balance_rotation)) frappe.model.set_value(cdt, cdn, "nxg_balance_rotation", flt(m.balance_rotation));
+            if (flt(row.nxg_rotations_completed) !== flt(m.rotations_done)) frappe.model.set_value(cdt, cdn, "nxg_rotations_completed", flt(m.rotations_done));
         },
     });
 }
@@ -317,6 +318,27 @@ frappe.ui.form.on("Job Completion Report", {
                 const at = next.findIndex((c) => c.fieldname === "job_qty");
                 next.splice(at >= 0 ? at : next.length, 0, { fieldname: "nxg_contract_qty", columns: 1 });
             }
+            frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": next }).then(() => location.reload());
+        } catch (e) {
+            console.warn("JCR grid layout not updated", e);
+        }
+    },
+});
+
+// Saved JCR line grids, once: the Rotations Done column shows the completed rotations (read-only) instead of the input field.
+frappe.ui.form.on("Job Completion Report", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Job Completion Report", "GridView") || {};
+            const cols = grid["Job Completion Report Line"];
+            if (!cols || !cols.length) return;
+            if (localStorage.getItem("nxg_jcr_cols_v3") === "1") return;
+            localStorage.setItem("nxg_jcr_cols_v3", "1");
+            if (cols.some((c) => c.fieldname === "nxg_rotations_completed")) return;
+            const at = cols.findIndex((c) => c.fieldname === "nxg_rotations_done");
+            if (at < 0) return;
+            const next = cols.slice();
+            next.splice(at, 1, { fieldname: "nxg_rotations_completed", columns: 1 });
             frappe.model.user_settings.save("Job Completion Report", "GridView", { "Job Completion Report Line": next }).then(() => location.reload());
         } catch (e) {
             console.warn("JCR grid layout not updated", e);
