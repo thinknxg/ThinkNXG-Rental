@@ -195,6 +195,9 @@ const NXG_DEFAULT_ITEM_COLUMNS = [
     { fieldname: "nxg_period", columns: 1 },
     { fieldname: "rate", columns: 1 },
     { fieldname: "amount", columns: 1 },
+    { fieldname: "nxg_included_days", columns: 1 },
+    { fieldname: "nxg_excess_basis", columns: 1 },
+    { fieldname: "nxg_excess_rate", columns: 1 },
 ];
 
 frappe.ui.form.on("Quotation", {
@@ -242,12 +245,13 @@ frappe.ui.form.on("Quotation", {
 // Default layout with the three contract columns, applied once to each user's saved grid settings.
 const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "item_code", columns: 2 },
+    { fieldname: "uom", columns: 1 },
     { fieldname: "nxg_length", columns: 1 },
     { fieldname: "nxg_breadth", columns: 1 },
     { fieldname: "nxg_height", columns: 1 },
     { fieldname: "nxg_duration", columns: 1 },
     { fieldname: "qty", columns: 1 },
-    { fieldname: "nxg_rate_basis", columns: 1 },
+    { fieldname: "nxg_period", columns: 1 },
     { fieldname: "rate", columns: 1 },
     { fieldname: "amount", columns: 1 },
     { fieldname: "nxg_included_days", columns: 1 },
