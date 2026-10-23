@@ -1,7 +1,7 @@
 import frappe
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
-SHOW = ["location", "nxg_balance_qty", "contract_end_date", "dismantle_date"]
+SHOW = ["location", "nxg_balance_qty", "contract_end_date", "dismantle_date", "nxg_duration", "nxg_rotation", "nxg_balance_rotation"]
 
 
 def run():

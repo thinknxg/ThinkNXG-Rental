@@ -119,7 +119,7 @@ class JobCompletionReport(Document):
             upto = getdate(row.dismantle_date) if row.dismantle_date else max(getdate(nowdate()), getdate(row.erection_date))
             row.actual_days = max(date_diff(upto, row.erection_date) + 1, 0)
             row.excess_days = max(date_diff(upto, row.contract_end_date), 0)
-            row.nxg_balance_qty = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)[0]
+            row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)
 
     def sync_legacy_fields(self):
         """Keep old fields populated from the first row for compatibility with old reports/integrations."""
@@ -277,8 +277,15 @@ def line_balances(qty, rotations, done_other, job_qty):
     qty = flt(qty)
     rotations = max(cint(rotations), 1)
     done = flt(done_other) + flt(job_qty)
-    balance_qty = max(qty * rotations - done, 0)
-    balance_rotation = max(rotations - done / qty, 0) if qty > 0 else 0
+    full = int(done / qty + 1e-9) if qty > 0 else 0          # whole rotations completed
+    in_rotation = done - full * qty                           # done in the rotation now running
+    if qty <= 0 or done >= qty * rotations - 1e-9:
+        balance_qty = 0
+    elif done <= 1e-9:
+        balance_qty = qty
+    else:
+        balance_qty = qty - in_rotation if in_rotation > 1e-9 else 0   # 0 when this rotation is complete
+    balance_rotation = max(rotations - full, 0)
     return flt(balance_qty, 3), flt(balance_rotation, 3)
 
 
