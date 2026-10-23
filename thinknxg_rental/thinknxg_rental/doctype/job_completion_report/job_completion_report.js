@@ -257,8 +257,6 @@ function nxg_update_balance(frm, cdt, cdn) {
         callback: (r) => {
             const m = r.message || {};
             if (flt(row.nxg_balance_qty) !== flt(m.balance_qty)) frappe.model.set_value(cdt, cdn, "nxg_balance_qty", flt(m.balance_qty));
-            if (flt(row.nxg_balance_rotation) !== flt(m.balance_rotation)) frappe.model.set_value(cdt, cdn, "nxg_balance_rotation", flt(m.balance_rotation));
-            if (flt(row.nxg_rotations_completed) !== flt(m.rotations_done)) frappe.model.set_value(cdt, cdn, "nxg_rotations_completed", flt(m.rotations_done));
         },
     });
 }
