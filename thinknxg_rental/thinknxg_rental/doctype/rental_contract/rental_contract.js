@@ -141,3 +141,20 @@ frappe.ui.form.on("Rental Contract Item", {
                 });
         },
 });
+
+
+// Hire Rate is only used on contracts that are not made from a Hire Order Contract.
+function nxg_toggle_hire_rate(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    if (!grid || !grid.get_docfield || !grid.get_docfield("rate")) return;
+    const show = frm.doc.source_type !== "Hire Order Contract";
+    const df = grid.get_docfield("rate");
+    if (!!df.hidden === !show) return; // already in the right state
+    grid.set_column_disp(["rate"], show);
+    grid.reset_grid();
+}
+
+frappe.ui.form.on("Rental Contract", {
+    refresh(frm) { nxg_toggle_hire_rate(frm); },
+    source_type(frm) { nxg_toggle_hire_rate(frm); },
+});
