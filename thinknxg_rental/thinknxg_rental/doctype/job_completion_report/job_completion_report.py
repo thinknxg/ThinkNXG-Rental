@@ -263,7 +263,7 @@ def rotation_state(item, reported, returned):
     at_site = done - flt(returned.get(item.name))
     full = int(done / qty + 1e-9)
     rotation_balance = qty - (done - full * qty)
-    balance = max(min(qty * rotations - done, rotation_balance, qty - at_site), 0)
+    balance = max(min(qty * rotations - done, rotation_balance), 0)  # no cap on jobs at site: batches need no dismantle in between
     return balance, min(full + 1, rotations), rotations
 
 
