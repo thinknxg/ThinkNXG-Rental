@@ -205,6 +205,8 @@ frappe.ui.form.on("Quotation", {
             if (!saved.length) return; // no saved choice: the doctype defaults apply
             const names = saved.map((c) => c.fieldname);
             if (names.includes("uom") && names.includes("nxg_period")) return;
+            if (sessionStorage.getItem("nxg_quote_default_once") === "1") return; // never reload more than once
+            sessionStorage.setItem("nxg_quote_default_once", "1");
             frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_DEFAULT_ITEM_COLUMNS }).then(() => location.reload());
         } catch (e) {
             console.warn("Quotation grid defaults not applied", e);
