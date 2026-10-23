@@ -494,3 +494,19 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+
+// Rotation on the Quotation Item rows: editable, and 1 by default on every new row.
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+        if (grid && grid.get_docfield && grid.get_docfield("nxg_duration") && grid.update_docfield_property) {
+            grid.update_docfield_property("nxg_duration", "read_only", 0);
+        }
+    },
+    items_add(frm, cdt, cdn) {
+        if (!nxg_is_hire(frm)) return;
+        const row = locals[cdt][cdn];
+        if (!cint(row.nxg_duration)) frappe.model.set_value(cdt, cdn, "nxg_duration", 1);
+    },
+});
