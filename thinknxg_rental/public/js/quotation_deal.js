@@ -510,3 +510,25 @@ frappe.ui.form.on("Quotation", {
         if (!cint(row.nxg_duration)) frappe.model.set_value(cdt, cdn, "nxg_duration", 1);
     },
 });
+
+
+// Quotation items table: keep all columns on one line and scroll left and right.
+function nxg_scroll_items_grid(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    if (!grid || !grid.wrapper) return;
+    if (!document.getElementById("nxg-scroll-grid-style-v2")) {
+        const style = document.createElement("style");
+        style.id = "nxg-scroll-grid-style-v2";
+        style.textContent =
+            ".nxg-scroll-grid .form-grid-container{overflow-x:auto;}" +
+            ".nxg-scroll-grid .form-grid{min-width:2300px;}" +
+            ".nxg-scroll-grid .grid-heading-row .row,.nxg-scroll-grid .grid-row .data-row{flex-wrap:nowrap !important;}" +
+            ".nxg-scroll-grid .grid-static-col{min-width:110px;}";
+        document.head.appendChild(style);
+    }
+    $(grid.wrapper).addClass("nxg-scroll-grid");
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) { nxg_scroll_items_grid(frm); },
+});
