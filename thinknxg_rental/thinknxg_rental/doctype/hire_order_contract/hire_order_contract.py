@@ -35,7 +35,7 @@ class HireOrderContract(Document):
 			if cint(d.included_days) < 1:
 				frappe.throw(_("Row #{0}: Contract Days must be at least 1").format(d.idx))
 			nxg_apply_dimensions(self, d)
-			d.contract_amount = flt(d.qty) * flt(d.contract_rate)
+			d.contract_amount = flt(d.qty) * (cint(d.nxg_duration) or 1) * flt(d.contract_rate)
 			if self.docstatus == 0:
 				d.jcr_qty = 0
 			self.total_jobs += flt(d.qty)

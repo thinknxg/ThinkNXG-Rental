@@ -53,7 +53,7 @@ class JobCompletionReport(Document):
             "nxg_contract_qty": flt(line.get("qty")),
             "erection_date": erection,
             "included_days": cint(line.included_days),
-            "nxg_duration": 1,
+            "nxg_duration": cint(line.get("nxg_duration")),
             "contract_end_date": jcr_billing.get_contract_end(erection, line.included_days) if erection else None,
             "contract_rate": flt(line.contract_rate),
             "contract_charge_billing": self.contract_charge_billing or "On Erection",
@@ -76,17 +76,36 @@ class JobCompletionReport(Document):
                 frappe.throw(_("Row {0}: the same contract job line cannot be added twice to one JCR").format(row.idx))
             seen.add(row.contract_item)
             src = contract_lines[row.contract_item]
+            n_rot = flt(row.get("nxg_rotations_done"))
+            if n_rot < 0:
+                frappe.throw(_("Row {0}: Rotations Done cannot be negative").format(row.idx))
+            if n_rot > 0:
+                row.job_qty = n_rot * flt(src.qty)
             if flt(row.job_qty) <= 0 and self.docstatus == 1:  # a draft may be saved blank; Submit needs Qty Done
                 frappe.throw(_("Row {0}: Enter Qty Done (it must be greater than zero)").format(row.idx))
-            # no rotations: Qty Done can come in any number of JCRs, the contract Qty is the only ceiling
-            remaining = max(flt(src.qty) - flt(reported_other.get(src.name)), 0)
+            remaining = remaining_jobs(src, reported_other, returned_other)
+            current_rotation = rotation_state(src, reported_other, returned_other)[1]
+            if n_rot > 0 and flt(row.job_qty) > remaining + 1e-6:
+                # several rotations in one JCR: allowed once the earlier jobs are back, up to No. of Jobs x Rotation in total
+                done_other = flt(reported_other.get(src.name))
+                at_site_other = done_other - flt(returned_other.get(src.name))
+                if at_site_other <= 1e-6:
+                    remaining = max(flt(src.qty) * max(cint(src.nxg_duration), 1) - done_other, 0)
+            rot_no = cint(row.get("nxg_rotation"))
+            if rot_no:
+                if rot_no < 1 or rot_no > max(cint(src.nxg_duration), 1):
+                    frappe.throw(_("Row {0}: Rotation No. must be between 1 and {1}").format(row.idx, max(cint(src.nxg_duration), 1)))
+                if rot_no > current_rotation:
+                    frappe.throw(_("Row {0}: Rotation {1} is not open yet. The current rotation is {2}").format(row.idx, rot_no, current_rotation))
+            else:
+                row.nxg_rotation = current_rotation
             if flt(row.job_qty) > remaining + 1e-6:
-                frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, remaining, row.job_type))
+                frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, max(remaining,0), row.job_type))
             row.job_type = src.job_type
             row.job_type_name = src.job_type_name
             row.location = row.location or src.location
             row.included_days = cint(src.included_days)
-            row.nxg_duration = 1
+            row.nxg_duration = cint(src.nxg_duration)
             row.nxg_contract_qty = flt(src.qty)
             row.contract_rate = flt(src.contract_rate)
             row.excess_rate_basis = src.excess_rate_basis
@@ -100,7 +119,8 @@ class JobCompletionReport(Document):
             upto = getdate(row.dismantle_date) if row.dismantle_date else max(getdate(nowdate()), getdate(row.erection_date))
             row.actual_days = max(date_diff(upto, row.erection_date) + 1, 0)
             row.excess_days = max(date_diff(upto, row.contract_end_date), 0)
-            row.nxg_balance_qty = flt(max(flt(src.qty) - flt(reported_other.get(src.name)) - flt(row.job_qty), 0), 3)
+            row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)
+            row.nxg_rotations_completed = flt((flt(reported_other.get(src.name)) + flt(row.job_qty)) / flt(src.qty), 3) if flt(src.qty) > 0 else 0
 
     def sync_legacy_fields(self):
         """Keep old fields populated from the first row for compatibility with old reports/integrations."""
@@ -168,7 +188,7 @@ class JobCompletionReport(Document):
         reported=get_reported_qty_by_line(hoc.name)
         returned=get_returned_qty_by_line(hoc.name)
         for d in hoc.items:
-            balance=max(flt(d.qty)-flt(reported.get(d.name)),0); rotation=1
+            balance,rotation,rotations=rotation_state(d,reported,returned)
             d.db_set({"jcr_qty":flt(reported.get(d.name)),"balance_qty":balance,"rotation_no":rotation},update_modified=False)
 
     @frappe.whitelist()
@@ -233,10 +253,19 @@ def get_returned_qty_by_line(hire_order_contract, exclude=None):
 
 
 def rotation_state(item, reported, returned):
-    """(balance, rotation, rotations) of a contract line. There are no rotations any more: rotation is always 1
-    and the balance is the contract Qty minus everything reported on submitted JCRs."""
-    balance = max(flt(item.qty) - flt(reported.get(item.name)), 0)
-    return balance, 1, 1
+    """(balance, rotation, rotations) of a contract line.
+    Rotation 1 is jobs 1..N, rotation 2 is N+1..2N and so on (N = No. of Jobs). A JCR cannot run past the end of the
+    current rotation, the jobs at the site can never exceed N, and the total is capped at N x Rotation."""
+    qty = flt(item.qty)
+    rotations = max(cint(item.get("nxg_duration")), 1)
+    if qty <= 0:
+        return 0, 1, rotations
+    done = flt(reported.get(item.name))
+    at_site = done - flt(returned.get(item.name))
+    full = int(done / qty + 1e-9)
+    rotation_balance = qty - (done - full * qty)
+    balance = max(min(qty * rotations - done, rotation_balance, qty - at_site), 0)
+    return balance, min(full + 1, rotations), rotations
 
 
 def remaining_jobs(item, reported, returned):
@@ -244,9 +273,14 @@ def remaining_jobs(item, reported, returned):
 
 
 def line_balances(qty, rotations, done_other, job_qty):
-    """(balance qty, balance rotation) after this JCR row. Balance rotation is always 0 now."""
-    balance_qty = max(flt(qty) - flt(done_other) - flt(job_qty), 0)
-    return flt(balance_qty, 3), 0
+    """(balance jobs, balance rotations) of a contract line after this JCR row.
+    Total = jobs per rotation x rotations; done = other submitted JCRs + this row."""
+    qty = flt(qty)
+    rotations = max(cint(rotations), 1)
+    done = flt(done_other) + flt(job_qty)
+    balance_qty = max(qty * rotations - done, 0)
+    balance_rotation = max(rotations - done / qty, 0) if qty > 0 else 0
+    return flt(balance_qty, 3), flt(balance_rotation, 3)
 
 
 @frappe.whitelist()
@@ -257,5 +291,5 @@ def get_line_balance(hire_order_contract, contract_item, job_qty=0, exclude=None
         return {"balance_qty": 0, "balance_rotation": 0}
     reported = get_reported_qty_by_line(hire_order_contract, exclude=exclude)
     bq, br = line_balances(src.qty, src.nxg_duration, reported.get(contract_item), job_qty)
-    rd = 0
+    rd = flt((flt(reported.get(contract_item)) + flt(job_qty)) / flt(src.qty), 3) if flt(src.qty) > 0 else 0
     return {"balance_qty": bq, "balance_rotation": br, "rotations_done": rd}
