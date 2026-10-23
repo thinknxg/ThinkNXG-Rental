@@ -209,7 +209,7 @@ def make_combined_invoice(jcrs: str):
     if not names: frappe.throw(_("Select at least one JCR"))
     for n in names:
         frappe.get_doc("Job Completion Report",n).check_permission("write")
-        generate_jcr_billing(n,invoice=0,on_demand=1)
+        generate_jcr_billing(n,invoice=0,on_demand=1,as_on=nowdate())  # bill the part month up to today
     pending=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"Pending","amount":[">",0]},fields=["name","sales_invoice"])
     pending=[r.name for r in pending if not r.sales_invoice]
     if not pending: frappe.throw(_("No billing period is due for the selected JCRs."))
