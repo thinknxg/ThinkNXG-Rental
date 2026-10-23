@@ -73,3 +73,19 @@ frappe.ui.form.on("Hire Delivery Order", {
     refresh(frm) { if (frm.is_new()) nxg_hdo_fill_from_contract(frm); },
     rental_contract(frm) { nxg_hdo_fill_from_contract(frm); },
 });
+
+
+// Dispatch Date follows the Rental Contract's Contract Date (falls back to the default when the contract has none)
+function nxg_hdo_set_dispatch_date(frm, force) {
+    if (!frm.doc.rental_contract || frm.doc.docstatus !== 0) return;
+    if (!force && frm.doc.posting_date && frm.doc.posting_date !== frappe.datetime.get_today()) return;
+    frappe.db.get_value("Rental Contract", frm.doc.rental_contract, "contract_date").then((r) => {
+        const d = r && r.message && r.message.contract_date;
+        if (d && frm.doc.posting_date !== d) frm.set_value("posting_date", d);
+    });
+}
+
+frappe.ui.form.on("Hire Delivery Order", {
+    rental_contract(frm) { nxg_hdo_set_dispatch_date(frm, true); },
+    refresh(frm) { if (frm.is_new()) nxg_hdo_set_dispatch_date(frm, false); },
+});
