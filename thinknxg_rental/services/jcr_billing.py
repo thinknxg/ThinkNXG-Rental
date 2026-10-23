@@ -194,8 +194,9 @@ def get_combinable_jcrs(jcr: str):
     doc=frappe.get_doc("Job Completion Report",jcr); doc.check_permission("read")
     rows=frappe.get_all("Job Completion Report",filters={"docstatus":1,"customer":doc.customer,"company":doc.company,"name":["!=",jcr],"status":["not in",["Completed","Cancelled"]]},
                         fields=["name","rental_contract","hire_order_contract"],order_by="creation asc")
-    pending={r.jcr:r for r in frappe.db.sql("""select jcr, count(*) as periods, sum(amount) as amount from `tabJCR Billing Schedule`
-        where status='Pending' and ifnull(sales_invoice,'')='' and jcr in %s group by jcr""",[tuple(r.name for r in rows) or ("",)],as_dict=True)}
+    pending={r.jcr:r for r in frappe.db.sql("""select s.jcr as jcr, count(*) as periods, sum(s.amount) as amount from `tabJCR Billing Schedule` s
+        left join `tabSales Invoice` si on si.name=s.sales_invoice
+        where s.jcr in %s and ((s.status='Pending' and ifnull(s.sales_invoice,'')='') or si.docstatus=0) group by s.jcr""",[tuple(r.name for r in rows) or ("",)],as_dict=True)}
     for r in rows:
         p=pending.get(r.name); r.pending_periods=p.periods if p else 0; r.pending_amount=flt(p.amount) if p else 0
     return rows
@@ -207,6 +208,7 @@ def make_combined_invoice(jcrs: str):
     every pending period on a single Sales Invoice."""
     names=list(dict.fromkeys(frappe.parse_json(jcrs) or []))
     if not names: frappe.throw(_("Select at least one JCR"))
+    _release_draft_invoices(names)
     for n in names:
         frappe.get_doc("Job Completion Report",n).check_permission("write")
         generate_jcr_billing(n,invoice=0,on_demand=1,as_on=str(getdate(get_last_day(nowdate()))))  # excess runs to the month end, never to today
@@ -216,6 +218,23 @@ def make_combined_invoice(jcrs: str):
     free=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"No Charge","billing_type":["in",["Excess","Final Excess"]],"days":[">",0]},fields=["name","sales_invoice"])
     free=[r.name for r in free if not r.sales_invoice]
     return _create_invoice(pending+free)
+
+
+def _release_draft_invoices(names):
+    """Draft Sales Invoices holding periods of the selected JCRs are deleted and their periods go back to
+    Pending, so they land on the new combined invoice. Submitted invoices are never touched. A draft that
+    also holds a JCR which is not selected is left alone and the user is told."""
+    names=tuple(names)
+    for n in names: frappe.get_doc("Job Completion Report",n).check_permission("write")
+    drafts=frappe.db.sql_list("""select distinct s.sales_invoice from `tabJCR Billing Schedule` s
+        join `tabSales Invoice` si on si.name=s.sales_invoice
+        where s.jcr in %s and si.docstatus=0""",[names])
+    for inv in drafts:
+        others=frappe.db.sql_list("select distinct jcr from `tabJCR Billing Schedule` where sales_invoice=%s and jcr not in %s",(inv,names))
+        if others: frappe.throw(_("Draft invoice {0} also holds {1}. Tick those JCRs as well, or deal with that draft first.").format(inv,", ".join(others)))
+    for inv in drafts:
+        frappe.db.sql("update `tabJCR Billing Schedule` set sales_invoice=null, billed=0, status=if(amount>0,'Pending',status) where sales_invoice=%s",inv)
+        frappe.delete_doc("Sales Invoice",inv,ignore_permissions=True)
 
 
 def update_jcr_progress(jcr_name):
