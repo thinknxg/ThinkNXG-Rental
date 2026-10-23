@@ -242,11 +242,13 @@ frappe.ui.form.on("Quotation", {
 // Default layout with the three contract columns, applied once to each user's saved grid settings.
 const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "item_code", columns: 2 },
+    { fieldname: "uom", columns: 1 },
     { fieldname: "nxg_length", columns: 1 },
     { fieldname: "nxg_breadth", columns: 1 },
     { fieldname: "nxg_height", columns: 1 },
     { fieldname: "nxg_duration", columns: 1 },
     { fieldname: "qty", columns: 1 },
+    { fieldname: "nxg_period", columns: 1 },
     { fieldname: "nxg_rate_basis", columns: 1 },
     { fieldname: "rate", columns: 1 },
     { fieldname: "amount", columns: 1 },
@@ -482,8 +484,8 @@ frappe.ui.form.on("Quotation", {
             const grid = frappe.get_user_settings("Quotation", "GridView") || {};
             const cols = grid["Quotation Item"];
             if (!cols || !cols.length) return;
-            if (localStorage.getItem("nxg_quote_cols_v9") === "1") return;
-            localStorage.setItem("nxg_quote_cols_v9", "1");
+            if (localStorage.getItem("nxg_quote_cols_v10") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v10", "1");
             frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
         } catch (e) {
             console.warn("Quotation grid layout not updated", e);
