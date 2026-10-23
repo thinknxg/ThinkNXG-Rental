@@ -505,7 +505,6 @@ frappe.ui.form.on("Quotation", {
         }
     },
     items_add(frm, cdt, cdn) {
-        if (!nxg_is_hire(frm)) return;
         const row = locals[cdt][cdn];
         if (!cint(row.nxg_duration)) frappe.model.set_value(cdt, cdn, "nxg_duration", 1);
     },
