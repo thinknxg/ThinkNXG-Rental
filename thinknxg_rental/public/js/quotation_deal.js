@@ -225,7 +225,7 @@ function nxg_toggle_contract_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     const df = grid && grid.get_docfield && grid.get_docfield("nxg_included_days");
     if (!df) return; // custom fields not created yet (migrate pending)
-    const show = nxg_is_hire(frm);
+    const show = frm.doc.deal_type === "Hire Order Contract"; // Contract Days / Excess columns: not on Material Hire
     const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_included_days");
     if (show === drawn && !!df.hidden === !show) return;
     grid.set_column_disp(NXG_CONTRACT_COLUMNS, show);
@@ -511,4 +511,20 @@ frappe.ui.form.on("Quotation", {
         const row = locals[cdt][cdn];
         if (!cint(row.nxg_duration)) frappe.model.set_value(cdt, cdn, "nxg_duration", 1);
     },
+});
+
+// Material Hire shows the Hire Order item columns, so Amount is hidden there (UOM stays). Other deal types unchanged.
+function nxg_toggle_mh_amount(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    const df = grid && grid.get_docfield && grid.get_docfield("amount");
+    if (!df) return;
+    const show = frm.doc.deal_type !== "Material Hire";
+    if (!!df.hidden === !show) return; // already right
+    grid.set_column_disp(["amount"], show);
+    grid.reset_grid();
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) { nxg_toggle_mh_amount(frm); },
+    deal_type(frm) { nxg_toggle_mh_amount(frm); },
 });
