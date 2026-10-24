@@ -225,7 +225,7 @@ function nxg_toggle_contract_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     const df = grid && grid.get_docfield && grid.get_docfield("nxg_included_days");
     if (!df) return; // custom fields not created yet (migrate pending)
-    const show = nxg_is_hire(frm);
+    const show = frm.doc.deal_type === "Hire Order Contract";
     const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_included_days");
     if (show === drawn && !!df.hidden === !show) return;
     grid.set_column_disp(NXG_CONTRACT_COLUMNS, show);
@@ -252,10 +252,10 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "qty", columns: 1 },
     { fieldname: "nxg_period", columns: 1 },
     { fieldname: "nxg_rate_basis", columns: 1 },
-    { fieldname: "nxg_hire_days", columns: 1 },
-    { fieldname: "nxg_rate_basis_amount", columns: 1 },
-    { fieldname: "nxg_estimated_amount", columns: 1 },
     { fieldname: "rate", columns: 1 },
+    { fieldname: "nxg_hire_days", columns: 1 },
+    { fieldname: "nxg_estimated_amount", columns: 1 },
+    { fieldname: "nxg_rate_basis_amount", columns: 1 },
     { fieldname: "amount", columns: 1 },
     { fieldname: "nxg_included_days", columns: 1 },
     { fieldname: "nxg_excess_basis", columns: 1 },
@@ -489,8 +489,8 @@ frappe.ui.form.on("Quotation", {
             const grid = frappe.get_user_settings("Quotation", "GridView") || {};
             const cols = grid["Quotation Item"];
             if (!cols || !cols.length) return;
-            if (localStorage.getItem("nxg_quote_cols_v11") === "1") return;
-            localStorage.setItem("nxg_quote_cols_v11", "1");
+            if (localStorage.getItem("nxg_quote_cols_v12") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v12", "1");
             frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
         } catch (e) {
             console.warn("Quotation grid layout not updated", e);
@@ -511,4 +511,20 @@ frappe.ui.form.on("Quotation", {
         const row = locals[cdt][cdn];
         if (!cint(row.nxg_duration)) frappe.model.set_value(cdt, cdn, "nxg_duration", 1);
     },
+});
+
+// Material Hire quotations show the same item columns as the Hire Order, so Amount is hidden there (UOM stays).
+function nxg_toggle_mh_extra_columns(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    const df = grid && grid.get_docfield && grid.get_docfield("amount");
+    if (!df) return;
+    const show = frm.doc.deal_type !== "Material Hire";
+    if (!!df.hidden === !show) return; // already right
+    grid.set_column_disp(["amount"], show);
+    grid.reset_grid();
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) { nxg_toggle_mh_extra_columns(frm); },
+    deal_type(frm) { nxg_toggle_mh_extra_columns(frm); },
 });
