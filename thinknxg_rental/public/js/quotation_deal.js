@@ -513,14 +513,14 @@ frappe.ui.form.on("Quotation", {
     },
 });
 
-// Material Hire quotations show the same item columns as the Hire Order, so Amount is hidden there (UOM stays).
+// Material Hire quotations show the same item columns as the Hire Order, so UOM and Amount are hidden there.
 function nxg_toggle_mh_extra_columns(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     const df = grid && grid.get_docfield && grid.get_docfield("amount");
     if (!df) return;
     const show = frm.doc.deal_type !== "Material Hire";
     if (!!df.hidden === !show) return; // already right
-    grid.set_column_disp(["amount"], show);
+    grid.set_column_disp(["uom", "amount"], show);
     grid.reset_grid();
 }
 
