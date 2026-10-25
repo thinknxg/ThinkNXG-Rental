@@ -11,7 +11,7 @@ field types, options and read-only flags come from the DocType meta, so a rename
 DocType shows up here too. A field the site does not have (an older ERPNext Lead, say) is skipped.
 """
 import json
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import frappe
 from frappe import _
@@ -63,6 +63,7 @@ ENTRY_TYPES = {
 	),
 	"quotation": dict(
 		doctype="Quotation",
+		print=True,
 		label="Quotation",
 		plural="Quotations",
 		title_field="customer_name",
@@ -141,6 +142,7 @@ ENTRY_TYPES = {
 	),
 	"hire-order": dict(
 		doctype="Hire Order",
+		print=True,
 		label="Hire Order",
 		plural="Hire Orders",
 		title_field="customer_name",
@@ -182,6 +184,7 @@ ENTRY_TYPES = {
 	),
 	"hire-order-contract": dict(
 		doctype="Hire Order Contract",
+		print=True,
 		label="Hire Order Contract",
 		plural="Hire Order Contracts",
 		title_field="customer_name",
@@ -240,6 +243,7 @@ ENTRY_TYPES = {
 	),
 	"jcr": dict(
 		doctype="Job Completion Report",
+		print=True,
 		label="Job Completion Report",
 		plural="Job Completion Reports",
 		nav_label="JCRs",
@@ -393,6 +397,9 @@ ENTRY_TYPES = {
 	"cross-hire-order": dict(
 		menu="more",
 		doctype="Cross Hire Order",
+		print=True,
+		# the Purchase Order made on submit
+		print_links=[("Purchase Order", "purchase_order")],
 		label="Cross Hire Order",
 		plural="Cross Hire Orders",
 		title_field="supplier_name",
@@ -457,6 +464,7 @@ ENTRY_TYPES = {
 	"sales-invoice": dict(
 		menu="more",
 		doctype="Sales Invoice",
+		print=True,
 		label="Sales Invoice",
 		plural="Sales Invoices",
 		title_field="customer_name",
@@ -768,6 +776,25 @@ def _matches(action, doc):
 	return not action.get("when_fn") or bool(action["when_fn"](doc))
 
 
+def _print_url(doctype, name):
+	return "/printview?" + urlencode({"doctype": doctype, "name": name, "trigger_print": 1})
+
+
+def get_print_links(cfg, doc):
+	"""Print buttons for a saved document (its default print format, in a new tab), and for documents
+	it made (the Cross Hire Order's Purchase Order)."""
+	if doc.is_new() or not cfg.get("print"):
+		return []
+	links = []
+	if frappe.has_permission(doc.doctype, "print", doc=doc):
+		links.append({"label": _("Print"), "url": _print_url(doc.doctype, doc.name)})
+	for doctype, field in cfg.get("print_links", []):
+		name = doc.get(field)
+		if name and frappe.has_permission(doctype, "print", doc=name):
+			links.append({"label": _("Print {0}").format(_(doctype)), "url": _print_url(doctype, name)})
+	return links
+
+
 def get_next_actions(key, cfg, doc):
 	actions = []
 	if doc.is_new():
@@ -861,6 +888,7 @@ def get_form_boot(key, name=None, form_dict=None):
 		doc=data,
 		currency=doc.get("currency"),
 		next=get_next_actions(key, cfg, doc),
+		prints=get_print_links(cfg, doc),
 		invoice=bool(cfg.get("invoice") and doc.docstatus == 1 and doc.get("status") not in ("Completed", "Cancelled")
 			and frappe.has_permission("Sales Invoice", "create")),
 		desk_url=f"/app/{doctype.lower().replace(' ', '-')}" + (f"/{quote(doc.name)}" if not doc.is_new() else "/new"),

@@ -233,6 +233,11 @@ to its Rental Contract).
 Run `bench --site <site> migrate` after updating the app so the new custom fields (Payment Term; Project and
 Cost Center on Quotation) and the field changes are applied.
 
+Quotations, Hire Orders, Hire Order Contracts, JCRs, Sales Invoices and Cross Hire Orders have a **Print**
+button once saved. It opens ERPNext's print view with the document's default print format and starts
+printing; Get PDF is on the same page. A Cross Hire Order also has **Print Purchase Order** for the
+Purchase Order it made on submit.
+
 Each menu lists drafts, submitted documents or all, with search. The form is
 `/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
 (`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the
