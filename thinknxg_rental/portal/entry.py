@@ -71,7 +71,7 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company", "currency", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
@@ -108,6 +108,8 @@ ENTRY_TYPES = {
 				when={"docstatus": [1], "deal_type": MH}),
 			dict(label="Create Hire Order Contract", target="hire-order-contract",
 				method="thinknxg_rental.services.deal_flow.make_hire_order_contract_from_quotation", when={"docstatus": [1], "deal_type": HOC}),
+			dict(label="Create Sales Order", target="sales-order", method="thinknxg_rental.services.deal_flow.make_sales_order_from_quotation",
+				when={"docstatus": [1], "deal_type": ["Material Sale"]}, when_fn=lambda d: d.get("status") not in ("Ordered", "Lost", "Expired")),
 		],
 	),
 	"rental-site": dict(
@@ -146,7 +148,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("required_from", "From"), ("estimated_amount", "Estimate")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			SITE, "project", "company", COST_CENTER, "order_date", "required_from", "expected_return_date", "rate_basis", "billing_cycle",
+			SITE, PROJECT, "company", COST_CENTER, "order_date", "required_from", "expected_return_date", "rate_basis", "billing_cycle",
 			"customer_reference", "quotation", "sales_person", "payment_terms_template",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -187,7 +189,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("required_from", "Erection"), ("total_contract_amount", "Contract")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			SITE, "project", "company", COST_CENTER, "order_date", "required_from", "customer_reference", "customer_reference_date",
+			SITE, PROJECT, "company", COST_CENTER, "order_date", "required_from", "customer_reference", "customer_reference_date",
 			"contract_charge_billing", "taxes_and_charges", "payment_terms_template",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -285,7 +287,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("start_date", "Start"), ("end_date", "End")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			SITE, "project", "company", COST_CENTER, "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
+			SITE, PROJECT, "company", COST_CENTER, "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
 			"contract_date", "start_date", "end_date", "billing_cycle", "minimum_hire_days", "grace_days",
 			"security_deposit", "payment_terms_template", "taxes_and_charges",
 			{"fieldname": "remarks", "wide": 1},
@@ -323,7 +325,7 @@ ENTRY_TYPES = {
 				"fetch": {"customer_name": "customer_name", "rental_site": "rental_site", "project": "project"}},
 			{"fieldname": "customer_name", "ro": 1},
 			{"fieldname": "rental_site", "ro": 1},
-			"project",
+			PROJECT,
 			"posting_date", "vehicle_no", "driver_name", "driver_phone", "transporter", "dispatch_reference",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -402,7 +404,7 @@ ENTRY_TYPES = {
 			{"fieldname": "supplier_name", "ro": 1},
 			"supplier_reference", "company", "order_date",
 			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT, "fetch": {"project": "project"}},
-			"project",
+			PROJECT,
 			{"fieldname": "material_reservation", "filters": {"docstatus": 1}},
 			"hire_from", "expected_return_date", "rate_basis", "receive_at", "taxes_and_charges",
 			{"fieldname": "remarks", "wide": 1},
@@ -422,6 +424,35 @@ ENTRY_TYPES = {
 			]),
 		],
 		totals=["total_qty", "estimated_amount"],
+	),
+	"sales-order": dict(
+		menu="more",
+		doctype="Sales Order",
+		label="Sales Order",
+		plural="Sales Orders",
+		title_field="customer_name",
+		search_fields=["customer_name", "customer", "po_no", "project"],
+		list_columns=[("customer_name", "Customer"), ("transaction_date", "Date"), ("delivery_date", "Delivery"), ("grand_total", "Total")],
+		header=[
+			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
+			{"fieldname": "customer_name", "ro": 1},
+			"company", "transaction_date", "delivery_date", "po_no", "currency", "payment_terms_template", "nxg_payment_term",
+			TAX_TEMPLATE, COST_CENTER, PROJECT, {"fieldname": "set_warehouse", "filters": {"company": "$company", "is_group": 0}},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.6, "filters": {"disabled": 0}, "fetch": ITEM_FETCH},
+				{"fieldname": "item_name", "w": 2.8, "ro": 1},
+				{"fieldname": "delivery_date", "w": 1.5},
+				{"fieldname": "qty", "w": 1.1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "rate", "w": 1.4},
+				{"fieldname": "amount", "w": 1.5, "ro": 1},
+				{"fieldname": "warehouse", "w": 2.2, "filters": {"company": "$company", "is_group": 0}},
+			]),
+			TAX_TABLE,
+		],
+		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
 	),
 	"sales-invoice": dict(
 		menu="more",
@@ -465,7 +496,7 @@ ENTRY_TYPES = {
 				"fetch": {"customer_name": "customer_name", "rental_site": "rental_site", "grace_days": "grace_days", "project": "project"}},
 			{"fieldname": "customer_name", "ro": 1},
 			{"fieldname": "rental_site", "ro": 1},
-			"project",
+			PROJECT,
 			"off_hire_type", "off_hire_date", "return_date", "grace_days", "reason", "vehicle_no", "driver_name",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -484,8 +515,90 @@ ENTRY_TYPES = {
 			]),
 		],
 		totals=["total_returned_qty", "total_lost_qty"],
+		# Submitted: inspect what came back, then settle damage and loss (the desk's Create menu).
+		next=[
+			dict(label="Create Return Inspection", target="return-inspection", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_inspection",
+				when={"docstatus": [1], "inspection_status": ["Pending"]}),
+			dict(label="Create Damage Settlement", target="damage-settlement", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_damage_settlement",
+				when={"docstatus": [1], "inspection_status": ["Not Required", "Completed"]}, when_fn=lambda d: not _settlement_of(d.name)),
+		],
 		fill=dict(label="Get items at site", needs="rental_contract", table="items",
 			method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.get_items_at_site"),
+	),
+	"return-inspection": dict(
+		menu="more",
+		doctype="Rental Return Inspection",
+		label="Return Inspection",
+		plural="Return Inspections",
+		title_field="customer_name",
+		search_fields=["customer_name", "hire_off_hire_note", "rental_contract"],
+		list_columns=[("customer_name", "Customer"), ("hire_off_hire_note", "Off-hire note"), ("inspection_date", "Date"), ("total_damaged_qty", "Damaged")],
+		header=[
+			{"fieldname": "hire_off_hire_note", "filters": {"docstatus": 1, "inspection_status": "Pending"},
+				"fetch": {"rental_contract": "rental_contract", "customer": "customer", "customer_name": "customer_name", "rental_site": "rental_site", "company": "company"}},
+			{"fieldname": "rental_contract", "ro": 1},
+			{"fieldname": "customer_name", "ro": 1},
+			{"fieldname": "rental_site", "ro": 1},
+			"company", "inspection_date", "inspector",
+			{"fieldname": "remarks", "wide": 1},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.4, "ro": 1},
+				{"fieldname": "item_name", "w": 2.8, "ro": 1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "ownership", "w": 1.3, "ro": 1},
+				{"fieldname": "returned_qty", "w": 1.3, "ro": 1},
+				{"fieldname": "good_qty", "w": 1.2},
+				{"fieldname": "repairable_qty", "w": 1.4},
+				{"fieldname": "damaged_qty", "w": 1.3},
+				{"fieldname": "damage_notes", "w": 3},
+			]),
+		],
+		totals=["total_good_qty", "total_repairable_qty", "total_damaged_qty"],
+		next=[
+			dict(label="Create Damage Settlement", target="damage-settlement", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_damage_settlement",
+				source_field="hire_off_hire_note", when={"docstatus": [1]}, when_fn=lambda d: not _settlement_of(d.hire_off_hire_note)),
+		],
+	),
+	"damage-settlement": dict(
+		menu="more",
+		doctype="Rental Damage Settlement",
+		label="Damage Settlement",
+		plural="Damage Settlements",
+		title_field="customer_name",
+		search_fields=["customer_name", "hire_off_hire_note", "rental_contract"],
+		list_columns=[("customer_name", "Customer"), ("hire_off_hire_note", "Off-hire note"), ("posting_date", "Date"), ("grand_total", "Total")],
+		header=[
+			{"fieldname": "hire_off_hire_note", "filters": {"docstatus": 1},
+				"fetch": {"rental_contract": "rental_contract", "customer": "customer", "customer_name": "customer_name", "company": "company"}},
+			{"fieldname": "rental_contract", "ro": 1},
+			{"fieldname": "customer_name", "ro": 1},
+			"company", "posting_date", {"fieldname": "sales_invoice", "ro": 1},
+			"transport_charges", "other_charges", "other_charges_description",
+			{"fieldname": "remarks", "wide": 1},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.4, "filters": STOCK_ITEM, "fetch": ITEM_FETCH},
+				{"fieldname": "item_name", "w": 2.8, "ro": 1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "ownership", "w": 1.3},
+				{"fieldname": "classification", "w": 1.6},
+				{"fieldname": "qty", "w": 1.1},
+				{"fieldname": "rate", "w": 1.3},
+				{"fieldname": "liability_percent", "w": 1.3},
+				{"fieldname": "salvage_value", "w": 1.4},
+				{"fieldname": "amount", "w": 1.5, "ro": 1},
+			]),
+		],
+		totals=["total_damage_amount", "total_loss_amount", "total_salvage_value", "grand_total"],
+		# make_sales_invoice saves the invoice itself, so the button opens the saved draft.
+		next=[
+			dict(label="Create Sales Invoice", target="sales-invoice",
+				method="thinknxg_rental.thinknxg_rental.doctype.rental_damage_settlement.rental_damage_settlement.make_sales_invoice",
+				creates="settlement", when={"docstatus": [1], "sales_invoice": [None, ""]}),
+		],
 	),
 }
 
@@ -520,6 +633,10 @@ def _shortfall(doc, table):
 	return sum(flt(r.get("shortfall_qty")) for r in doc.get(table) or [])
 
 
+def _settlement_of(off_hire_note):
+	return frappe.db.exists("Rental Damage Settlement", {"hire_off_hire_note": off_hire_note, "docstatus": ["<", 2]})
+
+
 def _open_job_lines(doc):
 	from thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract import get_open_job_lines
 
@@ -548,6 +665,7 @@ def make_site_from_quotation(source_name: str, target_doc=None):
 		"customer": customer,
 		"customer_name": frappe.db.get_value("Customer", customer, "customer_name"),
 		"company": quotation.company,
+		"project": quotation.get("project"),
 		"nxg_quotation": quotation.name,
 	})
 	return site
@@ -692,8 +810,12 @@ def prepare_mapped(make: str, source: str):
 	"""Run the mapper once in a POST, so what it creates on the way (the Customer made from a Lead)
 	is committed; the form page then maps again, finds that record and shows the unsaved document."""
 	src_key, _sep, idx = make.partition(":")
-	target = get_entry_type(src_key)["next"][cint(idx)]["target"]
+	action = get_entry_type(src_key)["next"][cint(idx)]
+	target = action["target"]
 	frappe.has_permission(ENTRY_TYPES[target]["doctype"], "create", throw=True)
+	if action.get("creates"):
+		# a method that saves the new document itself: open that document
+		return {"url": entry_url(target, frappe.get_attr(action["method"])(**{action["creates"]: source}))}
 	_mapped(make, source)
 	return {"url": entry_url(target, make=make, source=source)}
 
@@ -869,7 +991,7 @@ def get_tax_rows(taxes_and_charges: str, doctype: str | None = None):
 
 def _set_missing(doc):
 	# Selling documents fill currency, price list, item rates and taxes the way the desk form does.
-	if doc.doctype in ("Quotation", "Sales Invoice") and hasattr(doc, "set_missing_values"):
+	if doc.doctype in ("Quotation", "Sales Order", "Sales Invoice") and hasattr(doc, "set_missing_values"):
 		doc.set_missing_values(for_validate=not doc.is_new())
 
 

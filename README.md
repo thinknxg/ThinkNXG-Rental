@@ -199,31 +199,39 @@ The menu bar follows the order of work; the optional documents and the boards ab
 | Menu | Document | Next step offered on the form |
 |---|---|---|
 | Leads | Lead | Create Quotation (makes the Customer from the Lead, as the desk does) |
-| Quotations | Quotation (deal type decides the item columns, as in the desk) | Create Rental Site; once submitted, Create Hire Order / Create Hire Order Contract |
+| Quotations | Quotation (deal type decides the item columns, as in the desk) | Create Rental Site; once submitted, Create Hire Order / Create Hire Order Contract, or Create Sales Order for a Material Sale |
 | Rental Sites | Rental Site (keeps the quotation it was made from) | Create Hire Order / Hire Order Contract from that quotation, with the site filled in |
 | Hire Orders | Hire Order | Create Rental Contract; when there is a shortfall, Material Reservation and Cross Hire Order |
 | Hire Order Contracts | Hire Order Contract (job types; physical items shown after save) | Create Rental Contract, Create Job Completion Report; on a shortfall, Material Reservation and Cross Hire Order |
 | JCRs | Job Completion Report (erection / dismantle dates per job line) | Sales Invoice panel: this JCR alone, or ticked with other open JCRs of the customer on one invoice |
 | Rental Contracts | Rental Contract | New Delivery Order, New Off-Hire Note |
 | Delivery Orders | Hire Delivery Order (**Get items from contract**) | New Off-Hire Note |
-| Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | |
+| Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | Once submitted: Create Return Inspection (when returned items need inspecting), then Create Damage Settlement |
+| More > Return Inspections | Rental Return Inspection (good / repairable / damaged per item) | Create Damage Settlement |
+| More > Damage Settlements | Rental Damage Settlement | Create Sales Invoice (saves the draft invoice and opens it) |
 | More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
 | More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
+| More > Sales Orders | Sales Order (made from a submitted Material Sale quotation, or entered directly) | Delivery and billing stay in the desk |
 | More > Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
 
-Quotations and Sales Invoices show Currency, a **Payment Term** link (custom field `nxg_payment_term`,
-used instead of the Payment Terms Template: the payment schedule is one row for that term, and on a Sales
-Invoice the due date follows it), the **Sales Taxes and Charges Template** and the **Sales Taxes and
-Charges** table (choosing a template fills the table; rows can be edited). Rental Contracts also take a
-taxes template. Cost Center and Project show wherever the document has them. Project comes from the
-Rental Site, and from the Rental Contract on deliveries, off-hires and cross hire, so a new Rental
+Quotations, Sales Orders and Sales Invoices show Currency, a **Payment Term** link (custom field
+`nxg_payment_term`: the payment schedule is one row for that term, and on a Sales Invoice the due date
+follows it), the **Sales Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing
+a template fills the table; rows can be edited). Quotations and Sales Orders also show the **Payment
+Terms Template**; when both are filled, the template decides the schedule. Rental Contracts also take a
+taxes template. Cost Center and Project show wherever the document has them; the app adds both to the
+Quotation (ERPNext's Quotation has neither) and they carry on to the Sales Order, Hire Order and Hire
+Order Contract. On Hire Orders, Hire Order Contracts and Rental Contracts, Project fills from the Rental
+Site when left empty and can be changed. Deliveries, off-hires and cross hire take it from the Rental
+Contract, so a new Rental
 Contract, Delivery Order or Off-Hire Note opened from the previous step already has Project, Customer
 Name and Rental Site filled; a Job Completion Report fills Customer Name from its Hire Order Contract.
 Wherever Project is entered, **+ New Project** creates one without leaving the form. Cost Center is
 entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center is carried
 to its Rental Contract).
 
-Run `bench --site <site> migrate` after updating the app so the Payment Term custom fields are created.
+Run `bench --site <site> migrate` after updating the app so the new custom fields (Payment Term; Project and
+Cost Center on Quotation) and the field changes are applied.
 
 Each menu lists drafts, submitted documents or all, with search. The form is
 `/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself

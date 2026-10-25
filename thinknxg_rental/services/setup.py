@@ -20,9 +20,13 @@ def get_custom_fields():
 				description="Identifies the customer requirement and selects the downstream document flow."),
 		],
 		"Quotation": [
+			# ERPNext's Quotation has no Project or Cost Center; same names as on Sales Order so the
+			# standard Quotation -> Sales Order mapping carries them.
+			dict(fieldname="project", label="Project", fieldtype="Link", options="Project", insert_after="order_type"),
+			dict(fieldname="cost_center", label="Cost Center", fieldtype="Link", options="Cost Center", insert_after="project"),
 			dict(fieldname="nxg_payment_term", label="Payment Term", fieldtype="Link", options="Payment Term",
 				insert_after="payment_terms_template",
-				description="One payment term for the whole amount. Fills the payment schedule; leave it empty to use a Payment Terms Template."),
+				description="One payment term for the whole amount. Fills the payment schedule when no Payment Terms Template is chosen."),
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
 				description="Carries the Deal Type from the Lead and selects the next document."),
@@ -100,10 +104,15 @@ def get_custom_fields():
 			dict(fieldname="nxg_cross_hire_item", label="Cross Hire Equipment", fieldtype="Link", options="Item",
 				read_only=1, insert_after="description"),
 		],
+		"Sales Order": [
+			dict(fieldname="nxg_payment_term", label="Payment Term", fieldtype="Link", options="Payment Term",
+				insert_after="payment_terms_template",
+				description="One payment term for the whole amount. Fills the payment schedule when no Payment Terms Template is chosen."),
+		],
 		"Sales Invoice": [
 			dict(fieldname="nxg_payment_term", label="Payment Term", fieldtype="Link", options="Payment Term",
 				insert_after="payment_terms_template",
-				description="One payment term for the whole amount. Fills the payment schedule; leave it empty to use a Payment Terms Template."),
+				description="One payment term for the whole amount. Fills the payment schedule when no Payment Terms Template is chosen."),
 			dict(fieldname="nxg_rental_contract", label="Rental Contract", fieldtype="Link", options="Rental Contract",
 				insert_after="is_return", no_copy=1, in_standard_filter=1),
 			dict(fieldname="nxg_rental_billing_schedule", label="Rental Billing Schedule", fieldtype="Link",

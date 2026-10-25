@@ -43,6 +43,9 @@ doc_events = {
 		"before_validate": "thinknxg_rental.events.payment_term.apply",
 		"validate": "thinknxg_rental.events.quotation.validate",
 	},
+	"Sales Order": {
+		"before_validate": "thinknxg_rental.events.payment_term.apply",
+	},
 	"Sales Invoice": {
 		"before_validate": "thinknxg_rental.events.payment_term.apply",
 		"validate": "thinknxg_rental.events.sales_invoice.validate",

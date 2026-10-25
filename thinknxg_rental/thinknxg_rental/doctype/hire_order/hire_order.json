@@ -86,7 +86,7 @@
    "label": "Project",
    "options": "Project",
    "fetch_from": "rental_site.project",
-   "read_only": 1
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "cost_center",
@@ -278,7 +278,7 @@
    "link_fieldname": "hire_order"
   }
  ],
- "modified": "2026-10-25 09:00:00.000000",
+ "modified": "2026-10-25 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order",
