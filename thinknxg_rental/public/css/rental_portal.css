@@ -239,6 +239,11 @@
 .rp-grid .rp-btn--plain:hover { color: var(--rp-stop); }
 .rp-entry-totals { margin-block: 0 1.5rem; }
 .rp-entry-totals dd { font-family: var(--rp-display); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rp-invoice { background: var(--rp-panel); border-inline-start: 6px solid var(--rp-hivis); padding: 1.25rem 1.5rem; }
+.rp-invoice > * + * { margin-block-start: 0.75rem; }
+.rp-checks { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
+.rp-checks li { display: flex; gap: 0.6rem; align-items: center; }
+.rp-checks label { margin: 0; font-weight: 500; }
 .rp-entry-bar { position: sticky; inset-block-end: 0; padding-block: 0.9rem; background: var(--rp-paper); border-block-start: 1px solid var(--rp-line); z-index: 5; }
 
 @media (max-width: 760px) {

@@ -136,7 +136,7 @@
 							fetch_into(s, v, doc, draw_all);
 							if (!Object.keys(s.fetch || {}).length) draw_all();
 						}
-						if (s.fieldname === (boot.fill || {}).needs && v && !(doc[boot.fill.table] || []).some((r) => r.item_code)) fill();
+						if (s.fieldname === (boot.fill || {}).needs && v && !(doc[boot.fill.table] || []).some((r) => r.item_code || r.job_type)) fill();
 					});
 					label.setAttribute("for", body[0].id);
 				}
@@ -204,11 +204,11 @@
 
 	function fill() {
 		const f = boot.fill;
-		if (!doc[f.needs]) return say(__("Choose the rental contract first."), "stop");
-		call(f.method, { rental_contract: doc[f.needs] }).then((rows) => {
+		if (!doc[f.needs]) return say(__("Fill in {0} first.", [(boot.header.find((h) => h.fieldname === f.needs) || {}).label || f.needs]), "stop");
+		call(f.method, { [f.arg || "rental_contract"]: doc[f.needs] }).then((rows) => {
 			doc[f.table] = rows || [];
 			draw_tables();
-			say(rows && rows.length ? "" : __("Nothing to add: the contract has no open quantity for this document."), rows && rows.length ? "" : "stop");
+			say(rows && rows.length ? "" : __("Nothing to add: there is no open quantity for this document."), rows && rows.length ? "" : "stop");
 		});
 	}
 
@@ -259,12 +259,47 @@
 		})
 	);
 
+	// JCR: invoice this JCR, alone or with other open JCRs of the same customer (the desk's Create > Multiple JCRs)
+	const invoice = el("section", { class: "rp-section rp-invoice" });
+	function draw_invoice() {
+		if (!boot.invoice) return (invoice.hidden = true);
+		const others = el("ul", { class: "rp-checks" });
+		const button = el("button", { type: "button", class: "rp-btn rp-btn--main", text: __("Create Sales Invoice"), onclick: () => {
+			const jcrs = [boot.name, ...[...others.querySelectorAll("input:checked")].map((c) => c.value)];
+			button.disabled = true;
+			say(__("Creating the Sales Invoice..."));
+			call("thinknxg_rental.services.jcr_billing.make_combined_invoice", { jcrs: JSON.stringify(jcrs) }, "POST")
+				.then((invoice_name) => {
+					say(__("Sales Invoice {0} created as a draft. Opening it in the desk to check and submit.", [invoice_name]));
+					window.location.href = "/app/sales-invoice/" + encodeURIComponent(invoice_name);
+				})
+				.catch(() => {
+					say("");
+					button.disabled = false;
+				});
+		} });
+		invoice.replaceChildren(
+			el("h2", { text: __("Sales Invoice") }),
+			el("p", { class: "rp-muted", text: __("{0} is always on the invoice. Tick other open JCRs of this customer to bill them on the same invoice.", [boot.name]) }),
+			others,
+			el("div", { class: "rp-actions" }, button)
+		);
+		call("thinknxg_rental.services.jcr_billing.get_combinable_jcrs", { jcr: boot.name }).then((rows) => {
+			others.replaceChildren(...(rows || []).map((r, i) => el("li", {},
+				el("input", { type: "checkbox", id: "rp-jcr-" + i, value: r.name }),
+				el("label", { for: "rp-jcr-" + i, text: [r.name, r.hire_order_contract || r.rental_contract,
+					r.pending_periods ? __("{0} period(s) pending", [r.pending_periods]) : ""].filter(Boolean).join(" \u00b7 ") }))));
+			if (!(rows || []).length) others.replaceWith(el("p", { class: "rp-none", text: __("No other open JCR for this customer.") }));
+		});
+	}
+
 	function draw_all() {
 		draw_header();
 		draw_tables();
 		draw_totals();
 	}
-	form.replaceChildren(header, tables, totals, bar);
+	form.replaceChildren(header, tables, totals, invoice, bar);
 	draw_all();
-	if (boot.editable && boot.fill && doc[boot.fill.needs] && !(doc[boot.fill.table] || []).some((r) => r.item_code)) fill();
+	draw_invoice();
+	if (boot.editable && boot.fill && doc[boot.fill.needs] && !(doc[boot.fill.table] || []).some((r) => r.item_code || r.job_type)) fill();
 })();

@@ -14,7 +14,7 @@ from thinknxg_rental.portal.entry import entry_nav
 from thinknxg_rental.portal.utils import get_requests, is_staff
 
 # The menu bar holds the board and the documents people enter every day (see portal/entry.py);
-# the read-mostly boards sit under "More" so the bar stays short.
+# the optional documents (reservations, cross hire) and the read-mostly boards sit under "More".
 MORE_NAV = (
 	("requests", "/rental/admin/requests", "Customer requests"),
 	("contracts", "/rental/admin/contracts", "Contract status"),
@@ -40,7 +40,7 @@ def build_admin_context(context, active, title):
 		raise frappe.Redirect
 	if not is_staff():
 		raise frappe.PermissionError(_("The rental admin portal is for rental staff only."))
-	more = [frappe._dict(key=k, route=r, label=_(label)) for k, r, label in MORE_NAV]
+	more = entry_nav("more") + [frappe._dict(key=k, route=r, label=_(label)) for k, r, label in MORE_NAV]
 	context.ra = frappe._dict(
 		active=active,
 		nav=[frappe._dict(key="board", route="/rental/admin", label=_("Board"))] + entry_nav(),

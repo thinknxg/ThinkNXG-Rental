@@ -194,17 +194,21 @@ the desk reports, so the numbers always agree with them.
 
 ### Data entry in the admin portal
 
-The menu bar holds the documents staff enter every day; the boards above sit under **More**.
+The menu bar follows the order of work; the optional documents and the boards above sit under **More**.
 
-| Menu | Document | Next step offered after saving / submitting |
+| Menu | Document | Next step offered on the form |
 |---|---|---|
 | Leads | Lead | Create Quotation (makes the Customer from the Lead, as the desk does) |
-| Quotations | Quotation (deal type decides the item columns) | Create Hire Order / Create Hire Order Contract |
-| Hire Orders | Hire Order | Create Rental Contract |
-| Hire Order Contracts | Hire Order Contract (job types; physical items shown after save) | Create Rental Contract |
+| Quotations | Quotation (deal type decides the item columns, as in the desk) | Create Rental Site; once submitted, Create Hire Order / Create Hire Order Contract |
+| Rental Sites | Rental Site (keeps the quotation it was made from) | Create Hire Order / Hire Order Contract from that quotation, with the site filled in |
+| Hire Orders | Hire Order | Create Rental Contract; when there is a shortfall, Material Reservation and Cross Hire Order |
+| Hire Order Contracts | Hire Order Contract (job types; physical items shown after save) | Create Rental Contract, Create Job Completion Report; on a shortfall, Material Reservation and Cross Hire Order |
+| JCRs | Job Completion Report (erection / dismantle dates per job line) | Sales Invoice panel: this JCR alone, or ticked with other open JCRs of the customer on one invoice |
 | Rental Contracts | Rental Contract | New Delivery Order, New Off-Hire Note |
 | Delivery Orders | Hire Delivery Order (**Get items from contract**) | New Off-Hire Note |
 | Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | |
+| More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
+| More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
 
 Each menu lists drafts, submitted documents or all, with search. The form is
 `/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
