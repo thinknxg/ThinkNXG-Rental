@@ -72,7 +72,7 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, PROJECT,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
@@ -443,7 +443,7 @@ ENTRY_TYPES = {
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
 			{"fieldname": "customer_name", "ro": 1},
-			"company", "transaction_date", "delivery_date", "po_no", "currency", "payment_terms_template", "nxg_payment_term",
+			"company", "transaction_date", "delivery_date", "po_no", "currency", "payment_terms_template",
 			TAX_TEMPLATE, COST_CENTER, PROJECT, {"fieldname": "set_warehouse", "filters": {"company": "$company", "is_group": 0}},
 		],
 		tables=[
@@ -473,7 +473,7 @@ ENTRY_TYPES = {
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
 			{"fieldname": "customer_name", "ro": 1},
-			"company", "posting_date", "due_date", "currency", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			"company", "posting_date", "due_date", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, PROJECT,
 			{"fieldname": "nxg_rental_contract", "ro": 1},
 			{"fieldname": "remarks", "wide": 1},
 		],

@@ -218,11 +218,10 @@ def make_sales_order_from_quotation(source_name: str, target_doc=None):
     target = method(source_name=source.name, target_doc=target_doc)
     if isinstance(target, dict):
         target = frappe.get_doc(target)
-    # ERPNext leaves the Payment Terms Template behind; carry it (or the single Payment Term) and let
-    # the order build its own schedule from the order date.
-    if source.get("payment_terms_template") or source.get("nxg_payment_term"):
-        target.payment_terms_template = source.get("payment_terms_template")
-        target.nxg_payment_term = source.get("nxg_payment_term")
+    # ERPNext leaves the Payment Terms Template behind; carry it and let the order build its own
+    # schedule from the order date.
+    if source.get("payment_terms_template"):
+        target.payment_terms_template = source.payment_terms_template
         target.set("payment_schedule", [])
     return target
 

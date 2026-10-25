@@ -40,14 +40,9 @@ doc_events = {
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
 	"Quotation": {
-		"before_validate": "thinknxg_rental.events.payment_term.apply",
 		"validate": "thinknxg_rental.events.quotation.validate",
 	},
-	"Sales Order": {
-		"before_validate": "thinknxg_rental.events.payment_term.apply",
-	},
 	"Sales Invoice": {
-		"before_validate": "thinknxg_rental.events.payment_term.apply",
 		"validate": "thinknxg_rental.events.sales_invoice.validate",
 		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
 		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",

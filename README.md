@@ -214,11 +214,9 @@ The menu bar follows the order of work; the optional documents and the boards ab
 | More > Sales Orders | Sales Order (made from a submitted Material Sale quotation, or entered directly) | Delivery and billing stay in the desk |
 | More > Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
 
-Quotations, Sales Orders and Sales Invoices show Currency, a **Payment Term** link (custom field
-`nxg_payment_term`: the payment schedule is one row for that term, and on a Sales Invoice the due date
-follows it), the **Sales Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing
-a template fills the table; rows can be edited). Quotations and Sales Orders also show the **Payment
-Terms Template**; when both are filled, the template decides the schedule. Rental Contracts also take a
+Quotations, Sales Orders and Sales Invoices show Currency, the **Payment Terms Template**, the **Sales
+Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing a template fills the
+table; rows can be edited); a Sales Order made from a quotation keeps its Payment Terms Template. Rental Contracts also take a
 taxes template. Cost Center and Project show wherever the document has them; the app adds both to the
 Quotation (ERPNext's Quotation has neither) and they carry on to the Sales Order, Hire Order and Hire
 Order Contract. On Hire Orders, Hire Order Contracts and Rental Contracts, Project fills from the Rental
@@ -230,8 +228,8 @@ Wherever Project is entered, **+ New Project** creates one without leaving the f
 entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center is carried
 to its Rental Contract).
 
-Run `bench --site <site> migrate` after updating the app so the new custom fields (Payment Term; Project and
-Cost Center on Quotation) and the field changes are applied.
+Run `bench --site <site> migrate` after updating the app so the new custom fields (Project and Cost Center on
+Quotation) and the field changes are applied, and the earlier Payment Term field is removed.
 
 Quotations, Hire Orders, Hire Order Contracts, JCRs, Sales Invoices and Cross Hire Orders have a **Print**
 button once saved. It opens ERPNext's print view with the document's default print format and starts
