@@ -236,7 +236,7 @@
 			});
 	}
 
-	const bar = el("div", { class: "rp-actions rp-entry-bar" });
+	const bar = el("div", { class: "rp-actions rp-entry-bar", hidden: !boot.editable });
 	if (boot.editable) {
 		bar.append(el("button", { type: "submit", class: "rp-btn rp-btn--main", text: boot.is_new ? __("Save draft") : __("Save") }));
 		if (boot.submittable)
