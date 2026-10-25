@@ -3,8 +3,8 @@
 
 {% block admin_content %}
 <div class="rp-head">
-	<h1>{{ _("Rental contracts") }}</h1>
-	<div class="rp-actions"><a class="rp-btn rp-btn--main" href="/app/rental-contract/new">{{ _("New contract") }}</a></div>
+	<h1>{{ _("Contract status") }}</h1>
+	<div class="rp-actions"><a class="rp-btn rp-btn--main" href="/rental/admin/entry?type=rental-contract">{{ _("New contract") }}</a></div>
 </div>
 <form class="rp-filter" method="get">
 	<div class="rp-tabs">
@@ -26,7 +26,7 @@
 	<tbody>
 	{% for c in contracts %}
 	<tr>
-		<td class="rp-first"><a href="{{ desk('Rental Contract', c.name) }}">{{ c.name | e }}</a>
+		<td class="rp-first"><a href="/rental/admin/entry?type=rental-contract&name={{ c.name | urlencode }}">{{ c.name | e }}</a>
 			{% if c.source_document %}<span class="rp-sub">{{ _("Job type") if c.is_job else _("Item rental") }}, <a href="{{ desk(c.source_type, c.source_document) }}">{{ c.source_document | e }}</a></span>{% endif %}</td>
 		<td data-label="{{ _('Customer and site') }}">{{ c.customer_name | e }}<span class="rp-sub">{{ c.rental_site | e }}</span></td>
 		<td data-label="{{ _('Status') }}">{{ pill(c.status) }}</td>

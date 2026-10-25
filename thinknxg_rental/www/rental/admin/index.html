@@ -35,21 +35,21 @@
 			<li><time>{{ d.vehicle_no | e if d.vehicle_no else _("No vehicle") }}</time>
 				<span><span class="rp-out">{{ _("Out") }}</span> {{ _("{0} units").format(qty(d.total_qty)) }} {% if d.docstatus == 0 %}<span class="rp-tag">{{ _("Draft") }}</span>{% endif %}
 					<span class="rp-sub">{{ d.customer_name | e }}, {{ d.rental_site | e }}</span></span>
-				<a href="{{ desk('Hire Delivery Order', d.name) }}">{{ d.name | e }}</a></li>
+				<a href="/rental/admin/entry?type=delivery-order&name={{ d.name | urlencode }}">{{ d.name | e }}</a></li>
 			{% endfor %}
 			{% for d in b.in_today %}
 			<li><time>{{ d.vehicle_no | e if d.vehicle_no else _("No vehicle") }}</time>
 				<span><span class="rp-in">{{ _("In") }}</span> {{ _("{0} units").format(qty(d.total_returned_qty)) }} {% if d.docstatus == 0 %}<span class="rp-tag">{{ _("Draft") }}</span>{% endif %}
 					<span class="rp-sub">{{ d.customer_name | e }}, {{ d.rental_site | e }}</span></span>
-				<a href="{{ desk('Hire Off-Hire Note', d.name) }}">{{ d.name | e }}</a></li>
+				<a href="/rental/admin/entry?type=off-hire-note&name={{ d.name | urlencode }}">{{ d.name | e }}</a></li>
 			{% endfor %}
 		</ul>
 		{% else %}
 		<p class="rp-none">{{ _("No deliveries or returns are dated today.") }}</p>
 		{% endif %}
 		<p class="rp-actions" style="margin-block-start: 1rem">
-			<a class="rp-btn" href="/app/hire-delivery-order/new">{{ _("New delivery order") }}</a>
-			<a class="rp-btn" href="/app/hire-off-hire-note/new">{{ _("New off-hire note") }}</a>
+			<a class="rp-btn" href="/rental/admin/entry?type=delivery-order">{{ _("New delivery order") }}</a>
+			<a class="rp-btn" href="/rental/admin/entry?type=off-hire-note">{{ _("New off-hire note") }}</a>
 		</p>
 	</section>
 </div>

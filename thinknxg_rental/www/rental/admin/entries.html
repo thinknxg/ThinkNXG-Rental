@@ -1,0 +1,48 @@
+{% extends "templates/rental_portal/admin_base.html" %}
+{% from "templates/rental_portal/macros.html" import qty, money, date, pill %}
+
+{% block admin_content %}
+<div class="rp-head">
+	<h1>{{ _(e.cfg.plural) }}</h1>
+	{% if e.can_create %}<div class="rp-actions"><a class="rp-btn rp-btn--main" href="{{ new_url | e }}">{{ _("New {0}").format(_(e.cfg.label)) }}</a></div>{% endif %}
+</div>
+<form class="rp-filter" method="get">
+	{% if e.submittable %}
+	<div class="rp-tabs">
+		{% for v, label in (("draft", _("Drafts")), ("submitted", _("Submitted")), ("all", _("All"))) %}
+		<a href="/rental/admin/entries?type={{ key }}&view={{ v }}{% if q %}&q={{ q | urlencode }}{% endif %}" aria-current="{{ 'true' if e.view == v else 'false' }}">{{ label }}</a>
+		{% endfor %}
+	</div>
+	<input type="hidden" name="view" value="{{ e.view }}">
+	{% endif %}
+	<input type="hidden" name="type" value="{{ key }}">
+	<input type="search" name="q" value="{{ q | e }}" placeholder="{{ _('Search') }}" aria-label="{{ _('Search') }}">
+	<button class="rp-btn" type="submit">{{ _("Search") }}</button>
+</form>
+{% if e.rows %}
+<table class="rp-table">
+	<thead><tr>
+		<th>{{ _(e.cfg.label) }}</th>
+		{% for c in e.columns %}<th {% if c.fieldtype in ("Currency", "Float", "Int") %}class="rp-num"{% endif %}>{{ c.label }}</th>{% endfor %}
+		<th>{{ _("Status") }}</th>
+	</tr></thead>
+	<tbody>
+	{% for r in e.rows %}
+	<tr>
+		<td class="rp-first"><a href="{{ r.url | e }}">{{ r.name | e }}</a></td>
+		{% for c in e.columns %}
+		{% set v = r[c.fieldname] %}
+		{% if c.fieldtype == "Currency" %}<td data-label="{{ c.label }}" class="rp-num">{{ money(v, r.currency) }}</td>
+		{% elif c.fieldtype in ("Float", "Int") %}<td data-label="{{ c.label }}" class="rp-num">{{ qty(v) }}</td>
+		{% elif c.fieldtype == "Date" %}<td data-label="{{ c.label }}">{{ date(v) }}</td>
+		{% else %}<td data-label="{{ c.label }}">{{ (v or "") | e }}</td>{% endif %}
+		{% endfor %}
+		<td data-label="{{ _('Status') }}">{{ pill(r.status) }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="rp-none">{{ _("Nothing here yet.") if not q else _("Nothing matches.") }}</p>
+{% endif %}
+{% endblock %}

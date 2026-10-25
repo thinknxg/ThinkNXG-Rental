@@ -22,6 +22,14 @@
 		{% for item in ra.nav %}
 		<a href="{{ item.route | e }}" {% if item.key == ra.active %}aria-current="page"{% endif %}>{{ item.label | e }}</a>
 		{% endfor %}
+		<details class="rp-more">
+			<summary {% if ra.more_active %}aria-current="page"{% endif %}>{{ _("More") }}</summary>
+			<ul>
+				{% for item in ra.more %}
+				<li><a href="{{ item.route | e }}" {% if item.key == ra.active %}aria-current="page"{% endif %}>{{ item.label | e }}</a></li>
+				{% endfor %}
+			</ul>
+		</details>
 	</nav>
 	{% block admin_content %}{% endblock %}
 </div>
@@ -30,4 +38,5 @@
 {% block script %}
 {{ super() }}
 <script src="/assets/thinknxg_rental/js/rental_admin.js"></script>
+{% block admin_script %}{% endblock %}
 {% endblock %}

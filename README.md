@@ -186,13 +186,36 @@ the desk reports, so the numbers always agree with them.
 |---|---|
 | `/rental/admin` | Units out and free, utilization, a work queue (customer requests, draft deliveries, inspections pending, settlements to invoice, billing due, hires past end date, cross hire overdue), today's vehicles in and out, items running short. |
 | `/rental/admin/requests` | Customer portal requests, oldest first. **Start** marks one In Progress; **Handle in desk** opens it for conversion. |
-| `/rental/admin/contracts` | Live / past end date / all contracts with search, delivered and at-site quantities, billed-up-to, and a link to the customer's own view. |
+| `/rental/admin/contracts` (More > Contract status) | Live / past end date / all contracts with search, delivered and at-site quantities, billed-up-to, and a link to the customer's own view. |
 | `/rental/admin/sites` | All material at customer sites by customer, site and contract, with ownership, supplier and replacement value. Printable. |
 | `/rental/admin/yard` | Every rentable item: yard, reserved, free, at sites (own / cross hire), inspection, repair, utilization. |
 | `/rental/admin/billing` | Accrued unbilled rental per contract with **Bill now** / **Bill all due** (whole completed periods only, same as the nightly job), and unpaid rental invoices with days late. |
 | `/rental/admin/suppliers` | Open cross hire by supplier and order: on hire, at customer site, idle, overdue days. |
 
-Everything else (creating and submitting documents) links through to the desk form. The workspace
+### Data entry in the admin portal
+
+The menu bar holds the documents staff enter every day; the boards above sit under **More**.
+
+| Menu | Document | Next step offered after saving / submitting |
+|---|---|---|
+| Leads | Lead | Create Quotation (makes the Customer from the Lead, as the desk does) |
+| Quotations | Quotation (deal type decides the item columns) | Create Hire Order / Create Hire Order Contract |
+| Hire Orders | Hire Order | Create Rental Contract |
+| Hire Order Contracts | Hire Order Contract (job types; physical items shown after save) | Create Rental Contract |
+| Rental Contracts | Rental Contract | New Delivery Order, New Off-Hire Note |
+| Delivery Orders | Hire Delivery Order (**Get items from contract**) | New Off-Hire Note |
+| Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | |
+
+Each menu lists drafts, submitted documents or all, with search. The form is
+`/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
+(`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the
+ERPNext document: same naming series, validations, stock entries and ledger, and it shows straight away
+in the desk. A menu only appears for users who can read that DocType. Cancelling and amending stay in
+the desk (**Open in desk** on every form). Item tables use the full page width: columns share it by
+weight, headings wrap between words, and a table with many columns scrolls sideways on small screens.
+Which fields and columns each document shows is set in `ENTRY_TYPES` in `portal/entry.py`.
+
+Everything else links through to the desk form. The workspace
 has an **Admin Portal** shortcut, and the admin bar links back to the desk and to the customer portal.
 
 ## Reports
