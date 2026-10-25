@@ -209,12 +209,21 @@ The menu bar follows the order of work; the optional documents and the boards ab
 | Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | |
 | More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
 | More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
+| More > Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
 
-Quotations also show Currency and Payment Terms. Cost Center and Project show wherever the document has
-them: Project comes from the Rental Site (or the Rental Contract on deliveries, off-hires and cross hire),
-Cost Center is entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center
-is carried to its Rental Contract). Quotation Cost Center / Project appear only if the site's Quotation has
-those fields.
+Quotations and Sales Invoices show Currency, a **Payment Term** link (custom field `nxg_payment_term`,
+used instead of the Payment Terms Template: the payment schedule is one row for that term, and on a Sales
+Invoice the due date follows it), the **Sales Taxes and Charges Template** and the **Sales Taxes and
+Charges** table (choosing a template fills the table; rows can be edited). Rental Contracts also take a
+taxes template. Cost Center and Project show wherever the document has them. Project comes from the
+Rental Site, and from the Rental Contract on deliveries, off-hires and cross hire, so a new Rental
+Contract, Delivery Order or Off-Hire Note opened from the previous step already has Project, Customer
+Name and Rental Site filled; a Job Completion Report fills Customer Name from its Hire Order Contract.
+Wherever Project is entered, **+ New Project** creates one without leaving the form. Cost Center is
+entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center is carried
+to its Rental Contract).
+
+Run `bench --site <site> migrate` after updating the app so the Payment Term custom fields are created.
 
 Each menu lists drafts, submitted documents or all, with search. The form is
 `/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself

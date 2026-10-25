@@ -100,12 +100,60 @@
 				}, 200);
 			});
 			input.addEventListener("focus", () => input.dispatchEvent(new Event("input")), { once: true });
+			if (spec.create && !row) return [input, list, creator(spec, (name) => { input.value = name; set(name); })];
 			return [input, list];
 		} else {
 			input = el("input", { id, type: "text", onchange: (e) => set(e.target.value) });
 			input.value = value || "";
 		}
 		return [input];
+	}
+
+	// "New Project" beside a link: type the name, the record is made with the form's company and customer
+	function creator(spec, done) {
+		const c = spec.create;
+		const wrap = el("div", { class: "rp-create" });
+		const open = el("button", { type: "button", class: "rp-btn rp-btn--plain rp-btn--small", text: __("+ New {0}", [__(c.doctype)]) });
+		const name = el("input", { type: "text", "aria-label": __(c.label) , placeholder: __(c.label) });
+		const make = el("button", { type: "button", class: "rp-btn rp-btn--small", text: __("Create") });
+		const cancel = el("button", { type: "button", class: "rp-btn rp-btn--plain rp-btn--small", text: __("Cancel") });
+		const panel = el("div", { class: "rp-create-panel", hidden: true }, name, make, cancel);
+		open.addEventListener("click", () => { panel.hidden = false; open.hidden = true; name.focus(); });
+		cancel.addEventListener("click", () => { panel.hidden = true; open.hidden = false; });
+		const submit = () => {
+			if (!name.value.trim()) return name.focus();
+			const record = { doctype: c.doctype, [c.name_field]: name.value.trim() };
+			Object.entries(c.defaults || {}).forEach(([k, f]) => doc[f] && (record[k] = doc[f]));
+			make.disabled = true;
+			call("frappe.client.insert", { doc: JSON.stringify(record) }, "POST")
+				.then((r) => {
+					say(__("{0} {1} created.", [__(c.doctype), r.name]));
+					done(r.name);
+				})
+				.catch(() => (make.disabled = false));
+		};
+		make.addEventListener("click", submit);
+		name.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				submit();
+			}
+		});
+		wrap.append(open, panel);
+		return wrap;
+	}
+
+	// a field with "loads" refills a table from it (a tax template gives the tax rows)
+	function load_table(spec, value) {
+		const l = spec.loads;
+		if (!value) {
+			doc[l.table] = [];
+			return draw_tables();
+		}
+		call(l.method, { [spec.fieldname]: value, doctype: boot.doctype }).then((rows) => {
+			doc[l.table] = rows || [];
+			draw_tables();
+		});
 	}
 
 	// a selected link copies values from its record (item name and UOM, customer name, ...)
@@ -132,6 +180,7 @@
 					body = [el("div", { class: "rp-value", text: fmt(doc[spec.fieldname], spec.fieldtype) || "–" })];
 				} else {
 					body = input_for(spec, doc, (s, v) => {
+						if (s.loads) load_table(s, v);
 						if (s.fieldtype === "Select" || Object.keys(s.fetch || {}).length) {
 							fetch_into(s, v, doc, draw_all);
 							if (!Object.keys(s.fetch || {}).length) draw_all();
@@ -270,8 +319,8 @@
 			say(__("Creating the Sales Invoice..."));
 			call("thinknxg_rental.services.jcr_billing.make_combined_invoice", { jcrs: JSON.stringify(jcrs) }, "POST")
 				.then((invoice_name) => {
-					say(__("Sales Invoice {0} created as a draft. Opening it in the desk to check and submit.", [invoice_name]));
-					window.location.href = "/app/sales-invoice/" + encodeURIComponent(invoice_name);
+					say(__("Sales Invoice {0} created as a draft. Opening it to check and submit.", [invoice_name]));
+					window.location.href = "/rental/admin/entry?type=sales-invoice&name=" + encodeURIComponent(invoice_name);
 				})
 				.catch(() => {
 					say("");
@@ -301,5 +350,11 @@
 	form.replaceChildren(header, tables, totals, invoice, bar);
 	draw_all();
 	draw_invoice();
+	// links already filled (a form opened from a button) bring their values along, as on a change
+	if (boot.editable)
+		boot.header.forEach((spec) => {
+			const fetch = spec.fetch || {};
+			if (doc[spec.fieldname] && Object.keys(fetch).some((k) => !doc[k])) fetch_into(spec, doc[spec.fieldname], doc, draw_all);
+		});
 	if (boot.editable && boot.fill && doc[boot.fill.needs] && !(doc[boot.fill.table] || []).some((r) => r.item_code || r.job_type)) fill();
 })();

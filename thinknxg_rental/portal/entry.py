@@ -25,7 +25,20 @@ LIVE_CONTRACT = {"docstatus": 1, "status": ["not in", ["Completed", "Cancelled"]
 STOCK_ITEM = {"is_stock_item": 1, "disabled": 0}
 ITEM_FETCH = {"item_name": "item_name", "uom": "stock_uom"}
 COST_CENTER = {"fieldname": "cost_center", "filters": {"company": "$company", "is_group": 0}}
-PROJECT = {"fieldname": "project", "filters": {"company": "$company"}}
+# "create" puts a "New Project" button beside the field (name typed in place, company and customer from the form).
+PROJECT = {"fieldname": "project", "filters": {"company": "$company"},
+	"create": {"doctype": "Project", "name_field": "project_name", "label": "Project name", "defaults": {"company": "company", "customer": "customer"}}}
+# "loads" refills a table when the field changes: the template's tax rows, as the desk form does.
+TAX_TEMPLATE = {"fieldname": "taxes_and_charges", "filters": {"company": "$company", "disabled": 0},
+	"loads": {"table": "taxes", "method": "thinknxg_rental.portal.entry.get_tax_rows"}}
+TAX_TABLE = dict(fieldname="taxes", columns=[
+	{"fieldname": "charge_type", "w": 2.4},
+	{"fieldname": "account_head", "w": 3, "filters": {"company": "$company", "is_group": 0}},
+	{"fieldname": "description", "w": 3},
+	{"fieldname": "rate", "w": 1.2},
+	{"fieldname": "tax_amount", "w": 1.6, "ro": 1},
+	{"fieldname": "total", "w": 1.6, "ro": 1},
+])
 SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
@@ -58,7 +71,7 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", COST_CENTER, PROJECT,
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
@@ -85,6 +98,7 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_estimated_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
 				{"fieldname": "amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": NOT_MH}},
 			]),
+			TAX_TABLE,
 		],
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
 		next=[
@@ -273,7 +287,7 @@ ENTRY_TYPES = {
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
 			SITE, "project", "company", COST_CENTER, "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
 			"contract_date", "start_date", "end_date", "billing_cycle", "minimum_hire_days", "grace_days",
-			"security_deposit", "payment_terms_template",
+			"security_deposit", "payment_terms_template", "taxes_and_charges",
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
@@ -408,6 +422,35 @@ ENTRY_TYPES = {
 			]),
 		],
 		totals=["total_qty", "estimated_amount"],
+	),
+	"sales-invoice": dict(
+		menu="more",
+		doctype="Sales Invoice",
+		label="Sales Invoice",
+		plural="Sales Invoices",
+		title_field="customer_name",
+		search_fields=["customer_name", "customer", "nxg_rental_contract", "project"],
+		list_columns=[("customer_name", "Customer"), ("posting_date", "Date"), ("nxg_rental_contract", "Contract"), ("grand_total", "Total")],
+		header=[
+			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
+			{"fieldname": "customer_name", "ro": 1},
+			"company", "posting_date", "due_date", "currency", "nxg_payment_term", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			{"fieldname": "nxg_rental_contract", "ro": 1},
+			{"fieldname": "remarks", "wide": 1},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.4, "filters": {"disabled": 0}, "fetch": ITEM_FETCH},
+				{"fieldname": "item_name", "w": 2.4, "ro": 1},
+				{"fieldname": "description", "w": 4},
+				{"fieldname": "qty", "w": 1.1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "rate", "w": 1.5},
+				{"fieldname": "amount", "w": 1.6, "ro": 1},
+			]),
+			TAX_TABLE,
+		],
+		totals=["net_total", "total_taxes_and_charges", "grand_total", "outstanding_amount"],
 	),
 	"off-hire-note": dict(
 		doctype="Hire Off-Hire Note",
@@ -550,6 +593,8 @@ def _spec(meta, item, table=False):
 		"filters": item.get("filters") or {},
 		"fetch": item.get("fetch") or {},
 		"show_if": item.get("show_if") or {},
+		"create": item.get("create"),
+		"loads": item.get("loads"),
 	}
 	if df.fieldtype == "Select":
 		spec["choices"] = [o for o in (df.options or "").split("\n")]
@@ -669,6 +714,8 @@ def get_form_boot(key, name=None, form_dict=None):
 		for field in cfg.get("prefill", []):
 			if form_dict.get(field):
 				doc.set(field, form_dict.get(field))
+	if doc.is_new():
+		_apply_fetches(doc, cfg)
 	header, tables, totals = get_form_specs(cfg)
 	data = _doc_for_browser(doc, keep_child_names=not doc.is_new())
 	if doc.is_new():
@@ -791,9 +838,38 @@ def save_entry(entry_type: str, doc: str | dict, submit: int | str = 0):
 	return {"name": target.name, "url": entry_url(entry_type, target.name)}
 
 
+def _apply_fetches(doc, cfg):
+	"""A new document opened from a button carries only its links (the Rental Contract on a Delivery
+	Order, the Hire Order Contract on a JCR). Show what those links bring along straight away:
+	customer name, site, project, rather than only after the first save."""
+	meta = frappe.get_meta(cfg["doctype"])
+	for item in cfg["header"]:
+		if isinstance(item, str) or not item.get("fetch") or not doc.get(item["fieldname"]):
+			continue
+		df = meta.get_field(item["fieldname"])
+		doctype = item.get("link") or (df and df.options)
+		if not doctype or not frappe.has_permission(doctype, "read"):
+			continue
+		missing = {k: v for k, v in item["fetch"].items() if not doc.get(k) and meta.has_field(k)}
+		if not missing:
+			continue
+		values = frappe.db.get_value(doctype, doc.get(item["fieldname"]), list(set(missing.values())), as_dict=True) or {}
+		for target, source in missing.items():
+			if values.get(source):
+				doc.set(target, values[source])
+
+
+@frappe.whitelist()
+def get_tax_rows(taxes_and_charges: str, doctype: str | None = None):
+	"""The tax rows of a Sales Taxes and Charges Template, as ERPNext copies them into a document."""
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+	return get_taxes_and_charges("Sales Taxes and Charges Template", taxes_and_charges) or []
+
+
 def _set_missing(doc):
 	# Selling documents fill currency, price list, item rates and taxes the way the desk form does.
-	if doc.doctype == "Quotation" and hasattr(doc, "set_missing_values"):
+	if doc.doctype in ("Quotation", "Sales Invoice") and hasattr(doc, "set_missing_values"):
 		doc.set_missing_values(for_validate=not doc.is_new())
 
 
