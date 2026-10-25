@@ -24,6 +24,9 @@ NOT_MH = [None, "", "Material Sale", "Hire Order Contract"]
 LIVE_CONTRACT = {"docstatus": 1, "status": ["not in", ["Completed", "Cancelled"]]}
 STOCK_ITEM = {"is_stock_item": 1, "disabled": 0}
 ITEM_FETCH = {"item_name": "item_name", "uom": "stock_uom"}
+COST_CENTER = {"fieldname": "cost_center", "filters": {"company": "$company", "is_group": 0}}
+PROJECT = {"fieldname": "project", "filters": {"company": "$company"}}
+SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
 # show_if {field: [values]}, fetch {target: source field on the linked record}, wide}.
@@ -55,7 +58,7 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company",
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", COST_CENTER, PROJECT,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
@@ -105,7 +108,7 @@ ENTRY_TYPES = {
 			"site_name",
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
 			{"fieldname": "customer_name", "ro": 1},
-			"company", "project", {"fieldname": "address", "filters": {"link_doctype": "Customer", "link_name": "$customer"}},
+			"company", PROJECT, {"fieldname": "address", "filters": {"link_doctype": "Customer", "link_name": "$customer"}},
 			"site_contact", "contact_phone", {"fieldname": "nxg_quotation", "ro": 1}, "disabled",
 			{"fieldname": "location", "wide": 1},
 		],
@@ -129,8 +132,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("required_from", "From"), ("estimated_amount", "Estimate")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			{"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}},
-			"company", "order_date", "required_from", "expected_return_date", "rate_basis", "billing_cycle",
+			SITE, "project", "company", COST_CENTER, "order_date", "required_from", "expected_return_date", "rate_basis", "billing_cycle",
 			"customer_reference", "quotation", "sales_person", "payment_terms_template",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -171,8 +173,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("required_from", "Erection"), ("total_contract_amount", "Contract")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			{"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}},
-			"company", "order_date", "required_from", "customer_reference", "customer_reference_date",
+			SITE, "project", "company", COST_CENTER, "order_date", "required_from", "customer_reference", "customer_reference_date",
 			"contract_charge_billing", "taxes_and_charges", "payment_terms_template",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -270,8 +271,7 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_site", "Site"), ("start_date", "Start"), ("end_date", "End")],
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
-			{"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}},
-			"company", "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
+			SITE, "project", "company", COST_CENTER, "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
 			"contract_date", "start_date", "end_date", "billing_cycle", "minimum_hire_days", "grace_days",
 			"security_deposit", "payment_terms_template",
 			{"fieldname": "remarks", "wide": 1},
@@ -305,9 +305,11 @@ ENTRY_TYPES = {
 		list_columns=[("customer_name", "Customer"), ("rental_contract", "Contract"), ("posting_date", "Dispatch date"), ("total_qty", "Qty")],
 		prefill=["rental_contract"],
 		header=[
-			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT, "fetch": {"customer_name": "customer_name", "rental_site": "rental_site"}},
+			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT,
+				"fetch": {"customer_name": "customer_name", "rental_site": "rental_site", "project": "project"}},
 			{"fieldname": "customer_name", "ro": 1},
 			{"fieldname": "rental_site", "ro": 1},
+			"project",
 			"posting_date", "vehicle_no", "driver_name", "driver_phone", "transporter", "dispatch_reference",
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -385,7 +387,8 @@ ENTRY_TYPES = {
 			{"fieldname": "supplier", "fetch": {"supplier_name": "supplier_name"}},
 			{"fieldname": "supplier_name", "ro": 1},
 			"supplier_reference", "company", "order_date",
-			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT},
+			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT, "fetch": {"project": "project"}},
+			"project",
 			{"fieldname": "material_reservation", "filters": {"docstatus": 1}},
 			"hire_from", "expected_return_date", "rate_basis", "receive_at", "taxes_and_charges",
 			{"fieldname": "remarks", "wide": 1},
@@ -416,9 +419,10 @@ ENTRY_TYPES = {
 		prefill=["rental_contract"],
 		header=[
 			{"fieldname": "rental_contract", "filters": {"docstatus": 1, "status": ["in", ["On Hire", "Active"]]},
-				"fetch": {"customer_name": "customer_name", "rental_site": "rental_site", "grace_days": "grace_days"}},
+				"fetch": {"customer_name": "customer_name", "rental_site": "rental_site", "grace_days": "grace_days", "project": "project"}},
 			{"fieldname": "customer_name", "ro": 1},
 			{"fieldname": "rental_site", "ro": 1},
+			"project",
 			"off_hire_type", "off_hire_date", "return_date", "grace_days", "reason", "vehicle_no", "driver_name",
 			{"fieldname": "remarks", "wide": 1},
 		],

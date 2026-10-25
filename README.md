@@ -210,6 +210,12 @@ The menu bar follows the order of work; the optional documents and the boards ab
 | More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
 | More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
 
+Quotations also show Currency and Payment Terms. Cost Center and Project show wherever the document has
+them: Project comes from the Rental Site (or the Rental Contract on deliveries, off-hires and cross hire),
+Cost Center is entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center
+is carried to its Rental Contract). Quotation Cost Center / Project appear only if the site's Quotation has
+those fields.
+
 Each menu lists drafts, submitted documents or all, with search. The form is
 `/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
 (`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the

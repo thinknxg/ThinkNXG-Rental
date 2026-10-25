@@ -25,6 +25,7 @@ frappe.ui.form.on("Hire Order", {
 	setup(frm) {
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
 		frm.set_query("rental_site", () => ({ filters: { customer: frm.doc.customer, disabled: 0 } }));
+		frm.set_query("cost_center", () => ({ filters: { company: frm.doc.company, is_group: 0 } }));
 	},
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) return;
