@@ -39,3 +39,21 @@
 .nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"] {
     flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important;
 }
+
+/* Quotation Item grid, Deal Type = Material Hire: fixed column widths, scroll sideways */
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid-container {
+    overflow-x: auto;
+}
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid {
+    min-width: 1500px;
+}
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_code"]             { flex: 0 0 80px !important;  width: 80px !important;  max-width: 80px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_name"]             { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="uom"]                   { flex: 0 0 80px !important;  width: 80px !important;  max-width: 80px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"]           { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"]                   { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis"]        { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_hire_days"]         { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis_amount"] { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_estimated_amount"]  { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]                  { flex: 0 0 80px !important;  width: 80px !important;  max-width: 80px !important; }

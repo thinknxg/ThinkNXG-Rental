@@ -600,3 +600,13 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+// Material Hire quotations: switches on the fixed item grid widths in thinknxg_rental.css.
+function nxg_toggle_mh_grid_class(frm) {
+    frm.$wrapper.toggleClass("nxg-mh-quotation", frm.doc.deal_type === "Material Hire");
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) { nxg_toggle_mh_grid_class(frm); },
+    deal_type(frm) { nxg_toggle_mh_grid_class(frm); },
+});
