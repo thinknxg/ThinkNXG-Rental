@@ -57,3 +57,19 @@
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis_amount"] { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_estimated_amount"]  { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]                  { flex: 0 0 80px !important;  width: 80px !important;  max-width: 80px !important; }
+
+/* Quotation Item grid, Deal Type = Material Hire: visual column order
+   Item Code, Item Name, Description, UOM, Rate Basis, Hire Days, Rate Basis Amount, Estimated Amount, Quantity, Rate */
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .data-row > .row-index,
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .data-row > .row-check { order: 0; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .data-row > :not(.grid-static-col):not(.row-index):not(.row-check) { order: 99; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_code"]             { order: 1; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_name"]             { order: 2; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"]           { order: 3; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="uom"]                   { order: 4; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis"]        { order: 5; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_hire_days"]         { order: 6; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis_amount"] { order: 7; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_estimated_amount"]  { order: 8; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"]                   { order: 9; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]                  { order: 10; }
