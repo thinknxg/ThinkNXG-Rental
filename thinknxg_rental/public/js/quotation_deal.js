@@ -610,3 +610,19 @@ frappe.ui.form.on("Quotation", {
     refresh(frm) { nxg_toggle_mh_grid_class(frm); },
     deal_type(frm) { nxg_toggle_mh_grid_class(frm); },
 });
+
+// Users whose saved Quotation Item layout predates the Weight column get the default layout (with Weight) once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            const grid = frappe.get_user_settings("Quotation", "GridView") || {};
+            const names = (grid["Quotation Item"] || []).map((c) => c.fieldname);
+            if (!names.length || names.includes("nxg_weight")) return;
+            if (localStorage.getItem("nxg_quote_cols_v14") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v14", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
+    },
+});
