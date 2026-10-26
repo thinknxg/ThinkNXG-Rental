@@ -4,6 +4,8 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
+from thinknxg_rental.services import desk_menu
+
 
 # Quotation deal types that use Length / Breadth / Height / Duration. Keep in step with
 # events/quotation.py and public/js/quotation_deal.js.
@@ -185,6 +187,7 @@ def after_migrate():
 	setup_uoms()
 	ensure_settings_defaults()
 	ensure_extra_warehouses()
+	desk_menu.sync()
 	frappe.clear_cache()
 
 

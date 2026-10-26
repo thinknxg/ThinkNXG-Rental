@@ -1,9 +1,14 @@
 {
  "app": "thinknxg_rental",
  "charts": [],
- "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Off-Hire Note\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Cross Hire Order\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"scadm\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Operations\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Job Type Contracts\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns and Settlement\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"menu\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"thinkNXG Rental Menu\", \"col\": 12}}, {\"id\": \"sp0\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Lead\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Quotation\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Sales Invoice\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"sc8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Orders\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Contracts\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & Billing\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd6\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
  "creation": "2026-10-06 10:00:00.000000",
- "custom_blocks": [],
+ "custom_blocks": [
+  {
+   "custom_block_name": "thinkNXG Rental Menu",
+   "label": "thinkNXG Rental Menu"
+  }
+ ],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
@@ -16,20 +21,58 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Hire Operations",
-   "link_count": 7,
+   "label": "Sales",
+   "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
   },
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Portal Request",
+   "label": "Lead",
+   "link_count": 0,
+   "link_to": "Lead",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Quotation",
+   "link_count": 0,
+   "link_to": "Quotation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rental Site",
+   "link_count": 0,
+   "link_to": "Rental Site",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Customer Request",
    "link_count": 0,
    "link_to": "Rental Portal Request",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Hire Orders",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
   },
   {
    "hidden": 0,
@@ -54,54 +97,6 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Contract",
-   "link_count": 0,
-   "link_to": "Rental Contract",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Rental Material Reservation",
-   "link_count": 0,
-   "link_to": "Rental Material Reservation",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Hire Delivery Order",
-   "link_count": 0,
-   "link_to": "Hire Delivery Order",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Hire Off-Hire Note",
-   "link_count": 0,
-   "link_to": "Hire Off-Hire Note",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Job Type Contracts",
-   "link_count": 2,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Job Completion Report",
    "link_count": 0,
    "link_to": "Job Completion Report",
@@ -122,7 +117,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Returns and Settlement",
+   "label": "Contracts",
    "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
@@ -130,9 +125,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Return Inspection",
+   "label": "Rental Contract",
    "link_count": 0,
-   "link_to": "Rental Return Inspection",
+   "link_to": "Rental Contract",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -140,9 +135,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Damage Settlement",
+   "label": "Material Reservation",
    "link_count": 0,
-   "link_to": "Rental Damage Settlement",
+   "link_to": "Rental Material Reservation",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -150,9 +145,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Billing Schedule",
+   "label": "Delivery Order",
    "link_count": 0,
-   "link_to": "Rental Billing Schedule",
+   "link_to": "Hire Delivery Order",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -160,9 +155,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Sales Invoice",
+   "label": "Off-Hire Note",
    "link_count": 0,
-   "link_to": "Sales Invoice",
+   "link_to": "Hire Off-Hire Note",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -198,7 +193,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Purchase Receipt",
+   "label": "Cross Hire Receipt",
    "link_count": 0,
    "link_to": "Purchase Receipt",
    "link_type": "DocType",
@@ -221,6 +216,74 @@
    "label": "Purchase Invoice",
    "link_count": 0,
    "link_to": "Purchase Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Returns & Billing",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Return Inspection",
+   "link_count": 0,
+   "link_to": "Rental Return Inspection",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Damage Settlement",
+   "link_count": 0,
+   "link_to": "Rental Damage Settlement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Invoice",
+   "link_count": 0,
+   "link_to": "Sales Invoice",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Rental Billing Schedule",
+   "link_count": 0,
+   "link_to": "Rental Billing Schedule",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Order",
+   "link_count": 0,
+   "link_to": "Sales Order",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Delivery Note",
+   "link_count": 0,
+   "link_to": "Delivery Note",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -324,9 +387,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Rental Site",
+   "label": "Job Type",
    "link_count": 0,
-   "link_to": "Rental Site",
+   "link_to": "Job Type",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -352,7 +415,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-26 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",
@@ -366,59 +429,59 @@
  "shortcuts": [
   {
    "color": "Grey",
-   "doc_view": "List",
-   "label": "Hire Order",
-   "link_to": "Hire Order",
-   "type": "DocType"
+   "label": "Lead",
+   "type": "DocType",
+   "link_to": "Lead",
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "List",
+   "label": "Quotation",
+   "type": "DocType",
+   "link_to": "Quotation",
+   "doc_view": "List"
+  },
+  {
+   "color": "Grey",
    "label": "Hire Order Contract",
+   "type": "DocType",
    "link_to": "Hire Order Contract",
-   "type": "DocType"
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "List",
-   "label": "Job Completion Report",
-   "link_to": "Job Completion Report",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
    "label": "Rental Contract",
+   "type": "DocType",
    "link_to": "Rental Contract",
-   "type": "DocType"
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "List",
-   "label": "Hire Delivery Order",
+   "label": "Delivery Order",
+   "type": "DocType",
    "link_to": "Hire Delivery Order",
-   "type": "DocType"
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "List",
-   "label": "Hire Off-Hire Note",
-   "link_to": "Hire Off-Hire Note",
-   "type": "DocType"
+   "label": "Job Completion Report",
+   "type": "DocType",
+   "link_to": "Job Completion Report",
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "List",
-   "label": "Cross Hire Order",
-   "link_to": "Cross Hire Order",
-   "type": "DocType"
+   "label": "Sales Invoice",
+   "type": "DocType",
+   "link_to": "Sales Invoice",
+   "doc_view": "List"
   },
   {
    "color": "Grey",
-   "doc_view": "",
    "label": "Material at Site",
+   "type": "Report",
    "link_to": "Material at Site",
-   "type": "Report"
+   "doc_view": ""
   },
   {
    "color": "Grey",
