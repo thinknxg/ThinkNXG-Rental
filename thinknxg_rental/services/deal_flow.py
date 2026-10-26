@@ -30,12 +30,44 @@ def _customer_from_lead(lead):
     return doc.name
 
 
+def _prospect_from_lead(lead):
+    """The Prospect this Lead already belongs to, otherwise a new one named after the Lead's company
+    (or the Lead's own name when it has no company). An existing Prospect of that name is reused."""
+    prospect = frappe.db.get_value("Prospect Lead", {"lead": lead.name, "parenttype": "Prospect"}, "parent")
+    if prospect:
+        return prospect
+    frappe.has_permission("Prospect", "create", throw=True)
+    name = lead.get("company_name") or lead.get("lead_name") or lead.name
+    if frappe.db.exists("Prospect", name):
+        doc = frappe.get_doc("Prospect", name)
+        doc.append("prospect_lead", {"lead": lead.name})
+        doc.save()
+    else:
+        doc = frappe.new_doc("Prospect")
+        doc.company_name = name
+        for field in ("territory", "industry", "market_segment", "no_of_employees", "website", "company"):
+            if doc.meta.has_field(field) and lead.get(field):
+                doc.set(field, lead.get(field))
+        if doc.meta.has_field("customer_group") and not doc.get("customer_group"):
+            doc.customer_group = frappe.db.get_single_value("Selling Settings", "customer_group")
+        doc.append("prospect_lead", {"lead": lead.name})
+        doc.insert()
+    return doc.name
+
+
 def _set_party_from_lead(source, target):
-    # The quotation is addressed to the Customer made from the Lead, so nothing has to be edited by hand.
-    customer = _customer_from_lead(source)
-    target.quotation_to = "Customer"
-    target.party_name = customer
-    target.customer_name = frappe.db.get_value("Customer", customer, "customer_name") or source.get("lead_name") or source.name
+    # An existing Customer of this Lead is quoted directly. A new lead is quoted as a Prospect
+    # (made here, or the one it already belongs to), and becomes a Customer later from the quotation.
+    customer = frappe.db.get_value("Customer", {"lead_name": source.name}, "name")
+    if customer:
+        target.quotation_to = "Customer"
+        target.party_name = customer
+        target.customer_name = frappe.db.get_value("Customer", customer, "customer_name") or source.get("lead_name") or source.name
+    else:
+        prospect = _prospect_from_lead(source)
+        target.quotation_to = "Prospect"
+        target.party_name = prospect
+        target.customer_name = prospect
     if source.get("email_id") and target.meta.has_field("contact_email"):
         target.contact_email = source.email_id
     if source.get("phone") and target.meta.has_field("contact_mobile"):
