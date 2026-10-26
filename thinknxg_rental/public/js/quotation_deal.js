@@ -247,6 +247,7 @@ const NXG_QUOTE_COLUMNS_V2 = [
     { fieldname: "item_name", columns: 1 },
     { fieldname: "uom", columns: 1 },
     { fieldname: "description", columns: 1 },
+    { fieldname: "nxg_weight", columns: 1 },
     { fieldname: "nxg_length", columns: 1 },
     { fieldname: "nxg_breadth", columns: 1 },
     { fieldname: "nxg_height", columns: 1 },
@@ -550,6 +551,49 @@ frappe.ui.form.on("Quotation", {
         try {
             if (localStorage.getItem("nxg_quote_cols_v12") === "1") return;
             localStorage.setItem("nxg_quote_cols_v12", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
+    },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Material Sale quotations: Item Code, Item Name, UOM, Description, Weight, Quantity, Rate, Amount.
+// Weight is shown for Material Sale only; the class switches on the fixed widths in thinknxg_rental.css.
+// ---------------------------------------------------------------------------------------------
+function nxg_toggle_weight_column(frm) {
+    const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+    const df = grid && grid.get_docfield && grid.get_docfield("nxg_weight");
+    if (!df) return; // custom field not created yet (migrate pending)
+    const show = frm.doc.deal_type === "Material Sale";
+    const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_weight");
+    if (show === drawn && !!df.hidden === !show) return; // already right
+    grid.set_column_disp(["nxg_weight"], show);
+    grid.reset_grid();
+}
+
+function nxg_toggle_ms_grid_class(frm) {
+    frm.$wrapper.toggleClass("nxg-ms-quotation", frm.doc.deal_type === "Material Sale");
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        nxg_toggle_weight_column(frm);
+        nxg_toggle_ms_grid_class(frm);
+    },
+    deal_type(frm) {
+        nxg_toggle_weight_column(frm);
+        nxg_toggle_ms_grid_class(frm);
+    },
+});
+
+// Users with a saved grid layout get the new column list (with Weight) once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            if (localStorage.getItem("nxg_quote_cols_v13") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v13", "1");
             frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
         } catch (e) {
             console.warn("Quotation grid layout not updated", e);
