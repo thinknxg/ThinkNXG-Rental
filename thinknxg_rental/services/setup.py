@@ -20,6 +20,10 @@ def get_custom_fields():
 				description="Identifies the customer requirement and selects the downstream document flow."),
 		],
 		"Quotation": [
+			# ERPNext's Quotation has no Project or Cost Center; same names as on Sales Order so the
+			# standard Quotation -> Sales Order mapping carries them.
+			dict(fieldname="project", label="Project", fieldtype="Link", options="Project", insert_after="order_type"),
+			dict(fieldname="cost_center", label="Cost Center", fieldtype="Link", options="Cost Center", insert_after="project"),
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
 				description="Carries the Deal Type from the Lead and selects the next document."),

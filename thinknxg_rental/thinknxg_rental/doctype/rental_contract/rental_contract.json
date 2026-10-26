@@ -144,7 +144,7 @@
    "label": "Project",
    "options": "Project",
    "fetch_from": "rental_site.project",
-   "read_only": 1
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "cb_34",
@@ -434,7 +434,7 @@
    "link_fieldname": "nxg_rental_contract"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-25 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Contract",

@@ -196,3 +196,66 @@
 @media print {
 	.rp-adminbar, .rp-filter { display: none; }
 }
+
+/* admin menu: the daily documents in the bar, the boards under "More" */
+.rp-admin .rp-nav { flex-wrap: wrap; column-gap: 1.5rem; overflow: visible; }
+.rp-more { position: relative; }
+.rp-more summary { list-style: none; cursor: pointer; padding-block: 0.75rem; color: var(--rp-steel); font-weight: 500; border-block-end: 4px solid transparent; margin-block-end: -1px; white-space: nowrap; }
+.rp-more summary::-webkit-details-marker { display: none; }
+.rp-more summary::after { content: "\25be"; margin-inline-start: 0.35rem; }
+.rp-more summary:hover, .rp-more[open] summary { color: var(--rp-ink); }
+.rp-more summary[aria-current="page"] { color: var(--rp-ink); border-block-end-color: var(--rp-hivis); font-weight: 600; }
+.rp-more ul { position: absolute; inset-inline-end: 0; inset-block-start: 100%; z-index: 20; list-style: none; margin: 0; padding: 0.35rem 0; min-inline-size: 13rem; background: #fff; border: 1.5px solid var(--rp-ink); border-radius: 0.35rem; box-shadow: 0 6px 18px rgb(30 42 51 / 0.12); }
+.rp-more li a { display: block; padding: 0.45rem 0.9rem; text-decoration: none; }
+.rp-more li a:hover, .rp-more li a[aria-current="page"] { background: var(--rp-panel); }
+.rp-more li a[aria-current="page"] { font-weight: 600; }
+
+/* admin data entry (/rental/admin/entry) */
+.rp-entry-head { background: var(--rp-panel); border-inline-start: 6px solid var(--rp-hivis); padding: 1.25rem 1.5rem; margin-block-end: 2rem; }
+.rp-field { min-inline-size: 0; }
+.rp-field--wide { grid-column: 1 / -1; }
+.rp-field label { font-weight: 600; font-size: 0.92rem; margin-block-end: 0.3rem; display: block; }
+.rp-entry input:not([type="checkbox"]), .rp-entry select, .rp-entry textarea { font: inherit; inline-size: 100%; padding: 0.5rem 0.6rem; border: 1.5px solid var(--rp-steel); border-radius: 0.3rem; background: #fff; color: var(--rp-ink); min-inline-size: 0; }
+.rp-entry textarea { min-block-size: 4.5rem; resize: vertical; }
+.rp-entry input[type="checkbox"] { inline-size: 1.2rem; block-size: 1.2rem; }
+.rp-entry .rp-value { display: block; padding-block: 0.5rem; font-weight: 500; overflow-wrap: anywhere; }
+.rp-req { color: var(--rp-stop); }
+.rp-create { margin-block-start: 0.35rem; }
+.rp-create-panel { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.rp-entry .rp-create-panel input { flex: 1 1 10rem; inline-size: auto; }
+.rp-grid textarea { min-block-size: 2.4rem; padding: 0.38rem 0.4rem; font-size: 0.95rem; }
+.rp-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.rp-head--table { align-items: center; margin-block-end: 0.75rem; }
+
+/* the item table: columns share the full width, headings wrap onto two lines rather than being cut off */
+.rp-grid-wrap { overflow-x: auto; border: 1px solid var(--rp-line); border-radius: 0.35rem; background: #fff; }
+.rp-grid { inline-size: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.95rem; }
+.rp .rp-grid th { text-align: start; vertical-align: bottom; font-weight: 600; font-size: 0.84rem; line-height: 1.25; color: var(--rp-ink); background: var(--rp-panel); padding: 0.55rem 0.45rem; border-block-end: 1.5px solid var(--rp-ink); white-space: normal; overflow-wrap: normal; word-break: normal; }
+.rp-grid td { padding: 0.3rem 0.45rem; border-block-end: 1px solid var(--rp-line); vertical-align: middle; min-inline-size: 0; }
+.rp-grid tbody tr:hover { background: #f6f8f9; }
+.rp-grid th.rp-num, .rp-grid td.rp-num { text-align: end; }
+.rp-grid td.rp-num input { text-align: end; }
+.rp-grid .rp-idx { color: var(--rp-steel); font-size: 0.85rem; }
+.rp-grid input:not([type="checkbox"]), .rp-grid select { padding: 0.38rem 0.4rem; font-size: 0.95rem; }
+.rp-grid .rp-value { padding-block: 0.38rem; font-weight: 400; }
+.rp-grid td.rp-act { text-align: center; }
+.rp-grid .rp-btn--plain { font-size: 1.25rem; line-height: 1; padding: 0.2rem 0.4rem; text-decoration: none; color: var(--rp-steel); }
+.rp-grid .rp-btn--plain:hover { color: var(--rp-stop); }
+.rp-entry-totals { margin-block: 0 1.5rem; }
+.rp-entry-totals dd { font-family: var(--rp-display); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rp-invoice { background: var(--rp-panel); border-inline-start: 6px solid var(--rp-hivis); padding: 1.25rem 1.5rem; }
+.rp-invoice > * + * { margin-block-start: 0.75rem; }
+.rp-checks { list-style: none; padding: 0; display: grid; gap: 0.4rem; }
+.rp-checks li { display: flex; gap: 0.6rem; align-items: center; }
+.rp-checks label { margin: 0; font-weight: 500; }
+.rp-entry-bar { position: sticky; inset-block-end: 0; padding-block: 0.9rem; background: var(--rp-paper); border-block-start: 1px solid var(--rp-line); z-index: 5; }
+
+@media (max-width: 760px) {
+	.rp-more ul { inset-inline-end: auto; inset-inline-start: 0; }
+	.rp-admin .rp-nav { column-gap: 1.1rem; }
+	.rp-admin .rp-nav a, .rp-more summary { padding-block: 0.45rem; }
+	.rp-entry-head { padding: 1rem; }
+}
+@media print {
+	.rp-entry-bar, .rp-grid .rp-act { display: none; }
+}

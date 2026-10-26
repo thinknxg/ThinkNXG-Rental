@@ -186,13 +186,66 @@ the desk reports, so the numbers always agree with them.
 |---|---|
 | `/rental/admin` | Units out and free, utilization, a work queue (customer requests, draft deliveries, inspections pending, settlements to invoice, billing due, hires past end date, cross hire overdue), today's vehicles in and out, items running short. |
 | `/rental/admin/requests` | Customer portal requests, oldest first. **Start** marks one In Progress; **Handle in desk** opens it for conversion. |
-| `/rental/admin/contracts` | Live / past end date / all contracts with search, delivered and at-site quantities, billed-up-to, and a link to the customer's own view. |
+| `/rental/admin/contracts` (More > Contract status) | Live / past end date / all contracts with search, delivered and at-site quantities, billed-up-to, and a link to the customer's own view. |
 | `/rental/admin/sites` | All material at customer sites by customer, site and contract, with ownership, supplier and replacement value. Printable. |
 | `/rental/admin/yard` | Every rentable item: yard, reserved, free, at sites (own / cross hire), inspection, repair, utilization. |
 | `/rental/admin/billing` | Accrued unbilled rental per contract with **Bill now** / **Bill all due** (whole completed periods only, same as the nightly job), and unpaid rental invoices with days late. |
 | `/rental/admin/suppliers` | Open cross hire by supplier and order: on hire, at customer site, idle, overdue days. |
 
-Everything else (creating and submitting documents) links through to the desk form. The workspace
+### Data entry in the admin portal
+
+The menu bar follows the order of work; the optional documents and the boards above sit under **More**.
+
+| Menu | Document | Next step offered on the form |
+|---|---|---|
+| Leads | Lead | Create Quotation (makes the Customer from the Lead, as the desk does) |
+| Quotations | Quotation (deal type decides the item columns, as in the desk) | Create Rental Site; once submitted, Create Hire Order / Create Hire Order Contract, or Create Sales Order for a Material Sale |
+| Rental Sites | Rental Site (keeps the quotation it was made from) | Create Hire Order / Hire Order Contract from that quotation, with the site filled in |
+| Hire Orders | Hire Order | Create Rental Contract; when there is a shortfall, Material Reservation and Cross Hire Order |
+| Hire Order Contracts | Hire Order Contract (job types; physical items shown after save) | Create Rental Contract, Create Job Completion Report; on a shortfall, Material Reservation and Cross Hire Order |
+| JCRs | Job Completion Report (erection / dismantle dates per job line) | Sales Invoice panel: this JCR alone, or ticked with other open JCRs of the customer on one invoice |
+| Rental Contracts | Rental Contract | New Delivery Order, New Off-Hire Note |
+| Delivery Orders | Hire Delivery Order (**Get items from contract**) | New Off-Hire Note |
+| Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | Once submitted: Create Return Inspection (when returned items need inspecting), then Create Damage Settlement |
+| More > Return Inspections | Rental Return Inspection (good / repairable / damaged per item) | Create Damage Settlement |
+| More > Damage Settlements | Rental Damage Settlement | Create Sales Invoice (saves the draft invoice and opens it) |
+| More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
+| More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
+| More > Sales Orders | Sales Order (made from a submitted Material Sale quotation, or entered directly) | Delivery and billing stay in the desk |
+| More > Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
+
+Quotations, Sales Orders and Sales Invoices show Currency, the **Payment Terms Template**, the **Sales
+Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing a template fills the
+table; rows can be edited); a Sales Order made from a quotation keeps its Payment Terms Template. Rental Contracts also take a
+taxes template. Cost Center and Project show wherever the document has them; the app adds both to the
+Quotation (ERPNext's Quotation has neither) and they carry on to the Sales Order, Hire Order and Hire
+Order Contract. On Hire Orders, Hire Order Contracts and Rental Contracts, Project fills from the Rental
+Site when left empty and can be changed. Deliveries, off-hires and cross hire take it from the Rental
+Contract, so a new Rental
+Contract, Delivery Order or Off-Hire Note opened from the previous step already has Project, Customer
+Name and Rental Site filled; a Job Completion Report fills Customer Name from its Hire Order Contract.
+Wherever Project is entered, **+ New Project** creates one without leaving the form. Cost Center is
+entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center is carried
+to its Rental Contract).
+
+Run `bench --site <site> migrate` after updating the app so the new custom fields (Project and Cost Center on
+Quotation) and the field changes are applied, and the earlier Payment Term field is removed.
+
+Quotations, Hire Orders, Hire Order Contracts, JCRs, Sales Invoices and Cross Hire Orders have a **Print**
+button once saved. It opens ERPNext's print view with the document's default print format and starts
+printing; Get PDF is on the same page. A Cross Hire Order also has **Print Purchase Order** for the
+Purchase Order it made on submit.
+
+Each menu lists drafts, submitted documents or all, with search. The form is
+`/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
+(`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the
+ERPNext document: same naming series, validations, stock entries and ledger, and it shows straight away
+in the desk. A menu only appears for users who can read that DocType. Cancelling and amending stay in
+the desk (**Open in desk** on every form). Item tables use the full page width: columns share it by
+weight, headings wrap between words, and a table with many columns scrolls sideways on small screens.
+Which fields and columns each document shows is set in `ENTRY_TYPES` in `portal/entry.py`.
+
+Everything else links through to the desk form. The workspace
 has an **Admin Portal** shortcut, and the admin bar links back to the desk and to the customer portal.
 
 ## Reports

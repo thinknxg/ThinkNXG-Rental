@@ -10,12 +10,14 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, date_diff, flt, getdate, nowdate
 
+from thinknxg_rental.portal.entry import entry_nav
 from thinknxg_rental.portal.utils import get_requests, is_staff
 
-NAV = (
-	("board", "/rental/admin", "Board"),
-	("requests", "/rental/admin/requests", "Requests"),
-	("contracts", "/rental/admin/contracts", "Contracts"),
+# The menu bar holds the board and the documents people enter every day (see portal/entry.py);
+# the optional documents (reservations, cross hire) and the read-mostly boards sit under "More".
+MORE_NAV = (
+	("requests", "/rental/admin/requests", "Customer requests"),
+	("contracts", "/rental/admin/contracts", "Contract status"),
 	("sites", "/rental/admin/sites", "Material at site"),
 	("yard", "/rental/admin/yard", "Yard"),
 	("billing", "/rental/admin/billing", "Billing"),
@@ -38,9 +40,12 @@ def build_admin_context(context, active, title):
 		raise frappe.Redirect
 	if not is_staff():
 		raise frappe.PermissionError(_("The rental admin portal is for rental staff only."))
+	more = entry_nav("more") + [frappe._dict(key=k, route=r, label=_(label)) for k, r, label in MORE_NAV]
 	context.ra = frappe._dict(
 		active=active,
-		nav=[frappe._dict(key=k, route=r, label=_(label)) for k, r, label in NAV],
+		nav=[frappe._dict(key="board", route="/rental/admin", label=_("Board"))] + entry_nav(),
+		more=more,
+		more_active=any(m.key == active for m in more),
 		today=getdate(nowdate()),
 		can_bill=frappe.has_permission("Rental Billing Schedule", "submit"),
 		user=frappe.session.user,
@@ -50,6 +55,7 @@ def build_admin_context(context, active, title):
 	context.no_cache = 1
 	context.show_sidebar = False
 	context.no_breadcrumbs = True
+	context.full_width = 1
 	return context.ra
 
 

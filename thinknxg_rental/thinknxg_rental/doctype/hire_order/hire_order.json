@@ -10,6 +10,7 @@
   "customer_name",
   "rental_site",
   "project",
+  "cost_center",
   "cb_24",
   "order_date",
   "status",
@@ -85,7 +86,14 @@
    "label": "Project",
    "options": "Project",
    "fetch_from": "rental_site.project",
-   "read_only": 1
+   "fetch_if_empty": 1
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center",
+   "description": "Carried to the Rental Contract made from this order."
   },
   {
    "fieldname": "cb_24",
@@ -270,7 +278,7 @@
    "link_fieldname": "hire_order"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-10-25 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Order",

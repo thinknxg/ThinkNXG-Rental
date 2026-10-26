@@ -139,6 +139,7 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.order_date = None
         target.rental_site = _site_for_quotation(customer, site_arg)
+        _carry_project(src, target)
         target.required_from = src.get("nxg_required_from") or nowdate()
         target.expected_return_date = src.get("nxg_expected_return_date") or target.required_from
         target.rate_basis = src.get("nxg_default_rate_basis") or "Monthly"
@@ -179,6 +180,7 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, a
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.required_from = src.transaction_date or nowdate()
         target.rental_site = _site_for_quotation(customer, site_arg)
+        _carry_project(src, target)
         target.quotation = src.name
         target.items = []
         for row in src.items:
@@ -213,7 +215,23 @@ def make_sales_order_from_quotation(source_name: str, target_doc=None):
     # Use ERPNext's standard quotation -> sales order mapper so the existing
     # sales flow and validations remain untouched.
     method = frappe.get_attr("erpnext.selling.doctype.quotation.quotation.make_sales_order")
-    return method(source_name=source.name, target_doc=target_doc)
+    target = method(source_name=source.name, target_doc=target_doc)
+    if isinstance(target, dict):
+        target = frappe.get_doc(target)
+    # ERPNext leaves the Payment Terms Template behind; carry it and let the order build its own
+    # schedule from the order date.
+    if source.get("payment_terms_template"):
+        target.payment_terms_template = source.payment_terms_template
+        target.set("payment_schedule", [])
+    return target
+
+
+def _carry_project(src, target):
+    """Project from the Rental Site, else from the quotation; Cost Center from the quotation."""
+    site_project = frappe.db.get_value("Rental Site", target.rental_site, "project") if target.get("rental_site") else None
+    target.project = site_project or src.get("project")
+    if src.get("cost_center") and target.meta.has_field("cost_center"):
+        target.cost_center = src.cost_center
 
 
 def _new_mapped_doc(source, target_doctype, target_doc, post_process):
