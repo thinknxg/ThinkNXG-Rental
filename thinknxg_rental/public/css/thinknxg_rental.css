@@ -73,3 +73,13 @@
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_estimated_amount"]  { order: 8; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"]                   { order: 9; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]                  { order: 10; }
+
+/* Material Hire: Weight (80px) after UOM; the columns after it move up one place */
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid { min-width: 1600px; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_weight"]           { flex: 0 0 80px !important; width: 80px !important; max-width: 80px !important; order: 5; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis"]        { order: 6; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_hire_days"]         { order: 7; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_rate_basis_amount"] { order: 8; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_estimated_amount"]  { order: 9; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"]                   { order: 10; }
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]                  { order: 11; }

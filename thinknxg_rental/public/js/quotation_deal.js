@@ -566,7 +566,7 @@ function nxg_toggle_weight_column(frm) {
     const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
     const df = grid && grid.get_docfield && grid.get_docfield("nxg_weight");
     if (!df) return; // custom field not created yet (migrate pending)
-    const show = frm.doc.deal_type === "Material Sale";
+    const show = ["Material Sale", "Material Hire"].includes(frm.doc.deal_type);
     const drawn = (grid.visible_columns || []).some((c) => c[0].fieldname === "nxg_weight");
     if (show === drawn && !!df.hidden === !show) return; // already right
     grid.set_column_disp(["nxg_weight"], show);

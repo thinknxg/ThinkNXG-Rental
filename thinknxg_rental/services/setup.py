@@ -9,7 +9,7 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 # events/quotation.py and public/js/quotation_deal.js.
 HIRE_DEPENDS_ON = 'eval:["Material Hire", "Hire Order Contract"].includes(parent.deal_type)'
 HOC_DEPENDS_ON = 'eval:parent.deal_type=="Hire Order Contract"'
-MS_DEPENDS_ON = HOC_DEPENDS_ON.replace("Hire Order Contract", "Material Sale")
+MS_DEPENDS_ON = 'eval:["Material Sale", "Material Hire"].includes(parent.deal_type)'
 MH_DEPENDS_ON = 'eval:parent.deal_type=="Material Hire"'
 
 
