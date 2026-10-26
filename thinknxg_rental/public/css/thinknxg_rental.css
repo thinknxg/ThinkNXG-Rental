@@ -1,0 +1,27 @@
+/* Quotation Item grid, Deal Type = Hire Order Contract: fixed column widths, scroll sideways */
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .form-grid-container {
+    overflow-x: auto;
+}
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .form-grid {
+    min-width: 2000px;
+}
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-row > .data-row,
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-heading-row .data-row {
+    flex-wrap: nowrap;
+}
+
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_code"]         { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_name"]         { flex: 0 0 140px !important; width: 140px !important; max-width: 140px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="uom"]               { flex: 0 0 80px !important;  width: 80px !important;  max-width: 80px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"]       { flex: 0 0 300px !important; width: 300px !important; max-width: 300px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_length"]        { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_breadth"]       { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_height"]        { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_duration"]      { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"]               { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_period"]        { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"]              { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="amount"]            { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_included_days"] { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_excess_basis"]  { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_excess_rate"]   { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }

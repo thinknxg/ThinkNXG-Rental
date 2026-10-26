@@ -243,8 +243,10 @@ frappe.ui.form.on("Quotation", {
 
 // Default layout with the three contract columns, applied once to each user's saved grid settings.
 const NXG_QUOTE_COLUMNS_V2 = [
-    { fieldname: "item_code", columns: 2 },
+    { fieldname: "item_code", columns: 1 },
+    { fieldname: "item_name", columns: 1 },
     { fieldname: "uom", columns: 1 },
+    { fieldname: "description", columns: 1 },
     { fieldname: "nxg_length", columns: 1 },
     { fieldname: "nxg_breadth", columns: 1 },
     { fieldname: "nxg_height", columns: 1 },
@@ -527,4 +529,30 @@ function nxg_toggle_mh_amount(frm) {
 frappe.ui.form.on("Quotation", {
     refresh(frm) { nxg_toggle_mh_amount(frm); },
     deal_type(frm) { nxg_toggle_mh_amount(frm); },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Hire Order Contract quotations: fixed pixel widths for the item grid (see public/css/thinknxg_rental.css).
+// The class below switches those widths on only for this deal type.
+// ---------------------------------------------------------------------------------------------
+function nxg_toggle_hoc_grid_class(frm) {
+    frm.$wrapper.toggleClass("nxg-hoc-quotation", frm.doc.deal_type === "Hire Order Contract");
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) { nxg_toggle_hoc_grid_class(frm); },
+    deal_type(frm) { nxg_toggle_hoc_grid_class(frm); },
+});
+
+// Users who already ran the earlier layout migrations get the new column order once.
+frappe.ui.form.on("Quotation", {
+    onload() {
+        try {
+            if (localStorage.getItem("nxg_quote_cols_v12") === "1") return;
+            localStorage.setItem("nxg_quote_cols_v12", "1");
+            frappe.model.user_settings.save("Quotation", "GridView", { "Quotation Item": NXG_QUOTE_COLUMNS_V2 }).then(() => location.reload());
+        } catch (e) {
+            console.warn("Quotation grid layout not updated", e);
+        }
+    },
 });
