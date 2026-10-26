@@ -37,10 +37,11 @@ def _prospect_from_lead(lead):
     if prospect:
         return prospect
     frappe.has_permission("Prospect", "create", throw=True)
+    leads_table = next(df.fieldname for df in frappe.get_meta("Prospect").get_table_fields() if df.options == "Prospect Lead")
     name = lead.get("company_name") or lead.get("lead_name") or lead.name
     if frappe.db.exists("Prospect", name):
         doc = frappe.get_doc("Prospect", name)
-        doc.append("prospect_lead", {"lead": lead.name})
+        doc.append(leads_table, {"lead": lead.name})
         doc.save()
     else:
         doc = frappe.new_doc("Prospect")
@@ -50,7 +51,7 @@ def _prospect_from_lead(lead):
                 doc.set(field, lead.get(field))
         if doc.meta.has_field("customer_group") and not doc.get("customer_group"):
             doc.customer_group = frappe.db.get_single_value("Selling Settings", "customer_group")
-        doc.append("prospect_lead", {"lead": lead.name})
+        doc.append(leads_table, {"lead": lead.name})
         doc.insert()
     return doc.name
 
