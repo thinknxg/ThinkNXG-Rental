@@ -24,10 +24,13 @@
 	<tbody>
 	{% for g in groups %}
 	<tr class="rp-group"><td colspan="9">{{ g.supplier | e }},
-		<a href="{{ desk('Cross Hire Order', g.order) }}">{{ g.order | e }}</a>
+		<a href="/rental/admin/entry?type=cross-hire-order&name={{ g.order | urlencode }}">{{ g.order | e }}</a>
 		{% if g.purchase_order %}(<a href="{{ desk('Purchase Order', g.purchase_order) }}" style="font-weight: 400">{{ g.purchase_order | e }}</a>){% endif %}
 		<span style="font-weight: 400; margin-inline-start: 0.75rem">{{ _(g.status) }}{% if g.site %}, {{ _("for {0}").format(g.site | e) }}{% endif %}, {{ _("due back {0}").format(date(g.due)) }}</span>
-		{% if g.overdue_days %}<span class="rp-due" style="margin-inline-start: 0.5rem">{{ _("{0} days overdue").format(g.overdue_days) }}</span>{% endif %}</td></tr>
+		{% if g.overdue_days %}<span class="rp-due" style="margin-inline-start: 0.5rem">{{ _("{0} days overdue").format(g.overdue_days) }}</span>{% endif %}
+		<span class="rp-sub" style="font-weight: 400">{% if g.invoices %}{{ _("Supplier invoices:") }}
+			{% for i in g.invoices %}<a href="{{ desk('Purchase Invoice', i.name) }}">{{ i.name | e }}</a> ({{ _(i.status) }}{% if i.docstatus == 1 and i.outstanding_amount %}, {{ _("{0} unpaid").format(money(i.outstanding_amount)) }}{% endif %}){% if not loop.last %}, {% endif %}{% endfor %}
+			{% else %}{{ _("No supplier invoice yet.") }}{% endif %}</span></td></tr>
 	{% for r in g.rows %}
 	{% set base = r.received_qty or 1 %}
 	<tr>

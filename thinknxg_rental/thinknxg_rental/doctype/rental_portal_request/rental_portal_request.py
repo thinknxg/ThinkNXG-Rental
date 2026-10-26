@@ -13,6 +13,28 @@ class RentalPortalRequest(Document):
 			self.company = self.company or contract.company
 		if self.request_type != "Extension Request" and not self.items:
 			frappe.throw(_("Add at least one item"))
+		if self.status == "Rejected" and not (self.response or "").strip():
+			frappe.throw(_("Give the customer a reason in Response before rejecting the request"))
+
+	@frappe.whitelist()
+	def start(self):
+		"""Staff have picked the request up; the customer sees In Progress."""
+		self.check_permission("write")
+		if self.status != "Open":
+			frappe.throw(_("Request {0} is already {1}").format(self.name, self.status))
+		self.db_set("status", "In Progress")
+
+	@frappe.whitelist()
+	def reject(self, reason: str):
+		"""Close the request with a reply the customer sees on the portal."""
+		self.check_permission("write")
+		if self.status not in ("Open", "In Progress"):
+			frappe.throw(_("Request {0} is already {1}").format(self.name, self.status))
+		if existing := _existing_document(self.name):
+			frappe.throw(_("{0} {1} was already made for this request. Cancel or delete it before rejecting.").format(_(existing[0]), existing[1]))
+		self.status = "Rejected"
+		self.response = (reason or "").strip()
+		self.save()
 
 	@frappe.whitelist()
 	def apply_extension(self):
@@ -20,9 +42,25 @@ class RentalPortalRequest(Document):
 		self.check_permission("write")
 		if self.request_type != "Extension Request" or self.status in ("Completed", "Rejected", "Cancelled"):
 			frappe.throw(_("Nothing to extend"))
+		if not self.rental_contract or not self.new_end_date:
+			frappe.throw(_("The request has no contract or new end date to apply"))
 		contract = frappe.get_doc("Rental Contract", self.rental_contract)
 		contract.extend_contract(str(self.new_end_date), _("Customer portal request {0}").format(self.name))
 		self.db_set({"status": "Completed", "reference_doctype": "Rental Contract", "reference_name": contract.name})
+
+
+def check_request_unused(doc):
+	"""Called by Hire Order / Hire Off-Hire Note on validate: one customer request makes one document."""
+	request = doc.get("portal_request")
+	if not request:
+		return
+	status = frappe.db.get_value("Rental Portal Request", request, "status")
+	if doc.is_new() and status in ("Completed", "Rejected", "Cancelled"):
+		frappe.throw(_("Customer request {0} is already {1}").format(request, status))
+	for doctype in ("Hire Order", "Hire Off-Hire Note"):
+		other = frappe.db.get_value(doctype, {"portal_request": request, "docstatus": ["<", 2], "name": ["!=", doc.name or ""]}, "name")
+		if other:
+			frappe.throw(_("Customer request {0} is already handled by {1} {2}").format(request, _(doctype), other))
 
 
 def set_request_reference(doc, completed=True):
@@ -44,7 +82,18 @@ def _open_request(source_name, request_type):
 		frappe.throw(_("This is not a {0}").format(request_type))
 	if source.status in ("Completed", "Rejected", "Cancelled"):
 		frappe.throw(_("Request {0} is {1}").format(source.name, source.status))
+	if existing := _existing_document(source.name):
+		frappe.throw(_("{0} {1} was already made for request {2}. Open it instead of making another.").format(_(existing[0]), existing[1], source.name))
 	return source
+
+
+def _existing_document(request):
+	"""(doctype, name) of a draft or submitted document already made from this request."""
+	for doctype in ("Hire Order", "Hire Off-Hire Note"):
+		name = frappe.db.get_value(doctype, {"portal_request": request, "docstatus": ["<", 2]}, "name")
+		if name:
+			return doctype, name
+	return None
 
 
 @frappe.whitelist()

@@ -1,5 +1,5 @@
 {% extends "templates/rental_portal/admin_base.html" %}
-{% from "templates/rental_portal/macros.html" import qty, yard_tube, yard_key %}
+{% from "templates/rental_portal/macros.html" import qty, date, yard_tube, yard_key %}
 
 {% block admin_content %}
 <header class="rp-lead">
@@ -11,6 +11,9 @@
 	<a href="/rental/admin/yard"><dt>{{ _("Reserved in yard") }}</dt><dd>{{ qty(b.reserved) }}</dd></a>
 	<a href="/rental/admin/suppliers"><dt>{{ _("Cross-hired in custody") }}</dt><dd>{{ qty(b.cross_hire) }}</dd></a>
 	<a href="/rental/admin/yard"><dt>{{ _("Inspection or repair") }}</dt><dd>{{ qty(b.workshop) }}</dd></a>
+	<a href="/rental/admin/yard"><dt>{{ _("Rental units") }}</dt><dd>{{ qty(b.rentable) }}</dd></a>
+	<a href="/rental/admin/sites"><dt>{{ _("At customer sites") }}</dt><dd>{{ qty(b.at_site_own + b.at_site_cross) }}</dd>
+		<span class="rp-sub">{{ _("{0} own, {1} cross-hired").format(qty(b.at_site_own), qty(b.at_site_cross)) }}</span></a>
 </dl>
 
 <div class="rp-split">
@@ -73,6 +76,26 @@
 		</tbody>
 	</table>
 	{{ yard_key() }}
+</section>
+{% endif %}
+
+{% if b.recent %}
+<section class="rp-section">
+	<h2>{{ _("Recent rental operations") }}</h2>
+	<table class="rp-table">
+		<thead><tr><th>{{ _("Document") }}</th><th>{{ _("What") }}</th><th>{{ _("Customer or supplier") }}</th><th>{{ _("Date") }}</th><th class="rp-num">{{ _("Qty") }}</th></tr></thead>
+		<tbody>
+		{% for d in b.recent %}
+		<tr>
+			<td class="rp-first"><a href="{{ d.url | e }}">{{ d.name | e }}</a></td>
+			<td data-label="{{ _('What') }}">{{ d.label | e }}</td>
+			<td data-label="{{ _('Customer or supplier') }}">{{ (d.party or "") | e }}{% if d.site %}<span class="rp-sub">{{ d.site | e }}</span>{% endif %}</td>
+			<td data-label="{{ _('Date') }}">{{ date(d.date) }}</td>
+			<td data-label="{{ _('Qty') }}" class="rp-num">{% if d.qty is not none %}{{ qty(d.qty) }}{% endif %}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
 </section>
 {% endif %}
 {% endblock %}

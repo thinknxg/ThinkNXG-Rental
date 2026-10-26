@@ -10,4 +10,5 @@ def get_context(context):
 	context.categories = ["Formwork", "Scaffolding", "Shoring / Props", "Accessories", "Other"]
 	if context.category not in context.categories:
 		context.category = ""
+	context.yard_warehouse = frappe.db.get_single_value("Rental Settings", "rental_yard_warehouse")
 	context.rows = get_stock_rows({"category": context.category} if context.category else {})

@@ -4,7 +4,7 @@ from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
-from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import set_request_reference
+from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import check_request_unused, set_request_reference
 from thinknxg_rental.services.utils import (
 	check_duplicate_items,
 	estimate_amount,
@@ -22,6 +22,7 @@ class HireOrder(Document):
 		if self.rental_site and frappe.db.get_value("Rental Site", self.rental_site, "customer") != self.customer:
 			frappe.throw(_("Rental Site {0} does not belong to customer {1}").format(self.rental_site, self.customer))
 		check_duplicate_items(self)
+		check_request_unused(self)
 		self.set_item_values()
 
 	def set_item_values(self):

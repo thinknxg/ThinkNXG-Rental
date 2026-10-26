@@ -11,6 +11,10 @@
 </div>
 <div class="rp-msg" id="ra-msg" role="status" hidden></div>
 
+<form class="rp-filter" method="get">
+	<input type="search" name="q" value="{{ q | e }}" placeholder="{{ _('Customer, contract or site') }}" aria-label="{{ _('Search') }}">
+	<button class="rp-btn" type="submit">{{ _("Search") }}</button>
+</form>
 <dl class="rp-facts">
 	<div><dt>{{ _("Accrued, unbilled") }}</dt><dd>{{ money(g.accrued_total) }}</dd></div>
 	<div><dt>{{ _("Contracts due for billing") }}</dt><dd>{{ g.due | length }}</dd></div>
@@ -25,18 +29,19 @@
 	<table class="rp-table">
 		<thead><tr>
 			<th>{{ _("Contract") }}</th><th>{{ _("Customer and site") }}</th><th>{{ _("Cycle") }}</th>
-			<th>{{ _("Unbilled from") }}</th><th>{{ _("Next billing date") }}</th>
-			<th class="rp-num">{{ _("At site") }}</th><th class="rp-num">{{ _("Accrued") }}</th><th></th>
+			<th>{{ _("Unbilled period") }}</th><th>{{ _("Next billing date") }}</th>
+			<th class="rp-num">{{ _("At site") }}</th><th class="rp-num">{{ _("Billed so far") }}</th><th class="rp-num">{{ _("Accrued") }}</th><th></th>
 		</tr></thead>
 		<tbody>
 		{% for r in g.accrued %}
 		<tr>
-			<td class="rp-first"><a href="{{ desk('Rental Contract', r.rental_contract) }}">{{ r.rental_contract | e }}</a></td>
+			<td class="rp-first"><a href="/rental/admin/entry?type=rental-contract&name={{ r.rental_contract | urlencode }}">{{ r.rental_contract | e }}</a></td>
 			<td data-label="{{ _('Customer and site') }}">{{ r.customer_name | e }}<span class="rp-sub">{{ r.rental_site | e }}</span></td>
 			<td data-label="{{ _('Cycle') }}">{{ _(r.billing_cycle) }}</td>
-			<td data-label="{{ _('Unbilled from') }}">{{ date(r.unbilled_from) }}</td>
+			<td data-label="{{ _('Unbilled period') }}">{{ date(r.unbilled_from) }}<span class="rp-sub">{{ _("to {0}").format(date(r.period_to)) }}</span></td>
 			<td data-label="{{ _('Next billing date') }}" {% if r.overdue %}class="rp-due"{% endif %}>{{ date(r.next_billing_date) }}</td>
 			<td data-label="{{ _('At site') }}" class="rp-num">{{ qty(r.at_site_qty) }}</td>
+			<td data-label="{{ _('Billed so far') }}" class="rp-num">{{ money(r.billed_amount) }}</td>
 			<td data-label="{{ _('Accrued') }}" class="rp-num rp-strong">{{ money(r.unbilled_amount) }}</td>
 			<td class="rp-act">{% if ra.can_bill and r.overdue %}<button class="rp-btn rp-btn--small" type="button" data-bill="{{ r.rental_contract | e }}">{{ _("Bill now") }}</button>{% endif %}</td>
 		</tr>
@@ -58,7 +63,7 @@
 		<tbody>
 		{% for i in g.invoices %}
 		<tr>
-			<td class="rp-first"><a href="{{ desk('Sales Invoice', i.name) }}">{{ i.name | e }}</a></td>
+			<td class="rp-first"><a href="/rental/admin/entry?type=sales-invoice&name={{ i.name | urlencode }}">{{ i.name | e }}</a></td>
 			<td data-label="{{ _('Customer') }}">{{ i.customer_name | e }}</td>
 			<td data-label="{{ _('Contract') }}"><a href="{{ desk('Rental Contract', i.nxg_rental_contract) }}">{{ i.nxg_rental_contract | e }}</a></td>
 			<td data-label="{{ _('Due') }}">{{ date(i.due_date) }}{% if i.days_late > 0 %}<span class="rp-sub rp-due">{{ _("{0} days late").format(i.days_late) }}</span>{% endif %}</td>

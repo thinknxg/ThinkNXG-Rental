@@ -64,7 +64,11 @@ def get_stock_rows(filters=None):
 	from thinknxg_rental.thinknxg_rental.report.rental_stock_position.rental_stock_position import execute
 
 	rows = execute(filters or {})[1]
+	groups = {}
+	if rows:
+		groups = dict(frappe.get_all("Item", filters={"name": ["in", [r["item_code"] for r in rows]]}, fields=["name", "item_group"], as_list=True))
 	for r in rows:
+		r["item_group"] = groups.get(r["item_code"])
 		rentable = flt(r["own_total"]) + flt(r["at_site_cross_hire"]) + flt(r["cross_hire_not_at_site"])
 		base = rentable or 1
 		workshop = flt(r["inspection_qty"]) + flt(r["repair_qty"])
@@ -121,6 +125,10 @@ def get_board():
 	]
 	fields = ["name", "rental_contract", "customer_name", "rental_site", "vehicle_no"]
 	return frappe._dict(
+		rentable=rentable,
+		at_site_own=total("at_site_own"),
+		at_site_cross=total("at_site_cross_hire"),
+		recent=get_recent_operations(),
 		on_hire=on_hire,
 		yard=total("yard_qty"),
 		available=total("available_qty"),
@@ -144,17 +152,59 @@ def get_board():
 	)
 
 
+RECENT = (
+	# doctype, entry menu, date field, what it is, quantity field
+	("Hire Delivery Order", "delivery-order", "posting_date", "Delivered", "total_qty"),
+	("Hire Off-Hire Note", "off-hire-note", "return_date", "Returned", "total_returned_qty"),
+	("Rental Return Inspection", "return-inspection", "inspection_date", "Inspected", "total_returned_qty"),
+	("Job Completion Report", "jcr", "modified", "Job report", None),
+	("Rental Contract", "rental-contract", "contract_date", "Contract", "total_contract_qty"),
+	("Cross Hire Off-Hire Note", "cross-hire-off-hire", "off_hire_date", "Back to supplier", "total_qty"),
+)
+
+
+def get_recent_operations(limit=10):
+	"""The latest submitted rental documents, newest first, for the board."""
+	from thinknxg_rental.portal.entry import entry_url
+
+	out = []
+	for doctype, key, date_field, label, qty_field in RECENT:
+		if not frappe.has_permission(doctype, "read"):
+			continue
+		meta = frappe.get_meta(doctype)
+		fields = ["name", "modified", date_field] + [f for f in ("customer_name", "supplier_name", "rental_site") if meta.has_field(f)]
+		if qty_field and meta.has_field(qty_field):
+			fields.append(qty_field)
+		for d in frappe.get_list(doctype, filters={"docstatus": 1}, fields=list(dict.fromkeys(fields)), order_by="modified desc", limit_page_length=limit):
+			out.append(frappe._dict(
+				name=d.name, label=_(label), url=entry_url(key, d.name), modified=d.modified,
+				date=getdate(d.get(date_field)) if d.get(date_field) else None,
+				party=d.get("customer_name") or d.get("supplier_name"), site=d.get("rental_site"),
+				qty=d.get(qty_field) if qty_field else None,
+			))
+	out.sort(key=lambda d: d.modified, reverse=True)
+	return out[:limit]
+
+
 # ----------------------------------------------------------------------------- lists
-def get_admin_contracts(view="live", search=None):
+CONTRACT_VIEWS = {
+	"live": {"status": ["in", ["Active", "On Hire", "Off Hired"]]},
+	"overdue": {"status": "On Hire"},
+	"completed": {"status": "Completed"},
+	"all": {},
+}
+
+
+def get_admin_contracts(view="live", search=None, customer=None, site=None):
 	today = nowdate()
-	filters = {"docstatus": 1}
+	view = view if view in CONTRACT_VIEWS else "live"
+	filters = {"docstatus": 1, **CONTRACT_VIEWS[view]}
 	if view == "overdue":
-		filters.update({"status": "On Hire", "end_date": ["<", today]})
-	elif view == "all":
-		pass
-	else:
-		view = "live"
-		filters["status"] = ["in", ["Active", "On Hire", "Off Hired"]]
+		filters["end_date"] = ["<", today]
+	if customer:
+		filters["customer"] = customer
+	if site:
+		filters["rental_site"] = site
 	or_filters = None
 	if search:
 		like = f"%{search.strip()[:60]}%"
@@ -164,12 +214,19 @@ def get_admin_contracts(view="live", search=None):
 		filters=filters,
 		or_filters=or_filters,
 		fields=["name", "customer", "customer_name", "rental_site", "status", "start_date", "end_date", "contract_type",
-			"source_type", "source_document", "total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "last_billed_upto",
-			"next_billing_date", "total_billed_amount"],
+			"source_type", "source_document", "total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "total_returned_qty",
+			"last_billed_upto", "next_billing_date", "total_billed_amount"],
 		order_by="end_date asc",
 		limit=300,
 	)
+	# the order's value: the Hire Order estimate or the Hire Order Contract's contract charges
+	values = {}
+	for doctype, field in (("Hire Order", "estimated_amount"), ("Hire Order Contract", "total_contract_amount")):
+		names = [r.source_document for r in rows if r.source_type == doctype and r.source_document]
+		if names:
+			values.update(dict(frappe.get_all(doctype, filters={"name": ["in", names]}, fields=["name", field], as_list=True)))
 	for r in rows:
+		r.order_value = flt(values.get(r.source_document))
 		r.days_left = date_diff(r.end_date, today)
 		r.late = r.status == "On Hire" and r.days_left < 0
 		r.is_job = r.contract_type == "Job Type Contract"
@@ -177,10 +234,34 @@ def get_admin_contracts(view="live", search=None):
 	return view, rows
 
 
-def get_site_groups(search=None):
+def get_site_groups(search=None, ownership=None):
 	from thinknxg_rental.thinknxg_rental.report.material_at_site.material_at_site import execute
 
-	rows = execute({})[1]
+	ownership = ownership if ownership in ("Own", "Cross Hire") else None
+	rows = execute({"ownership": ownership} if ownership else {})[1]
+	# delivered and returned per contract, item and ownership, from the same ledger as the at-site balance
+	moved = {}
+	contracts = list({r.rental_contract for r in rows})
+	if contracts:
+		for m in frappe.db.sql(
+			"""select rental_contract, item_code, ownership, ifnull(cross_hire_order, '') as cross_hire_order, movement_type, sum(qty) as qty
+			from `tabRental Ownership Ledger`
+			where position_type = 'At Site' and rental_contract in %(contracts)s
+			group by rental_contract, item_code, ownership, ifnull(cross_hire_order, ''), movement_type""",
+			{"contracts": contracts}, as_dict=True,
+		):
+			moved[(m.rental_contract, m.item_code, m.ownership, m.cross_hire_order, m.movement_type)] = flt(m.qty)
+	descriptions = {}
+	items = list({r.item_code for r in rows})
+	if items:
+		descriptions = dict(frappe.get_all("Item", filters={"name": ["in", items]}, fields=["name", "description"], as_list=True))
+	for r in rows:
+		key = (r.rental_contract, r.item_code, r.ownership, r.cross_hire_order or "")
+		r.delivered_qty = moved.get((*key, "Dispatch"), 0)
+		r.returned_qty = -moved.get((*key, "Return"), 0)
+		r.lost_qty = -moved.get((*key, "Loss"), 0)
+		description = frappe.utils.strip_html(descriptions.get(r.item_code) or "").strip()
+		r.description = description if description and description != r.item_name else ""
 	if search:
 		needle = search.strip().lower()
 		rows = [
@@ -204,14 +285,31 @@ def get_site_groups(search=None):
 	)
 
 
-def get_billing():
+def get_billing(search=None):
 	from thinknxg_rental.thinknxg_rental.report.unbilled_rental.unbilled_rental import execute
 
 	today = getdate(nowdate())
-	accrued = execute({"upto_date": add_days(today, -1)})[1]
+	upto = add_days(today, -1)
+	accrued = execute({"upto_date": upto})[1]
+	needle = (search or "").strip().lower()[:60]
+	if needle:
+		accrued = [r for r in accrued if needle in " ".join(str(r.get(k) or "") for k in ("rental_contract", "customer", "customer_name", "rental_site")).lower()]
+	billed = {}
+	if accrued:
+		billed = dict(frappe.get_all("Rental Contract", filters={"name": ["in", [r["rental_contract"] for r in accrued]]},
+			fields=["name", "total_billed_amount"], as_list=True))
+	for r in accrued:
+		r["billed_amount"] = flt(billed.get(r["rental_contract"]))
+		r["period_to"] = upto
+	invoice_filters = {"docstatus": 1, "outstanding_amount": [">", 0], "nxg_rental_contract": ["is", "set"], "is_return": 0}
+	invoice_or = None
+	if needle:
+		like = f"%{needle}%"
+		invoice_or = {"name": ["like", like], "customer": ["like", like], "customer_name": ["like", like], "nxg_rental_contract": ["like", like]}
 	invoices = frappe.get_all(
 		"Sales Invoice",
-		filters={"docstatus": 1, "outstanding_amount": [">", 0], "nxg_rental_contract": ["is", "set"], "is_return": 0},
+		filters=invoice_filters,
+		or_filters=invoice_or,
 		fields=["name", "customer_name", "nxg_rental_contract", "posting_date", "due_date", "grand_total",
 			"outstanding_amount", "currency"],
 		order_by="due_date asc",
@@ -248,6 +346,15 @@ def get_cross_hire():
 				on_hire=sum(flt(l.on_hire_qty) for l in lines),
 			)
 		)
+	invoices = {}
+	orders = [g.order for g in out]
+	if orders:
+		for pi in frappe.get_all("Purchase Invoice", filters={"nxg_cross_hire_order": ["in", orders], "docstatus": ["<", 2]},
+			fields=["name", "nxg_cross_hire_order", "docstatus", "status", "grand_total", "outstanding_amount"], order_by="posting_date asc"):
+			invoices.setdefault(pi.nxg_cross_hire_order, []).append(pi)
+	for g in out:
+		g.invoices = invoices.get(g.order, [])
+		g.billed = sum(flt(i.grand_total) for i in g.invoices if i.docstatus == 1)
 	out.sort(key=lambda g: -g.overdue_days)
 	return out, frappe._dict(
 		on_hire=sum(g.on_hire for g in out),
@@ -257,12 +364,23 @@ def get_cross_hire():
 	)
 
 
-def get_admin_requests(view="open"):
+REQUEST_TYPES = ("Hire Enquiry", "Off-Hire Request", "Extension Request")
+
+
+def get_admin_requests(view="open", search=None, request_type=None):
 	statuses = {"open": ["Open", "In Progress"], "closed": ["Completed", "Rejected", "Cancelled"]}.get(view)
 	if not statuses:
 		view, statuses = "open", ["Open", "In Progress"]
+	filters = {"status": ["in", statuses]}
+	if request_type in REQUEST_TYPES:
+		filters["request_type"] = request_type
+	or_filters = None
+	if search:
+		like = f"%{search.strip()[:60]}%"
+		or_filters = {"name": ["like", like], "customer": ["like", like], "customer_name": ["like", like],
+			"rental_contract": ["like", like], "rental_site": ["like", like]}
 	names = frappe.get_all(
-		"Rental Portal Request", filters={"status": ["in", statuses]}, fields=["name", "customer", "customer_name", "raised_by"],
+		"Rental Portal Request", filters=filters, or_filters=or_filters, fields=["name", "customer", "customer_name", "raised_by"],
 		order_by="creation desc" if view == "closed" else "creation asc", limit=200,
 	)
 	if not names:
@@ -287,9 +405,5 @@ def start_request(name: str):
 	"""Mark a customer request as being handled, so the customer sees progress."""
 	if not is_staff():
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
-	doc = frappe.get_doc("Rental Portal Request", name)
-	doc.check_permission("write")
-	if doc.status != "Open":
-		frappe.throw(_("Request {0} is already {1}").format(name, doc.status))
-	doc.db_set("status", "In Progress")
+	frappe.get_doc("Rental Portal Request", name).start()
 	return {"name": name}

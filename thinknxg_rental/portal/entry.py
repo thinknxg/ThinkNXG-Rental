@@ -57,8 +57,14 @@ ENTRY_TYPES = {
 			"source", "territory", "status", "company",
 		],
 		next=[
+			# once a live quotation exists the button gives way to the quotation itself (listed below)
 			dict(label="Create Quotation", target="quotation", method="thinknxg_rental.services.deal_flow.make_quotation_from_lead",
-				when={"docstatus": [0], "deal_type": HIRE + ["Material Sale"]}),
+				when={"docstatus": [0], "deal_type": HIRE + ["Material Sale"]}, when_fn=lambda d: not _lead_quotations(d, live=True)),
+		],
+		related=[
+			dict(label="Quotations", rows=lambda d: _lead_quotations(d),
+				columns=[("name", "Quotation", "Data"), ("deal_type", "Deal type", "Data"), ("transaction_date", "Date", "Date"),
+					("grand_total", "Total", "Currency"), ("status", "Status", "Data")]),
 		],
 	),
 	"quotation": dict(
@@ -104,13 +110,25 @@ ENTRY_TYPES = {
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
 		next=[
 			dict(label="Create Rental Site", target="rental-site", method="thinknxg_rental.portal.entry.make_site_from_quotation",
-				when={"docstatus": [0, 1], "deal_type": HIRE}),
+				when={"docstatus": [0, 1], "deal_type": HIRE}, when_fn=lambda d: not _made_from("Rental Site", "nxg_quotation", d.name)),
 			dict(label="Create Hire Order", target="hire-order", method="thinknxg_rental.services.deal_flow.make_hire_order_from_quotation",
-				when={"docstatus": [1], "deal_type": MH}),
+				when={"docstatus": [1], "deal_type": MH}, when_fn=lambda d: not _made_from("Hire Order", "quotation", d.name)),
 			dict(label="Create Hire Order Contract", target="hire-order-contract",
-				method="thinknxg_rental.services.deal_flow.make_hire_order_contract_from_quotation", when={"docstatus": [1], "deal_type": HOC}),
+				method="thinknxg_rental.services.deal_flow.make_hire_order_contract_from_quotation", when={"docstatus": [1], "deal_type": HOC},
+				when_fn=lambda d: not _made_from("Hire Order Contract", "quotation", d.name)),
 			dict(label="Create Sales Order", target="sales-order", method="thinknxg_rental.services.deal_flow.make_sales_order_from_quotation",
-				when={"docstatus": [1], "deal_type": ["Material Sale"]}, when_fn=lambda d: d.get("status") not in ("Ordered", "Lost", "Expired")),
+				when={"docstatus": [1], "deal_type": ["Material Sale"]},
+				when_fn=lambda d: d.get("status") not in ("Ordered", "Lost", "Expired") and not _quotation_sales_orders(d)),
+		],
+		related=[
+			dict(label="Rental Sites", rows=lambda d: linked("Rental Site", {"nxg_quotation": d.name}, ["site_name", "customer_name"], "rental-site"),
+				columns=[("name", "Rental Site", "Data"), ("customer_name", "Customer", "Data")]),
+			dict(label="Hire Orders", rows=lambda d: linked("Hire Order", {"quotation": d.name, "docstatus": ["<", 2]}, ["rental_site", "status"], "hire-order"),
+				columns=[("name", "Hire Order", "Data"), ("rental_site", "Site", "Data"), ("status", "Status", "Data")]),
+			dict(label="Hire Order Contracts", rows=lambda d: linked("Hire Order Contract", {"quotation": d.name, "docstatus": ["<", 2]}, ["rental_site", "status"], "hire-order-contract"),
+				columns=[("name", "Hire Order Contract", "Data"), ("rental_site", "Site", "Data"), ("status", "Status", "Data")]),
+			dict(label="Sales Orders", rows=lambda d: _quotation_sales_orders(d),
+				columns=[("name", "Sales Order", "Data"), ("transaction_date", "Date", "Date"), ("grand_total", "Total", "Currency"), ("status", "Status", "Data")]),
 		],
 	),
 	"rental-site": dict(
@@ -138,6 +156,12 @@ ENTRY_TYPES = {
 				source_field="nxg_quotation", args={"rental_site": "name"}, when_fn=lambda d: _quotation_is(d, HOC)),
 			dict(label="New Hire Order", target="hire-order", prefill={"customer": "customer", "rental_site": "name", "company": "company"},
 				when={"disabled": [0, None]}, when_fn=lambda d: not d.get("nxg_quotation")),
+		],
+		related=[
+			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"rental_site": d.name, "docstatus": ["<", 2]},
+				["status", "start_date", "end_date", "total_at_site_qty"], "rental-contract"),
+				columns=[("name", "Rental Contract", "Data"), ("status", "Status", "Data"), ("start_date", "Start", "Date"),
+					("end_date", "End", "Date"), ("total_at_site_qty", "At site", "Float")]),
 		],
 	),
 	"hire-order": dict(
@@ -181,6 +205,12 @@ ENTRY_TYPES = {
 			dict(label="Cross Hire Order", target="cross-hire-order", prefill={"rental_contract": lambda d: _source_contract(d)},
 				when={"docstatus": [1]}, when_fn=lambda d: flt(d.total_shortfall_qty) > 0 and _source_contract(d)),
 		],
+		related=[
+			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"source_document": d.name, "docstatus": ["<", 2]},
+				["status", "start_date", "end_date", "total_at_site_qty"], "rental-contract"),
+				columns=[("name", "Rental Contract", "Data"), ("status", "Status", "Data"), ("start_date", "Start", "Date"),
+					("end_date", "End", "Date"), ("total_at_site_qty", "At site", "Float")]),
+		],
 	),
 	"hire-order-contract": dict(
 		doctype="Hire Order Contract",
@@ -212,6 +242,8 @@ ENTRY_TYPES = {
 				{"fieldname": "excess_rate_basis", "w": 1.3},
 				{"fieldname": "excess_rate", "w": 1.4},
 				{"fieldname": "contract_amount", "w": 1.5, "ro": 1},
+				{"fieldname": "jcr_qty", "w": 1.1, "ro": 1},
+				{"fieldname": "balance_qty", "w": 1.1, "ro": 1},
 			]),
 			# Built from the job types on first save; change it in the desk if the job needs it.
 			dict(fieldname="materials", readonly=1, columns=[
@@ -239,6 +271,18 @@ ENTRY_TYPES = {
 			dict(label="Create Job Completion Report", target="jcr",
 				method="thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr",
 				when={"docstatus": [1]}, when_fn=lambda d: _open_job_lines(d)),
+		],
+		related=[
+			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"source_document": d.name, "docstatus": ["<", 2]},
+				["status", "start_date", "end_date", "total_at_site_qty"], "rental-contract"),
+				columns=[("name", "Rental Contract", "Data"), ("status", "Status", "Data"), ("start_date", "Start", "Date"),
+					("end_date", "End", "Date"), ("total_at_site_qty", "At site", "Float")]),
+			# one row per JCR job line: a JCR can carry several job types, and one job type can sit at several locations
+			dict(label="Job Completion Reports", rows=lambda d: _hoc_jcr_lines(d),
+				columns=[("jcr", "JCR", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
+					("job_qty", "Jobs", "Float"), ("erection_date", "Erected", "Date"), ("contract_end_date", "Contract ends", "Date"),
+					("dismantle_date", "Dismantled", "Date"), ("status", "Status", "Data"), ("billed", "Billed", "Currency"),
+					("pending", "Not yet invoiced", "Currency")]),
 		],
 	),
 	"jcr": dict(
@@ -279,6 +323,27 @@ ENTRY_TYPES = {
 		totals=["total_billed_amount", "billed_upto"],
 		fill=dict(label="Get job lines", needs="hire_order_contract", arg="hire_order_contract", table="job_lines",
 			method="thinknxg_rental.portal.entry.get_jcr_lines"),
+		next=[
+			# the desk's Record Dismantle: a part quantity returns that much, the last part closes the line
+			dict(label="Record Dismantle", call="record_dismantle", when={"docstatus": [1]}, when_fn=lambda d: _standing_lines(d),
+				ask=lambda d: [
+					{"fieldname": "line_name", "label": "Job line", "fieldtype": "Select", "reqd": 1,
+						"choices": [{"value": r.name, "label": f"{r.job_type_name or r.job_type}{' @ ' + r.location if r.location else ''} ({flt(r.job_qty):g})"}
+							for r in _standing_lines(d)],
+						"default": _standing_lines(d)[0].name},
+					{"fieldname": "dismantle_date", "label": "Dismantle date", "fieldtype": "Date", "reqd": 1, "default": frappe.utils.nowdate()},
+					{"fieldname": "return_qty", "label": "Jobs dismantled (blank = all still standing)", "fieldtype": "Float"},
+					{"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1},
+				], done="{0}: dismantle recorded."),
+		],
+		related=[
+			dict(label="Dismantled", rows=lambda d: [dict(r.as_dict(), url="", name=r.job_type) for r in d.get("jcr_returns") or []],
+				columns=[("job_type", "Job type", "Data"), ("return_date", "Date", "Date"), ("return_qty", "Jobs", "Float"), ("remarks", "Remarks", "Data")]),
+			dict(label="Billing periods", rows=lambda d: linked("JCR Billing Schedule", {"jcr": d.name},
+				["billing_type", "period_from", "period_to", "days", "amount", "status", "sales_invoice"], order_by="period_from asc"),
+				columns=[("billing_type", "Charge", "Data"), ("period_from", "From", "Date"), ("period_to", "To", "Date"), ("days", "Days", "Int"),
+					("amount", "Amount", "Currency"), ("status", "Status", "Data"), ("sales_invoice", "Sales Invoice", "Data")]),
+		],
 		# Submitted and still open: the form adds a Sales Invoice panel (this JCR, or several JCRs of the customer on one invoice).
 		invoice=True,
 	),
@@ -292,8 +357,11 @@ ENTRY_TYPES = {
 		header=[
 			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
 			SITE, PROJECT, "company", COST_CENTER, "source_type", {"fieldname": "source_document", "filters": {"docstatus": 1, "customer": "$customer"}},
-			"contract_date", "start_date", "end_date", "billing_cycle", "minimum_hire_days", "grace_days",
-			"security_deposit", "payment_terms_template", "taxes_and_charges",
+			"contract_date", "start_date", "end_date", "billing_cycle",
+			{"fieldname": "billing_interval_days", "show_if": {"billing_cycle": ["Custom"]}}, "align_to_calendar_month",
+			"minimum_hire_days", "grace_days",
+			"security_deposit", "advance_amount", "deposit_received", "deposit_reference", "payment_terms_template", "taxes_and_charges",
+			{"fieldname": "last_billed_upto", "ro": 1}, {"fieldname": "next_billing_date", "ro": 1}, {"fieldname": "total_billed_amount", "ro": 1},
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
@@ -306,14 +374,71 @@ ENTRY_TYPES = {
 				{"fieldname": "rate", "w": 1.4},
 				{"fieldname": "dispatched_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "returned_qty", "w": 1.2, "ro": 1},
+				{"fieldname": "lost_qty", "w": 1.1, "ro": 1},
 				{"fieldname": "at_site_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "pending_qty", "w": 1.2, "ro": 1},
+			]),
+			dict(fieldname="extensions", readonly=1, columns=[
+				{"fieldname": "extension_date", "w": 1.5},
+				{"fieldname": "previous_end_date", "w": 1.5},
+				{"fieldname": "new_end_date", "w": 1.5},
+				{"fieldname": "extended_by", "w": 2.5},
+				{"fieldname": "remarks", "w": 4},
 			]),
 		],
 		totals=["total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "total_returned_qty"],
 		next=[
 			dict(label="New Delivery Order", target="delivery-order", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["Active", "On Hire"]}),
 			dict(label="New Off-Hire Note", target="off-hire-note", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["On Hire", "Active"]}),
+			dict(label="Material Reservation", target="material-reservation",
+				method="thinknxg_rental.thinknxg_rental.doctype.rental_contract.rental_contract.make_reservation",
+				when={"docstatus": [1], "status": ["Active", "On Hire"]}, when_fn=lambda d: any(flt(r.pending_qty) > 0 for r in d.items)),
+			dict(label="Cross Hire Order", target="cross-hire-order",
+				method="thinknxg_rental.thinknxg_rental.doctype.rental_contract.rental_contract.make_cross_hire_order",
+				when={"docstatus": [1], "status": ["Active", "On Hire"]}, when_fn=lambda d: any(flt(r.pending_qty) > 0 for r in d.items)),
+			dict(label="Extend Contract", call="extend_contract", when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]},
+				ask=lambda d: [{"fieldname": "new_end_date", "label": "New end date", "fieldtype": "Date", "reqd": 1},
+					{"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1}], done="{0}: end date extended."),
+			dict(label="Record Deposit", fn="thinknxg_rental.portal.entry.record_deposit", source_arg="rental_contract",
+				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Cancelled",
+				ask=lambda d: [{"fieldname": "deposit_received", "label": "Deposit received", "fieldtype": "Currency", "reqd": 1, "default": d.deposit_received or None},
+					{"fieldname": "deposit_reference", "label": "Deposit reference", "fieldtype": "Data", "default": d.deposit_reference}], done="{0}: deposit recorded."),
+			dict(label="Close Contract", call="close_contract", when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]},
+				when_fn=lambda d: flt(d.total_at_site_qty) <= 0 and flt(d.total_dispatched_qty) > 0,
+				confirm="Final-bill this contract and mark it Completed?", done="{0} is completed."),
+			dict(label="Reopen Contract", call="reopen_contract", when={"docstatus": [1], "status": ["Completed"]},
+				confirm="Reopen this completed contract?", done="{0} is open again."),
+		],
+		related=[
+			dict(label="Delivery Orders", rows=lambda d: linked("Hire Delivery Order", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["posting_date", "vehicle_no", "total_qty"], "delivery-order", order_by="posting_date desc"),
+				columns=[("name", "Delivery Order", "Data"), ("posting_date", "Dispatch date", "Date"), ("vehicle_no", "Vehicle", "Data"),
+					("total_qty", "Qty", "Float"), ("status", "Status", "Data")]),
+			dict(label="Off-Hire Notes", rows=lambda d: linked("Hire Off-Hire Note", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["return_date", "off_hire_type", "total_returned_qty", "total_lost_qty", "inspection_status"], "off-hire-note", order_by="return_date desc"),
+				columns=[("name", "Off-Hire Note", "Data"), ("return_date", "Returned", "Date"), ("off_hire_type", "Type", "Data"),
+					("total_returned_qty", "Qty", "Float"), ("total_lost_qty", "Lost", "Float"), ("inspection_status", "Inspection", "Data")]),
+			dict(label="Material Reservations", rows=lambda d: linked("Rental Material Reservation", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["required_from", "total_reserved_qty", "total_shortfall_qty", "status"], "material-reservation"),
+				columns=[("name", "Reservation", "Data"), ("required_from", "From", "Date"), ("total_reserved_qty", "Reserved", "Float"),
+					("total_shortfall_qty", "Shortfall", "Float"), ("status", "Status", "Data")]),
+			dict(label="Cross Hire Orders", rows=lambda d: linked("Cross Hire Order", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["supplier_name", "expected_return_date", "total_qty", "status"], "cross-hire-order"),
+				columns=[("name", "Cross Hire Order", "Data"), ("supplier_name", "Supplier", "Data"), ("expected_return_date", "Due back", "Date"),
+					("total_qty", "Qty", "Float"), ("status", "Status", "Data")]),
+			dict(label="Job Completion Reports", rows=lambda d: linked("Job Completion Report", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["job_type_name", "location", "erection_date", "dismantle_date", "total_billed_amount", "status"], "jcr"),
+				columns=[("name", "JCR", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
+					("erection_date", "Erected", "Date"), ("dismantle_date", "Dismantled", "Date"), ("total_billed_amount", "Billed", "Currency"),
+					("status", "Status", "Data")]),
+			dict(label="Billing schedules", rows=lambda d: linked("Rental Billing Schedule", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["from_date", "to_date", "total_amount", "sales_invoice", "status"], order_by="from_date desc"),
+				columns=[("name", "Billing schedule", "Data"), ("from_date", "From", "Date"), ("to_date", "To", "Date"),
+					("total_amount", "Amount", "Currency"), ("sales_invoice", "Sales Invoice", "Data"), ("status", "Status", "Data")]),
+			dict(label="Sales Invoices", rows=lambda d: linked("Sales Invoice", {"nxg_rental_contract": d.name, "docstatus": ["<", 2]},
+				["posting_date", "grand_total", "outstanding_amount", "status"], "sales-invoice", order_by="posting_date desc"),
+				columns=[("name", "Sales Invoice", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"),
+					("outstanding_amount", "Outstanding", "Currency"), ("status", "Status", "Data")]),
 		],
 	),
 	"delivery-order": dict(
@@ -431,6 +556,103 @@ ENTRY_TYPES = {
 			]),
 		],
 		totals=["total_qty", "estimated_amount"],
+		# The desk's Create menu: receipt (Purchase Receipt on the order's PO), off-hire back to the supplier,
+		# the supplier's hire invoice (Purchase Invoice, opened in the desk) and Complete once everything is back.
+		next=[
+			dict(label="Cross Hire Receipt", target="cross-hire-receipt", method="thinknxg_rental.portal.entry.make_cross_hire_receipt",
+				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Completed" and any(flt(r.received_qty) < flt(r.qty) for r in d.items)),
+			dict(label="Cross Hire Off-Hire Note", target="cross-hire-off-hire",
+				method="thinknxg_rental.thinknxg_rental.doctype.cross_hire_off_hire_note.cross_hire_off_hire_note.make_cross_hire_off_hire_note",
+				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Completed" and sum(flt(r.on_hire_qty) for r in d.items) > 0),
+			dict(label="Supplier Hire Invoice", fn="thinknxg_rental.services.cross_hire.make_supplier_invoice", source_arg="cross_hire_order",
+				opens="Purchase Invoice", perm="read", when={"docstatus": [1]}, when_fn=lambda d: d.status not in ("To Receive", "Completed"),
+				ask=lambda d: [{"fieldname": "upto_date", "label": "Bill up to", "fieldtype": "Date", "reqd": 1, "default": frappe.utils.nowdate()}]),
+			dict(label="Complete Order", call="complete", when={"docstatus": [1], "status": ["Returned"]},
+				confirm="Mark this cross hire order Completed and close its Purchase Order?", done="{0} is completed."),
+		],
+		related=[
+			dict(label="Receipts and returns", rows=lambda d: linked("Purchase Receipt", {"nxg_cross_hire_order": d.name, "docstatus": ["<", 2]},
+				["posting_date", "is_return", "total_qty", "status"], order_by="posting_date asc"),
+				columns=[("name", "Purchase Receipt", "Data"), ("posting_date", "Date", "Date"), ("is_return", "Return", "Check"),
+					("total_qty", "Qty", "Float"), ("status", "Status", "Data")]),
+			dict(label="Cross Hire Off-Hire Notes", rows=lambda d: linked("Cross Hire Off-Hire Note", {"cross_hire_order": d.name, "docstatus": ["<", 2]},
+				["off_hire_date", "total_qty", "status"], "cross-hire-off-hire"),
+				columns=[("name", "Off-Hire Note", "Data"), ("off_hire_date", "Off-hire date", "Date"), ("total_qty", "Qty", "Float"), ("status", "Status", "Data")]),
+			dict(label="Supplier hire invoices", rows=lambda d: linked("Purchase Invoice", {"nxg_cross_hire_order": d.name, "docstatus": ["<", 2]},
+				["posting_date", "grand_total", "outstanding_amount", "status"], order_by="posting_date desc"),
+				columns=[("name", "Purchase Invoice", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"),
+					("outstanding_amount", "Outstanding", "Currency"), ("status", "Status", "Data")]),
+		],
+	),
+	"cross-hire-receipt": dict(
+		menu="none",
+		link=False,
+		active="suppliers",
+		list_url="/rental/admin/suppliers",
+		doctype="Purchase Receipt",
+		label="Cross Hire Receipt",
+		plural="Cross Hire Receipts",
+		title_field="supplier_name",
+		search_fields=["supplier_name", "supplier"],
+		list_columns=[("supplier_name", "Supplier"), ("posting_date", "Date"), ("total_qty", "Qty")],
+		header=[
+			{"fieldname": "nxg_cross_hire_order", "ro": 1},
+			{"fieldname": "supplier", "ro": 1},
+			{"fieldname": "supplier_name", "ro": 1},
+			{"fieldname": "company", "ro": 1},
+			"posting_date", "set_posting_time", "supplier_delivery_note",
+			{"fieldname": "set_warehouse", "ro": 1},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.6, "ro": 1},
+				{"fieldname": "item_name", "w": 3, "ro": 1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "qty", "w": 1.2},
+				{"fieldname": "warehouse", "w": 2.4, "ro": 1},
+				{"fieldname": "batch_no", "w": 1.6},
+				{"fieldname": "purchase_order", "w": 2, "ro": 1},
+			]),
+		],
+		totals=["total_qty"],
+	),
+	"cross-hire-off-hire": dict(
+		menu="more",
+		doctype="Cross Hire Off-Hire Note",
+		label="Cross Hire Off-Hire Note",
+		plural="Cross Hire Off-Hire Notes",
+		nav_label="Cross Hire Returns",
+		title_field="supplier_name",
+		search_fields=["supplier_name", "supplier", "cross_hire_order", "vehicle_no"],
+		list_columns=[("supplier_name", "Supplier"), ("cross_hire_order", "Cross hire order"), ("off_hire_date", "Off-hire date"), ("total_qty", "Qty")],
+		prefill=["cross_hire_order"],
+		header=[
+			{"fieldname": "cross_hire_order", "filters": {"docstatus": 1, "status": ["not in", ["To Receive", "Completed", "Cancelled"]]},
+				"fetch": {"supplier": "supplier", "supplier_name": "supplier_name", "purchase_order": "purchase_order", "company": "company",
+					"return_from_warehouse": "receipt_warehouse"}},
+			{"fieldname": "supplier_name", "ro": 1},
+			{"fieldname": "purchase_order", "ro": 1},
+			"company", "off_hire_date", "last_billable_date",
+			{"fieldname": "return_from_warehouse", "filters": {"is_group": 0, "company": "$company"}},
+			"vehicle_no", "driver_name", "supplier_acknowledgement",
+			{"fieldname": "purchase_returns", "ro": 1, "wide": 1},
+			{"fieldname": "remarks", "wide": 1},
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.6, "ro": 1},
+				{"fieldname": "item_name", "w": 3, "ro": 1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "on_hire_qty", "w": 1.2, "ro": 1},
+				{"fieldname": "at_customer_site_qty", "w": 1.4, "ro": 1},
+				{"fieldname": "qty", "w": 1.2},
+				{"fieldname": "batch_no", "w": 1.6},
+				{"fieldname": "remarks", "w": 2},
+			]),
+		],
+		totals=["total_qty"],
+		fill=dict(label="Get items on hire", needs="cross_hire_order", arg="cross_hire_order", table="items",
+			method="thinknxg_rental.portal.entry.get_cross_hire_return_items"),
 	),
 	"sales-order": dict(
 		menu="more",
@@ -460,6 +682,54 @@ ENTRY_TYPES = {
 			TAX_TABLE,
 		],
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
+		next=[
+			dict(label="Create Delivery Note", target="delivery-note", method="erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.per_delivered) < 100 and d.status not in ("Closed", "On Hold")),
+			dict(label="Create Sales Invoice", target="sales-invoice", method="erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.per_billed) < 100 and d.status not in ("Closed", "On Hold")),
+		],
+		related=[
+			dict(label="Delivery Notes", rows=lambda d: _against("Delivery Note", "Delivery Note Item", "against_sales_order", d.name, "delivery-note"),
+				columns=[("name", "Delivery Note", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"), ("status", "Status", "Data")]),
+			dict(label="Sales Invoices", rows=lambda d: _against("Sales Invoice", "Sales Invoice Item", "sales_order", d.name, "sales-invoice"),
+				columns=[("name", "Sales Invoice", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"), ("status", "Status", "Data")]),
+		],
+	),
+	"delivery-note": dict(
+		menu="more",
+		doctype="Delivery Note",
+		print=True,
+		label="Delivery Note",
+		plural="Delivery Notes",
+		nav_label="Sales Delivery Notes",
+		title_field="customer_name",
+		search_fields=["customer_name", "customer", "po_no"],
+		list_columns=[("customer_name", "Customer"), ("posting_date", "Date"), ("grand_total", "Total")],
+		header=[
+			{"fieldname": "customer", "fetch": {"customer_name": "customer_name"}},
+			{"fieldname": "customer_name", "ro": 1},
+			"company", "posting_date", "po_no", "currency", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			{"fieldname": "set_warehouse", "filters": {"company": "$company", "is_group": 0}},
+			"lr_no", "vehicle_no", "transporter_name",
+		],
+		tables=[
+			dict(fieldname="items", columns=[
+				{"fieldname": "item_code", "w": 2.6, "filters": {"disabled": 0}, "fetch": ITEM_FETCH},
+				{"fieldname": "item_name", "w": 2.8, "ro": 1},
+				{"fieldname": "qty", "w": 1.1},
+				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "rate", "w": 1.4},
+				{"fieldname": "amount", "w": 1.5, "ro": 1},
+				{"fieldname": "warehouse", "w": 2.2, "filters": {"company": "$company", "is_group": 0}},
+				{"fieldname": "against_sales_order", "w": 2, "ro": 1},
+			]),
+			TAX_TABLE,
+		],
+		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
+		next=[
+			dict(label="Create Sales Invoice", target="sales-invoice", method="erpnext.stock.doctype.delivery_note.delivery_note.make_sales_invoice",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.per_billed) < 100 and d.status not in ("Closed", "Return Issued")),
+		],
 	),
 	"sales-invoice": dict(
 		menu="more",
@@ -529,6 +799,16 @@ ENTRY_TYPES = {
 				when={"docstatus": [1], "inspection_status": ["Pending"]}),
 			dict(label="Create Damage Settlement", target="damage-settlement", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_damage_settlement",
 				when={"docstatus": [1], "inspection_status": ["Not Required", "Completed"]}, when_fn=lambda d: not _settlement_of(d.name)),
+		],
+		related=[
+			dict(label="Return inspections", rows=lambda d: linked("Rental Return Inspection", {"hire_off_hire_note": d.name, "docstatus": ["<", 2]},
+				["inspection_date", "total_good_qty", "total_repairable_qty", "total_damaged_qty"], "return-inspection"),
+				columns=[("name", "Inspection", "Data"), ("inspection_date", "Date", "Date"), ("total_good_qty", "Good", "Float"),
+					("total_repairable_qty", "Repairable", "Float"), ("total_damaged_qty", "Beyond repair", "Float"), ("status", "Status", "Data")]),
+			dict(label="Damage settlements", rows=lambda d: linked("Rental Damage Settlement", {"hire_off_hire_note": d.name, "docstatus": ["<", 2]},
+				["posting_date", "grand_total", "sales_invoice", "status"], "damage-settlement"),
+				columns=[("name", "Settlement", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"),
+					("sales_invoice", "Sales Invoice", "Data"), ("status", "Status", "Data")]),
 		],
 		fill=dict(label="Get items at site", needs="rental_contract", table="items",
 			method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.get_items_at_site"),
@@ -610,6 +890,55 @@ ENTRY_TYPES = {
 	),
 }
 
+# A customer portal request, opened from /rental/admin/requests. The customer's own entries are read-only
+# here; staff convert it (Hire Order, Off-Hire Note, extension) or reject it with a reply the customer sees.
+ENTRY_TYPES["request"] = dict(
+	menu="none",
+	active="requests",
+	doctype="Rental Portal Request",
+	label="Customer Request",
+	plural="Customer Requests",
+	list_url="/rental/admin/requests",
+	title_field="customer_name",
+	search_fields=["customer_name", "customer", "rental_contract", "rental_site"],
+	list_columns=[("customer_name", "Customer"), ("request_type", "Asking for"), ("request_date", "Date")],
+	header=[
+		{"fieldname": "request_type", "ro": 1}, {"fieldname": "customer", "ro": 1}, {"fieldname": "customer_name", "ro": 1},
+		{"fieldname": "raised_by", "ro": 1}, {"fieldname": "request_date", "ro": 1}, {"fieldname": "status", "ro": 1},
+		{"fieldname": "rental_contract", "ro": 1}, {"fieldname": "rental_site", "ro": 1},
+		{"fieldname": "site_location", "ro": 1, "show_if": {"request_type": ["Hire Enquiry"]}},
+		{"fieldname": "required_date", "ro": 1, "show_if": {"request_type": ["Hire Enquiry"]}},
+		{"fieldname": "expected_return_date", "ro": 1, "show_if": {"request_type": ["Hire Enquiry"]}},
+		{"fieldname": "new_end_date", "ro": 1, "show_if": {"request_type": ["Extension Request"]}},
+		{"fieldname": "reference_doctype", "ro": 1}, {"fieldname": "reference_name", "ro": 1},
+		{"fieldname": "remarks", "ro": 1, "wide": 1},
+		{"fieldname": "response", "wide": 1},
+	],
+	tables=[
+		dict(fieldname="items", readonly=1, columns=[
+			{"fieldname": "item_code", "w": 2.6}, {"fieldname": "item_name", "w": 3}, {"fieldname": "uom", "w": 1}, {"fieldname": "qty", "w": 1.2},
+		]),
+	],
+	next=[
+		dict(label="Start", call="start", when={"status": ["Open"]}, done="{0} is in progress."),
+		dict(label="Create Hire Order", target="hire-order",
+			method="thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request.make_hire_order",
+			when={"request_type": ["Hire Enquiry"], "status": ["Open", "In Progress"]}, when_fn=lambda d: not _request_document(d)),
+		dict(label="Create Off-Hire Note", target="off-hire-note",
+			method="thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request.make_off_hire_note",
+			when={"request_type": ["Off-Hire Request"], "status": ["Open", "In Progress"]}, when_fn=lambda d: not _request_document(d)),
+		dict(label="Extend Contract", call="apply_extension", when={"request_type": ["Extension Request"], "status": ["Open", "In Progress"]},
+			confirm="Extend the contract to the requested end date and complete this request?", done="{0}: contract extended."),
+		dict(label="Reject", call="reject", when={"status": ["Open", "In Progress"]}, when_fn=lambda d: not _request_document(d),
+			ask=[{"fieldname": "reason", "label": "Reason (the customer sees this)", "fieldtype": "Small Text", "reqd": 1, "wide": 1}],
+			done="{0} is rejected."),
+	],
+	related=[
+		dict(label="Documents made for this request", rows=lambda d: _request_document(d, rows=True),
+			columns=[("name", "Document", "Data"), ("doctype", "Type", "Data"), ("status", "Status", "Data")]),
+	],
+)
+
 # Never taken from the browser: frappe sets these itself.
 PROTECTED = {
 	"name", "owner", "creation", "modified", "modified_by", "docstatus", "idx", "doctype",
@@ -643,6 +972,105 @@ def _shortfall(doc, table):
 
 def _settlement_of(off_hire_note):
 	return frappe.db.exists("Rental Damage Settlement", {"hire_off_hire_note": off_hire_note, "docstatus": ["<", 2]})
+
+
+def _made_from(doctype, field, name):
+	"""A live (draft or submitted) document already made from this one, so its Create button is not offered twice."""
+	return frappe.db.get_value(doctype, {field: name, "docstatus": ["<", 2]} if frappe.get_meta(doctype).is_submittable else {field: name}, "name")
+
+
+def _lead_quotations(lead, live=False):
+	"""Quotations made from a Lead: to the Customer made from it, or to the Prospect it belongs to."""
+	parties = frappe.get_all("Customer", filters={"lead_name": lead.name}, pluck="name")
+	parties += frappe.get_all("Prospect Lead", filters={"lead": lead.name, "parenttype": "Prospect"}, pluck="parent")
+	parties.append(lead.name)
+	filters = {"party_name": ["in", parties], "docstatus": ["<", 2]}
+	if live:
+		filters["status"] = ["not in", ["Lost", "Expired", "Cancelled"]]
+	return linked("Quotation", filters, ["deal_type", "transaction_date", "grand_total", "status"], "quotation")
+
+
+def _against(doctype, child, field, name, entry):
+	parents = frappe.get_all(child, filters={field: name, "docstatus": ["<", 2]}, pluck="parent", distinct=True)
+	if not parents:
+		return []
+	return linked(doctype, {"name": ["in", parents]}, ["posting_date", "grand_total", "status"], entry)
+
+
+def _quotation_sales_orders(doc):
+	parents = frappe.get_all("Sales Order Item", filters={"prevdoc_docname": doc.name, "docstatus": ["<", 2]}, pluck="parent", distinct=True)
+	if not parents:
+		return []
+	return linked("Sales Order", {"name": ["in", parents]}, ["transaction_date", "grand_total", "status"], "sales-order")
+
+
+def _request_document(doc, rows=False):
+	"""The Hire Order / Off-Hire Note already made for a customer request, draft or submitted, so the
+	request is not converted twice. rows=True adds the contract an extension was applied to."""
+	out = []
+	for doctype, entry in (("Hire Order", "hire-order"), ("Hire Off-Hire Note", "off-hire-note")):
+		for r in linked(doctype, {"portal_request": doc.name, "docstatus": ["<", 2]}, [], entry):
+			out.append(dict(r, doctype=_(doctype)))
+	if rows and doc.get("reference_doctype") == "Rental Contract" and doc.get("reference_name"):
+		out += [dict(r, doctype=_("Rental Contract")) for r in linked("Rental Contract", {"name": doc.reference_name}, ["status"], "rental-contract")]
+	return out
+
+
+def _standing_lines(jcr):
+	"""JCR job lines erected and not fully dismantled yet."""
+	return [r for r in jcr.get("job_lines") or [] if r.get("erection_date") and not r.get("dismantle_date")]
+
+
+def _hoc_jcr_lines(hoc):
+	"""Every JCR job line of a Hire Order Contract, with what is billed and what is still to invoice."""
+	jcrs = linked("Job Completion Report", {"hire_order_contract": hoc.name, "docstatus": ["<", 2]}, ["status"], "jcr", order_by="creation asc", limit=200)
+	if not jcrs:
+		return []
+	names = [j.name for j in jcrs]
+	lines = frappe.get_all("Job Completion Report Line", filters={"parent": ["in", names], "parenttype": "Job Completion Report"},
+		fields=["name", "parent", "job_type", "job_type_name", "location", "job_qty", "erection_date", "contract_end_date",
+			"dismantle_date", "status", "total_billed_amount"], order_by="parent asc, idx asc")
+	pending = {}
+	for s in frappe.get_all("JCR Billing Schedule", filters={"jcr": ["in", names], "status": "Pending"}, fields=["jcr", "jcr_line", "amount"]):
+		pending[(s.jcr, s.jcr_line)] = pending.get((s.jcr, s.jcr_line), 0) + flt(s.amount)
+	head = {j.name: j for j in jcrs}
+	out = []
+	for l in lines:
+		j = head[l.parent]
+		out.append(frappe._dict(l, jcr=l.parent, url=j.url, status=l.status or j.status, billed=flt(l.total_billed_amount),
+			pending=pending.get((l.parent, l.name), 0)))
+	return out
+
+
+@frappe.whitelist()
+def make_cross_hire_receipt(source_name: str, target_doc=None):
+	"""Cross Hire Order -> Purchase Receipt for what is still to arrive (services.cross_hire does the mapping)."""
+	from thinknxg_rental.services.cross_hire import make_cross_hire_receipt as make
+
+	return make(source_name)
+
+
+@frappe.whitelist()
+def get_cross_hire_return_items(cross_hire_order: str):
+	"""Rows a Cross Hire Off-Hire Note takes: what is on hire from the supplier and not at a customer site."""
+	from thinknxg_rental.thinknxg_rental.doctype.cross_hire_off_hire_note.cross_hire_off_hire_note import make_cross_hire_off_hire_note
+
+	return [_clean(d.as_dict()) for d in make_cross_hire_off_hire_note(cross_hire_order).items]
+
+
+@frappe.whitelist(methods=["POST"])
+def record_deposit(rental_contract: str, deposit_received: float, deposit_reference: str | None = None):
+	"""Deposit received and its reference, which may change on a submitted contract (allow on submit)."""
+	doc = frappe.get_doc("Rental Contract", rental_contract)
+	doc.check_permission("write")
+	if doc.docstatus != 1:
+		frappe.throw(_("Save the deposit on the draft form, or submit the contract first."))
+	if flt(deposit_received) < 0:
+		frappe.throw(_("Deposit received cannot be negative"))
+	doc.deposit_received = flt(deposit_received)
+	doc.deposit_reference = deposit_reference
+	doc.save()
+	return doc.name
 
 
 def _open_job_lines(doc):
@@ -795,13 +1223,32 @@ def get_print_links(cfg, doc):
 	return links
 
 
+def _ask(action, doc):
+	"""The values an action asks for before it runs (a date, a reason, which job line)."""
+	ask = action.get("ask") or []
+	ask = ask(doc) if callable(ask) else ask
+	return [dict(s, label=_(s["label"])) for s in ask]
+
+
 def get_next_actions(key, cfg, doc):
+	"""Buttons on a saved document. Three kinds: a mapper that opens the next document unsaved here
+	(method), a link to a new document with values carried over (prefill), and an action that runs on
+	this document or for it and stays here (call: a method of the document, fn: a module function),
+	optionally after asking for a few values."""
 	actions = []
 	if doc.is_new():
 		return actions
 	for i, a in enumerate(cfg.get("next", [])):
+		if not _matches(a, doc):
+			continue
+		if a.get("call") or a.get("fn"):
+			if not doc.has_permission(a.get("perm", "write")):
+				continue
+			actions.append({"label": _(a["label"]), "run": f"{key}:{i}", "source": doc.name, "ask": _ask(a, doc),
+				"confirm": _(a["confirm"]) if a.get("confirm") else None})
+			continue
 		target = ENTRY_TYPES[a["target"]]
-		if not _matches(a, doc) or not frappe.has_permission(target["doctype"], "create"):
+		if not frappe.has_permission(target["doctype"], "create"):
 			continue
 		if a.get("method"):
 			actions.append({"label": _(a["label"]), "make": f"{key}:{i}", "source": doc.name})
@@ -809,6 +1256,80 @@ def get_next_actions(key, cfg, doc):
 			values = {k: (v(doc) if callable(v) else doc.get(v)) for k, v in a["prefill"].items()}
 			actions.append({"label": _(a["label"]), "url": entry_url(a["target"], **values)})
 	return actions
+
+
+@frappe.whitelist(methods=["POST"])
+def run_action(action: str, source: str, values: str | dict | None = None):
+	"""Run a call/fn action from get_next_actions. Only the configured method runs, only with the values
+	the action asks for, and only while the document still qualifies for the button."""
+	key, _sep, idx = action.partition(":")
+	cfg = get_entry_type(key)
+	actions = cfg.get("next", [])
+	if cint(idx) >= len(actions) or not (actions[cint(idx)].get("call") or actions[cint(idx)].get("fn")):
+		frappe.throw(_("Unknown action"))
+	a = actions[cint(idx)]
+	doc = frappe.get_doc(cfg["doctype"], source)
+	doc.check_permission(a.get("perm", "write"))
+	if not _matches(a, doc):
+		frappe.throw(_("{0} is no longer available for {1}. Reload the page.").format(_(a["label"]), source))
+	values = (frappe.parse_json(values) if isinstance(values, str) else values) or {}
+	kwargs = {}
+	for spec in _ask(a, doc):
+		value = values.get(spec["fieldname"])
+		if value in (None, ""):
+			if spec.get("reqd"):
+				frappe.throw(_("{0} is required").format(spec["label"]))
+			continue
+		kwargs[spec["fieldname"]] = value
+	if a.get("call"):
+		result = getattr(doc, a["call"])(**kwargs)
+	else:
+		result = frappe.get_attr(a["fn"])(**{a.get("source_arg", "source_name"): source}, **kwargs)
+	opens = a.get("opens")
+	if opens and result:
+		name = result if isinstance(result, str) else result.get("name")
+		if opens in ENTRY_TYPES:
+			return {"url": entry_url(opens, name)}
+		return {"url": f"/app/{opens.lower().replace(' ', '-')}/{quote(name)}"}
+	return {"url": entry_url(key, source), "message": _(a.get("done") or "{0}: done.").format(source)}
+
+
+# ----------------------------------------------------------------------------- related documents
+def linked(doctype, filters, fields, entry=None, order_by="creation desc", limit=50):
+	"""Rows of another document type for a form's related list. entry is the portal menu that opens
+	them (else the desk form). Rows the user may not read are left out by frappe.get_list."""
+	if not frappe.has_permission(doctype, "read"):
+		return []
+	rows = frappe.get_list(doctype, filters=filters, fields=list(dict.fromkeys(["name", "docstatus", *fields])),
+		order_by=order_by, limit_page_length=limit)
+	for r in rows:
+		r.url = entry_url(entry, r.name) if entry else f"/app/{doctype.lower().replace(' ', '-')}/{quote(r.name)}"
+		r.status = r.get("status") or ("Draft" if r.docstatus == 0 else "Submitted" if r.docstatus == 1 else "Cancelled")
+	return rows
+
+
+def get_related(cfg, doc):
+	"""Lists of the documents made from or for this one (JCRs of a Hire Order Contract, deliveries of a
+	contract, ...), each row linking to its own form. columns: (fieldname, label, fieldtype)."""
+	if doc.is_new():
+		return []
+	out = []
+	for r in cfg.get("related", []):
+		rows = r["rows"](doc)
+		if not rows:
+			continue
+		out.append({"label": _(r["label"]), "columns": [{"fieldname": f, "label": _(l), "fieldtype": t} for f, l, t in r["columns"]],
+			"rows": frappe.parse_json(frappe.as_json(rows))})
+	return out
+
+
+def entry_links():
+	"""DocType -> portal menu, so a read-only link on a form opens the linked document in the portal."""
+	out = {}
+	for key, cfg in ENTRY_TYPES.items():
+		if cfg["doctype"] not in out and cfg.get("link", True) and frappe.has_permission(cfg["doctype"], "read"):
+			out[cfg["doctype"]] = key
+	return out
 
 
 def _mapped(make, source):
@@ -888,11 +1409,13 @@ def get_form_boot(key, name=None, form_dict=None):
 		doc=data,
 		currency=doc.get("currency"),
 		next=get_next_actions(key, cfg, doc),
+		related=get_related(cfg, doc),
+		links=entry_links(),
 		prints=get_print_links(cfg, doc),
 		invoice=bool(cfg.get("invoice") and doc.docstatus == 1 and doc.get("status") not in ("Completed", "Cancelled")
 			and frappe.has_permission("Sales Invoice", "create")),
 		desk_url=f"/app/{doctype.lower().replace(' ', '-')}" + (f"/{quote(doc.name)}" if not doc.is_new() else "/new"),
-		list_url=f"/rental/admin/entries?type={key}",
+		list_url=cfg.get("list_url") or f"/rental/admin/entries?type={key}",
 	)
 
 

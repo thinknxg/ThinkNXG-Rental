@@ -11,6 +11,7 @@
 		{% if not boot.is_new %}{{ pill(boot.status) }}{% endif %}
 		{% for a in boot.next %}
 		{% if a.make %}<button type="button" class="rp-btn" data-make="{{ a.make | e }}" data-source="{{ a.source | e }}">{{ a.label | e }}</button>
+		{% elif a.run %}<button type="button" class="rp-btn" data-run="{{ a.run | e }}">{{ a.label | e }}</button>
 		{% else %}<a class="rp-btn" href="{{ a.url | e }}">{{ a.label | e }}</a>{% endif %}
 		{% endfor %}
 		{% for p in boot.prints %}<a class="rp-btn" href="{{ p.url | e }}" target="_blank" rel="noopener">{{ p.label | e }}</a>{% endfor %}
