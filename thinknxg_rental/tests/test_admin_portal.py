@@ -39,10 +39,11 @@ def labels(boot):
 	return [a["label"] for a in boot["next"]]
 
 
-def create(boot, label):
-	"""Click a Create button: map in a POST, then open the unsaved document like the form page does."""
+def create(boot, label, **values):
+	"""Click a Create button (answering its ask panel with values): map in a POST, then open the unsaved
+	document like the form page does."""
 	a = action(boot, label)
-	url = E.prepare_mapped(a["make"], a["source"])["url"]
+	url = E.prepare_mapped(a["make"], a["source"], json.dumps(values) if values else None)["url"]
 	target = dict(parse_qsl(url.split("?", 1)[1]))
 	key = target.pop("type")
 	if "name" in target:
@@ -298,25 +299,29 @@ class TestAdminPortal(IntegrationTestCase):
 		do["doc"]["items"] = fill(do)
 		save("delivery-order", do["doc"], submit=True)
 
-		# JCR 1: North, erected 40 days ago
+		# JCR 1: North, erected 40 days ago. Two lines are open, so the button asks which one.
 		hoc = form("hire-order-contract", hoc_name)
-		key, j1 = create(hoc, "Create Job Completion Report")
-		north = [r for r in j1["doc"]["job_lines"] if r.get("location") == "North"] or j1["doc"]["job_lines"][:1]
-		j1["doc"]["job_lines"] = [dict(north[0], erection_date=add_days(nowdate(), -40), job_qty=1)]
+		line_of = {r["location"]: r["name"] for r in hoc["doc"]["items"]}
+		ask = action(hoc, "Create Job Completion Report")["ask"]
+		self.assertEqual([c["value"] for c in ask[0]["choices"]], ["", line_of["North"], line_of["South"]])
+		key, j1 = create(hoc, "Create Job Completion Report", contract_item=line_of["North"])
+		self.assertEqual(key, "jcr")
+		self.assertEqual(j1["doc"]["hire_order_contract"], hoc_name)
+		self.assertEqual([r["contract_item"] for r in j1["doc"]["job_lines"]], [line_of["North"]], "only the chosen job line")
+		j1["doc"]["job_lines"][0].update(erection_date=add_days(nowdate(), -40), job_qty=1)
 		j1_name = save("jcr", j1["doc"], submit=True)
-		# JCR 2: South, staged in two parts of 0.5
+		# JCR 2: South, staged in two parts of 0.5. Only South is open now, so no question.
 		hoc = form("hire-order-contract", hoc_name)
+		self.assertFalse(action(hoc, "Create Job Completion Report")["ask"])
 		key, j2 = create(hoc, "Create Job Completion Report")
-		south = [r for r in j2["doc"]["job_lines"] if r.get("location") == "South"]
-		self.assertTrue(south, "the second JCR offers the line not yet reported")
-		self.assertFalse([r for r in j2["doc"]["job_lines"] if r.get("location") == "North" and flt(r.get("nxg_balance_qty")) > 0])
-		j2["doc"]["job_lines"] = [dict(south[0], erection_date=add_days(nowdate(), -10), job_qty=0.5)]
+		self.assertEqual([r["location"] for r in j2["doc"]["job_lines"]], ["South"], "the second JCR offers the line not yet reported")
+		j2["doc"]["job_lines"][0].update(erection_date=add_days(nowdate(), -10), job_qty=0.5)
 		j2_name = save("jcr", j2["doc"], submit=True)
 		hoc = form("hire-order-contract", hoc_name)
 		key, j3 = create(hoc, "Create Job Completion Report")
-		south = [r for r in j3["doc"]["job_lines"] if r.get("location") == "South"]
-		j3["doc"]["job_lines"] = [dict(south[0], erection_date=add_days(nowdate(), -5), job_qty=0.5)]
+		j3["doc"]["job_lines"][0].update(erection_date=add_days(nowdate(), -5), job_qty=0.5)
 		j3_name = save("jcr", j3["doc"], submit=True)
+		self.assertNotIn("Create Job Completion Report", labels(form("hire-order-contract", hoc_name)), "every job is reported")
 
 		# contract end = erection + contract days - 1
 		j1_doc = frappe.get_doc("Job Completion Report", j1_name)
@@ -481,6 +486,89 @@ class TestAdminPortal(IntegrationTestCase):
 		frappe.set_user(STAFF)
 		# only configured actions run: an index that is a mapper, not an action, is refused
 		self.assertRaises(frappe.ValidationError, E.run_action, "rental-contract:0", rc or "x", "{}")
+
+	# ------------------------------------------------------------------ G: one JCR per job line and erection stage
+	def test_g_jcr_per_job_line(self):
+		"""HOC with Job A @ Site A (2 jobs) and Job B @ Site B (1 job): JCR 1 for Job A, JCR 2 for Job B and
+		JCR 3 for a second erection stage of Job A, each picked from the contract page."""
+		frappe.set_user("Administrator")
+		jobs = {}
+		for code, name in (("PT-JOB-A", "Portal Test Job A"), ("PT-JOB-B", "Portal Test Job B")):
+			if not frappe.db.exists("Item", code):
+				frappe.get_doc({"doctype": "Item", "item_code": code, "item_name": name, "item_group": _leaf("Item Group"),
+					"stock_uom": "Nos", "is_stock_item": 0}).insert()
+			if not frappe.db.exists("Job Type", code):
+				frappe.get_doc({"doctype": "Job Type", "item_code": code, "rental_items": [{"item_code": self.tube, "qty": 10}]}).insert()
+			jobs[code] = name
+		customer = self._customer("Portal JCR Customer")
+		site = self._site(customer, "JCR Stage Site")
+		line = {"included_days": 30, "contract_rate": 1000, "excess_rate_basis": "Daily", "excess_rate": 50, "nxg_duration": 1}
+		hoc = frappe.get_doc({"doctype": "Hire Order Contract", "company": self.company, "customer": customer, "rental_site": site,
+			"order_date": add_days(nowdate(), -30), "required_from": add_days(nowdate(), -30), "contract_charge_billing": "On Erection",
+			"items": [dict(line, job_type="PT-JOB-A", location="Site A", qty=2), dict(line, job_type="PT-JOB-B", location="Site B", qty=1)]})
+		hoc.insert()
+		hoc.submit()
+		line_a, line_b = hoc.items[0].name, hoc.items[1].name
+		frappe.set_user(STAFF)
+		label = "Create Job Completion Report"
+
+		# two open lines: the job line must be chosen, and only a line of this contract is accepted
+		boot = form("hire-order-contract", hoc.name)
+		ask = action(boot, label)["ask"]
+		self.assertEqual(ask[0]["fieldname"], "contract_item")
+		self.assertTrue(ask[0]["reqd"])
+		self.assertRaises(frappe.ValidationError, create, boot, label)
+		self.assertRaises(frappe.ValidationError, create, boot, label, contract_item="not-a-line")
+
+		def new_jcr(contract_item=None, **row):
+			values = {"contract_item": contract_item} if contract_item else {}
+			key, j = create(form("hire-order-contract", hoc.name), label, **values)
+			self.assertEqual(key, "jcr")
+			self.assertEqual(j["doc"]["hire_order_contract"], hoc.name)
+			self.assertEqual(j["doc"]["customer_name"], frappe.db.get_value("Customer", customer, "customer_name"))
+			self.assertEqual(len(j["doc"]["job_lines"]), 1)
+			j["doc"]["job_lines"][0].update(row)
+			return j
+
+		# the erection date is still required, and the message names the job line
+		j = new_jcr(line_a, job_qty=1)
+		with self.assertRaisesRegex(frappe.ValidationError, "Portal Test Job A @ Site A.*Erection Date"):
+			save("jcr", j["doc"], submit=True)
+		self.assertFalse(frappe.db.exists("Job Completion Report", {"hire_order_contract": hoc.name}), "a failed save leaves nothing behind")
+
+		j1 = save("jcr", new_jcr(line_a, job_qty=1, erection_date="2026-10-01")["doc"], submit=True)
+		j2 = save("jcr", new_jcr(line_b, job_qty=1, erection_date="2026-10-05")["doc"], submit=True)
+		# Job A has one job left: the next JCR takes it without asking; a spare draft for the same job is
+		# saved too, but cannot be submitted once the real one is
+		self.assertFalse(action(form("hire-order-contract", hoc.name), label)["ask"])
+		spare = save("jcr", new_jcr(job_qty=1, erection_date="2026-10-09")["doc"])
+		self.assertEqual(form("jcr", spare)["status"], "Draft")
+		j3 = save("jcr", new_jcr(job_qty=1, erection_date="2026-10-10")["doc"], submit=True)
+		with self.assertRaisesRegex(frappe.ValidationError, "only 0 jobs remain"):
+			E.submit_entry("jcr", spare)
+		self.assertNotIn(label, labels(form("hire-order-contract", hoc.name)))
+
+		expect = {j1: (line_a, "2026-10-01"), j2: (line_b, "2026-10-05"), j3: (line_a, "2026-10-10")}
+		for name, (contract_item, erected) in expect.items():
+			d = frappe.get_doc("Job Completion Report", name)
+			self.assertEqual((d.docstatus, d.hire_order_contract, d.customer, d.company), (1, hoc.name, customer, self.company))
+			self.assertEqual([(r.contract_item, str(r.erection_date), flt(r.job_qty)) for r in d.job_lines], [(contract_item, erected, 1)])
+		self.assertEqual([(flt(d.jcr_qty), flt(d.balance_qty)) for d in frappe.get_doc("Hire Order Contract", hoc.name).items], [(2, 0), (1, 0)])
+
+		# the contract lists every JCR with its job line; drafts show as Draft
+		rows = next(r for r in form("hire-order-contract", hoc.name)["related"] if r["label"] == "Job Completion Reports")["rows"]
+		listed = {(r["jcr"], r["line"], r["location"], r["status"]) for r in rows}
+		self.assertTrue({(j1, "#1", "Site A"), (j2, "#2", "Site B"), (j3, "#1", "Site A")} <= {x[:3] for x in listed})
+		self.assertIn((spare, "#1", "Site A", "Draft"), listed)
+
+		# creating JCRs makes billing periods once and no invoice
+		sched = frappe.get_all("JCR Billing Schedule", filters={"jcr": ["in", [j1, j2, j3]]}, fields=["jcr", "jcr_line", "billing_type", "period_from", "sales_invoice"])
+		self.assertEqual(len(sched), len({(s.jcr, s.jcr_line, s.billing_type, str(s.period_from)) for s in sched}))
+		self.assertFalse([s for s in sched if s.sales_invoice])
+
+		# someone without JCR rights gets no JCR
+		frappe.set_user(OUTSIDER)
+		self.assertRaises(frappe.PermissionError, E.prepare_mapped, "hire-order-contract:3", hoc.name, json.dumps({"contract_item": line_a}))
 
 	# ------------------------------------------------------------------ fixtures
 	def _customer(self, name):

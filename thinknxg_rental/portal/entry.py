@@ -268,9 +268,10 @@ ENTRY_TYPES = {
 				when={"docstatus": [1]}, when_fn=lambda d: _shortfall(d, "materials") > 0),
 			dict(label="Cross Hire Order", target="cross-hire-order", prefill={"rental_contract": lambda d: _source_contract(d)},
 				when={"docstatus": [1]}, when_fn=lambda d: _shortfall(d, "materials") > 0 and _source_contract(d)),
+			# one JCR per job line and erection: with several lines open, the button asks which one first
 			dict(label="Create Job Completion Report", target="jcr",
 				method="thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr",
-				when={"docstatus": [1]}, when_fn=lambda d: _open_job_lines(d)),
+				when={"docstatus": [1]}, when_fn=lambda d: _open_job_lines(d), ask=lambda d: _jcr_line_ask(d)),
 		],
 		related=[
 			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"source_document": d.name, "docstatus": ["<", 2]},
@@ -279,7 +280,7 @@ ENTRY_TYPES = {
 					("end_date", "End", "Date"), ("total_at_site_qty", "At site", "Float")]),
 			# one row per JCR job line: a JCR can carry several job types, and one job type can sit at several locations
 			dict(label="Job Completion Reports", rows=lambda d: _hoc_jcr_lines(d),
-				columns=[("jcr", "JCR", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
+				columns=[("jcr", "JCR", "Data"), ("line", "Job line", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
 					("job_qty", "Jobs", "Float"), ("erection_date", "Erected", "Date"), ("contract_end_date", "Contract ends", "Date"),
 					("dismantle_date", "Dismantled", "Date"), ("status", "Status", "Data"), ("billed", "Billed", "Currency"),
 					("pending", "Not yet invoiced", "Currency")]),
@@ -304,7 +305,8 @@ ENTRY_TYPES = {
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
-			dict(fieldname="job_lines", columns=[
+			# rows come from the contract's job lines (Create Job Completion Report, Get job lines), never typed in
+			dict(fieldname="job_lines", no_add=1, columns=[
 				{"fieldname": "job_type", "w": 2.4, "ro": 1},
 				{"fieldname": "job_type_name", "w": 2.4, "ro": 1},
 				{"fieldname": "location", "w": 1.8},
@@ -1028,8 +1030,9 @@ def _hoc_jcr_lines(hoc):
 		return []
 	names = [j.name for j in jcrs]
 	lines = frappe.get_all("Job Completion Report Line", filters={"parent": ["in", names], "parenttype": "Job Completion Report"},
-		fields=["name", "parent", "job_type", "job_type_name", "location", "job_qty", "erection_date", "contract_end_date",
+		fields=["name", "parent", "contract_item", "job_type", "job_type_name", "location", "job_qty", "erection_date", "contract_end_date",
 			"dismantle_date", "status", "total_billed_amount"], order_by="parent asc, idx asc")
+	line_no = {d.name: d.idx for d in hoc.items}
 	pending = {}
 	for s in frappe.get_all("JCR Billing Schedule", filters={"jcr": ["in", names], "status": "Pending"}, fields=["jcr", "jcr_line", "amount"]):
 		pending[(s.jcr, s.jcr_line)] = pending.get((s.jcr, s.jcr_line), 0) + flt(s.amount)
@@ -1037,7 +1040,8 @@ def _hoc_jcr_lines(hoc):
 	out = []
 	for l in lines:
 		j = head[l.parent]
-		out.append(frappe._dict(l, jcr=l.parent, url=j.url, status=l.status or j.status, billed=flt(l.total_billed_amount),
+		out.append(frappe._dict(l, jcr=l.parent, url=j.url, line=f"#{line_no[l.contract_item]}" if l.contract_item in line_no else "",
+			status="Draft" if j.docstatus == 0 else l.status or j.status, billed=flt(l.total_billed_amount),
 			pending=pending.get((l.parent, l.name), 0)))
 	return out
 
@@ -1076,7 +1080,18 @@ def record_deposit(rental_contract: str, deposit_received: float, deposit_refere
 def _open_job_lines(doc):
 	from thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract import get_open_job_lines
 
-	return bool(get_open_job_lines(doc))
+	return get_open_job_lines(doc)
+
+
+def _jcr_line_ask(hoc):
+	"""Create Job Completion Report on a contract with several open job lines: which line the JCR is for."""
+	lines = _open_job_lines(hoc)
+	if len(lines) < 2:
+		return []
+	return [{"fieldname": "contract_item", "label": "Job line", "fieldtype": "Select", "reqd": 1, "default": "",
+		"choices": [{"value": "", "label": _("Select the job line")}] + [{"value": l.name,
+			"label": _("#{0} {1} ({2} of {3} jobs open)").format(l.idx, " @ ".join(x for x in [l.job_type_name or l.job_type, l.location] if x),
+				f"{flt(l.remaining, 3):g}", f"{flt(l.qty, 3):g}")} for l in lines]}]
 
 
 @frappe.whitelist()
@@ -1169,7 +1184,8 @@ def get_form_specs(cfg):
 			continue
 		child = frappe.get_meta(df.options)
 		columns = [s for s in (_spec(child, c, table=True) for c in t["columns"]) if s]
-		tables.append({"fieldname": df.fieldname, "label": _(df.label), "readonly": cint(t.get("readonly")), "columns": columns})
+		tables.append({"fieldname": df.fieldname, "label": _(df.label), "readonly": cint(t.get("readonly")), "no_add": cint(t.get("no_add")),
+			"columns": columns})
 	totals = []
 	for f in cfg.get("totals", []):
 		df = meta.get_field(f)
@@ -1251,7 +1267,7 @@ def get_next_actions(key, cfg, doc):
 		if not frappe.has_permission(target["doctype"], "create"):
 			continue
 		if a.get("method"):
-			actions.append({"label": _(a["label"]), "make": f"{key}:{i}", "source": doc.name})
+			actions.append({"label": _(a["label"]), "make": f"{key}:{i}", "source": doc.name, "ask": _ask(a, doc)})
 		else:
 			values = {k: (v(doc) if callable(v) else doc.get(v)) for k, v in a["prefill"].items()}
 			actions.append({"label": _(a["label"]), "url": entry_url(a["target"], **values)})
@@ -1332,21 +1348,42 @@ def entry_links():
 	return out
 
 
-def _mapped(make, source):
+def _asked_values(action, doc, values):
+	"""The values the user gave for an action's ask panel: only the asked fields, required ones present,
+	and a choice list value one of its choices."""
+	values = (frappe.parse_json(values) if isinstance(values, str) else values) or {}
+	out = {}
+	for spec in _ask(action, doc):
+		value = values.get(spec["fieldname"])
+		if value in (None, ""):
+			if spec.get("reqd"):
+				frappe.throw(_("Select {0} first").format(spec["label"]) if spec["fieldtype"] == "Select" else _("{0} is required").format(spec["label"]))
+			continue
+		choices = [c["value"] if isinstance(c, dict) else c for c in spec.get("choices") or []]
+		if choices and value not in choices:
+			frappe.throw(_("{0}: {1} is not one of the choices. Reload the page and try again.").format(spec["label"], value))
+		out[spec["fieldname"]] = value
+	return out
+
+
+def _mapped(make, source, values=None):
 	"""The unsaved document an existing mapper (Lead -> Quotation, Hire Order -> Rental Contract, ...) builds.
 	source is the document the button was on. An action with source_field maps from a document it links
-	to instead (Rental Site -> its quotation), and args are read from it (the site goes to the Hire Order)."""
+	to instead (Rental Site -> its quotation), and args are read from it (the site goes to the Hire Order).
+	values are the answers to the action's ask panel (the job line of a JCR); they go to the mapper in args."""
 	src_key, _sep, idx = (make or "").partition(":")
 	cfg = get_entry_type(src_key)
 	action = cfg["next"][cint(idx)]
 	kwargs = {"source_name": source}
-	if action.get("source_field") or action.get("args"):
+	if action.get("source_field") or action.get("args") or action.get("ask"):
 		current = frappe.get_doc(cfg["doctype"], source)
 		current.check_permission("read")
 		if action.get("source_field"):
 			kwargs["source_name"] = current.get(action["source_field"])
-		if action.get("args"):
-			kwargs["args"] = json.dumps({k: current.get(v) for k, v in action["args"].items()})
+		args = {k: current.get(v) for k, v in (action.get("args") or {}).items()}
+		args.update(_asked_values(action, current, values) if action.get("ask") else {})
+		if args:
+			kwargs["args"] = json.dumps(args)
 	doc = frappe.get_attr(action["method"])(**kwargs)
 	if isinstance(doc, dict):
 		doc = frappe.get_doc(doc)
@@ -1354,7 +1391,7 @@ def _mapped(make, source):
 
 
 @frappe.whitelist(methods=["POST"])
-def prepare_mapped(make: str, source: str):
+def prepare_mapped(make: str, source: str, values: str | dict | None = None):
 	"""Run the mapper once in a POST, so what it creates on the way (the Customer made from a Lead)
 	is committed; the form page then maps again, finds that record and shows the unsaved document."""
 	src_key, _sep, idx = make.partition(":")
@@ -1364,8 +1401,9 @@ def prepare_mapped(make: str, source: str):
 	if action.get("creates"):
 		# a method that saves the new document itself: open that document
 		return {"url": entry_url(target, frappe.get_attr(action["method"])(**{action["creates"]: source}))}
-	_mapped(make, source)
-	return {"url": entry_url(target, make=make, source=source)}
+	_mapped(make, source, values)
+	values = (frappe.parse_json(values) if isinstance(values, str) else values) or {}
+	return {"url": entry_url(target, make=make, source=source, args=json.dumps(values) if values else None)}
 
 
 def get_form_boot(key, name=None, form_dict=None):
@@ -1377,7 +1415,7 @@ def get_form_boot(key, name=None, form_dict=None):
 		doc.check_permission("read")
 	elif form_dict.get("make") and form_dict.get("source"):
 		frappe.has_permission(doctype, "create", throw=True)
-		doc = _mapped(form_dict.get("make"), form_dict.get("source"))
+		doc = _mapped(form_dict.get("make"), form_dict.get("source"), form_dict.get("args"))
 	else:
 		frappe.has_permission(doctype, "create", throw=True)
 		doc = frappe.new_doc(doctype)

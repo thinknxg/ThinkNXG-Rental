@@ -256,7 +256,7 @@
 					el("div", { class: "rp-head rp-head--table" }, el("h2", { text: t.label }),
 						editable ? el("div", { class: "rp-actions" },
 							boot.fill && boot.fill.table === t.fieldname ? el("button", { type: "button", class: "rp-btn", text: __(boot.fill.label), onclick: fill }) : null,
-							el("button", { type: "button", class: "rp-btn", text: __("Add row"), onclick: () => { rows.push({}); draw_tables(); } })
+							t.no_add ? null : el("button", { type: "button", class: "rp-btn", text: __("Add row"), onclick: () => { rows.push({}); draw_tables(); } })
 						) : null),
 					rows.length ? el("div", { class: "rp-grid-wrap" }, table) : el("p", { class: "rp-none", text: __("No rows yet.") })
 				);
@@ -290,7 +290,8 @@
 		call("thinknxg_rental.portal.entry.save_entry", { entry_type: boot.type, doc: JSON.stringify(payload), submit: submit ? 1 : 0 }, "POST")
 			.then((r) => {
 				say(submit ? __("{0} submitted.", [r.name]) : __("{0} saved.", [r.name]));
-				window.location.href = r.url;
+				// the saved document opens with its number and a note of what was done
+				window.location.href = r.url + "&done=" + (submit ? "submitted" : "saved");
 			})
 			.catch(() => {
 				say("");
@@ -311,13 +312,12 @@
 		if (boot.editable) save(false);
 	});
 
-	// next document (Lead -> Quotation -> Hire Order -> Rental Contract): map it, then open it here unsaved
+	// next document (Lead -> Quotation -> Hire Order -> Rental Contract): map it, then open it here unsaved.
+	// One that asks first (which job line a JCR is for) opens the ask panel, as the actions below do.
 	document.querySelectorAll("[data-make]").forEach((button) =>
 		button.addEventListener("click", () => {
-			button.disabled = true;
-			call("thinknxg_rental.portal.entry.prepare_mapped", { make: button.dataset.make, source: button.dataset.source }, "POST")
-				.then((r) => (window.location.href = r.url))
-				.catch(() => (button.disabled = false));
+			const action = (boot.next || []).find((a) => a.make === button.dataset.make) || { make: button.dataset.make, source: button.dataset.source };
+			run(action, button);
 		})
 	);
 
@@ -380,7 +380,9 @@
 			ask_panel.querySelectorAll("button").forEach((b) => (b.disabled = true));
 			button.disabled = true;
 			say(__("Working..."));
-			call("thinknxg_rental.portal.entry.run_action", { action: action.run, source: action.source, values: JSON.stringify(values) }, "POST")
+			(action.make
+				? call("thinknxg_rental.portal.entry.prepare_mapped", { make: action.make, source: action.source, values: JSON.stringify(values) }, "POST")
+				: call("thinknxg_rental.portal.entry.run_action", { action: action.run, source: action.source, values: JSON.stringify(values) }, "POST"))
 				.then((r) => {
 					say(r.message || "");
 					window.location.href = r.url;
@@ -436,4 +438,12 @@
 			if (doc[spec.fieldname] && Object.keys(fetch).some((k) => !doc[k])) fetch_into(spec, doc[spec.fieldname], doc, draw_all);
 		});
 	if (boot.editable && boot.fill && doc[boot.fill.needs] && !(doc[boot.fill.table] || []).some((r) => r.item_code || r.job_type)) fill();
+	// just saved or submitted here: say so, then drop the note from the address
+	const done = new URLSearchParams(window.location.search).get("done");
+	if (done && boot.name) {
+		say(done === "submitted" ? __("{0} submitted.", [boot.name]) : __("{0} saved.", [boot.name]));
+		const url = new URL(window.location.href);
+		url.searchParams.delete("done");
+		window.history.replaceState(null, "", url);
+	}
 })();
