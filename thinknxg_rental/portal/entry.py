@@ -60,7 +60,7 @@ SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabl
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
 # show_if {field: [values]}, fetch {target: source field on the linked record}, wide}.
-# Item column: the same, plus w (relative width; the columns share the full table width) and ro.
+# Item column: the same, plus w (relative width; the columns share the full table width), ro and clears.
 ENTRY_TYPES = {
 	"lead": dict(
 		doctype="Lead",
@@ -104,7 +104,7 @@ ENTRY_TYPES = {
 		],
 		tables=[
 			dict(fieldname="items", columns=[
-				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH},
+				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH, "clears": ["conversion_factor"]},
 				{"fieldname": "item_name", "w": 3, "ro": 1},
 				{"fieldname": "nxg_length", "w": 1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_breadth", "w": 1, "show_if": {"deal_type": HOC}},
@@ -112,7 +112,7 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_duration", "w": 1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_period", "w": 1.3, "show_if": {"deal_type": HOC}},
 				{"fieldname": "qty", "w": 1.2},
-				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "uom", "w": 1.2, "clears": ["conversion_factor"]},
 				{"fieldname": "rate", "w": 1.5},
 				{"fieldname": "nxg_rate_basis", "w": 1.3, "show_if": {"deal_type": MH}},
 				{"fieldname": "nxg_hire_days", "w": 1, "show_if": {"deal_type": MH}},
@@ -1182,6 +1182,8 @@ def _spec(meta, item, table=False):
 		"show_if": item.get("show_if") or {},
 		"create": item.get("create"),
 		"loads": item.get("loads"),
+		# row fields emptied when this one changes, so the save works them out again (a new UOM's conversion factor)
+		"clears": item.get("clears") or [],
 	}
 	if df.fieldtype == "Select":
 		spec["choices"] = [o for o in (df.options or "").split("\n")]

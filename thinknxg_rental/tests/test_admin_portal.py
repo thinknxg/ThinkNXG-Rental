@@ -610,3 +610,24 @@ class TestAdminPortal(IntegrationTestCase):
 			"qty": 24, "rate": 10, "amount": 720}], submit=False)
 		row = q["doc"]["items"][0]
 		self.assertEqual((flt(row["qty"]), flt(row["amount"])), (24, 720), "the save agrees with the portal: L x B x H, then x Rate x Rotation")
+
+	def test_i_quotation_uom_editable(self):
+		frappe.set_user("Administrator")
+		code = ensure_item("PTA-UOM-PANEL", "Portal Test Panel")
+		item = frappe.get_doc("Item", code)
+		if not any(u.uom == "Box" for u in item.uoms):
+			item.append("uoms", {"uom": "Box", "conversion_factor": 12})
+			item.save()
+		frappe.set_user(STAFF)
+		lead_name, q = self.lead_to_site("Material Sale", "Usha")
+		uom = next(c for c in q["tables"][0]["columns"] if c["fieldname"] == "uom")
+		self.assertFalse(uom["ro"], "UOM can be changed on a quotation row")
+		self.assertEqual(uom["clears"], ["conversion_factor"])
+		q = self.quote(q, [{"item_code": code, "qty": 2, "rate": 100, "uom": "Box"}], submit=False)
+		row = q["doc"]["items"][0]
+		self.assertEqual((row["uom"], flt(row["conversion_factor"]), flt(row["stock_qty"])), ("Box", 12, 24))
+		# changing it back on the saved row: the form empties the conversion factor, the save works it out again
+		row.update(uom="Nos", conversion_factor=None)
+		save("quotation", q["doc"])
+		row = form("quotation", q["name"])["doc"]["items"][0]
+		self.assertEqual((row["uom"], flt(row["conversion_factor"]), flt(row["stock_qty"])), ("Nos", 1, 2))

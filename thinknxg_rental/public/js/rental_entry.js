@@ -281,6 +281,7 @@
 							if (!editable || c.ro) cell.append((cells.get(row)[c.fieldname] = el("span", { class: "rp-value", text: fmt(row[c.fieldname], c.fieldtype) })));
 							else {
 								const parts = input_for(c, row, (s, v) => {
+									(s.clears || []).forEach((f) => (row[f] = null));
 									fetch_into(s, v, row, draw_tables);
 									recalc(t, row, s.fieldname);
 								}, row);
