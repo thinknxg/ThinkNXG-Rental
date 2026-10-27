@@ -51,8 +51,8 @@ doc_events = {
 	},
 }
 
-app_include_js = "/assets/thinknxg_rental/js/rental_flow.js"
-app_include_css = "/assets/thinknxg_rental/css/thinknxg_rental.css"
+app_include_js = ["/assets/thinknxg_rental/js/rental_flow.js", "/assets/thinknxg_rental/js/rental_menu.js"]
+app_include_css = ["/assets/thinknxg_rental/css/thinknxg_rental.css", "/assets/thinknxg_rental/css/rental_menu.css"]
 
 doctype_js = {
 	"Lead": "public/js/lead_deal.js",

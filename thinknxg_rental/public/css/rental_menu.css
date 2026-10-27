@@ -1,0 +1,193 @@
+/* thinkNXG Rental floating menu bar (public/js/rental_menu.js). */
+.nxg-fbar,
+.nxg-fbar-show {
+	display: none;
+	position: fixed;
+	z-index: 1030;
+	bottom: 12px;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: var(--text-md, 13px);
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #e2e2e2);
+	box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.14));
+}
+body.nxg-fbar-on .nxg-fbar,
+body.nxg-fbar-min-on .nxg-fbar-show {
+	display: block;
+}
+/* Room at the end of every page, so the bar never covers the last row or the form's footer. */
+body.nxg-fbar-on .page-container,
+body.nxg-fbar-on .layout-main {
+	padding-bottom: 64px;
+}
+.nxg-fbar {
+	max-width: calc(100vw - 24px);
+	padding: 4px;
+	border-radius: var(--border-radius-lg, 12px);
+}
+.nxg-fbar-show {
+	padding: 6px 14px;
+	border-radius: 999px;
+	color: var(--text-color, #1f272e);
+	font-weight: 500;
+	cursor: pointer;
+}
+.nxg-fbar-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.nxg-fbar-groups {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.nxg-fbar button,
+.nxg-fbar-home {
+	font: inherit;
+	font-weight: 500;
+	color: var(--text-color, #1f272e);
+	background: none;
+	border: 0;
+	border-radius: var(--border-radius, 6px);
+	padding: 6px 10px;
+	white-space: nowrap;
+	cursor: pointer;
+	text-decoration: none;
+}
+.nxg-fbar button:hover,
+.nxg-fbar-home:hover,
+.nxg-fbar-group.open > button {
+	background: var(--subtle-fg, #f3f3f3);
+	text-decoration: none;
+}
+.nxg-fbar-home {
+	color: var(--primary, #2490ef);
+	border-right: 1px solid var(--border-color, #e2e2e2);
+	border-radius: var(--border-radius, 6px) 0 0 var(--border-radius, 6px);
+	margin-right: 2px;
+}
+.nxg-fbar-group {
+	position: relative;
+}
+.nxg-fbar-group > button::after {
+	content: "";
+	display: inline-block;
+	margin-left: 6px;
+	vertical-align: 2px;
+	border: 4px solid transparent;
+	border-bottom-color: currentColor;
+	border-top: 0;
+	opacity: 0.6;
+}
+.nxg-fbar-group.current > button {
+	box-shadow: inset 0 -2px 0 var(--primary, #2490ef);
+}
+.nxg-fbar-group.portal > button {
+	color: var(--primary, #2490ef);
+}
+.nxg-fbar-min {
+	color: var(--text-muted, #6c7680) !important;
+	padding: 6px 8px !important;
+}
+.nxg-fbar-toggle {
+	display: none;
+}
+/* The lists open upwards, above the bar. */
+.nxg-fbar-drop {
+	display: none;
+	box-sizing: border-box;
+	position: absolute;
+	bottom: calc(100% + 8px);
+	left: 0;
+	width: 340px;
+	margin: 0;
+	padding: 4px;
+	list-style: none;
+	background: var(--card-bg, #fff);
+	border: 1px solid var(--border-color, #e2e2e2);
+	border-radius: var(--border-radius-md, 8px);
+	box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+}
+.nxg-fbar-group.open .nxg-fbar-drop {
+	display: block;
+}
+.nxg-fbar-drop li {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	border-radius: var(--border-radius, 6px);
+}
+.nxg-fbar-drop li:hover {
+	background: var(--subtle-fg, #f3f3f3);
+}
+.nxg-fbar-drop a {
+	color: var(--text-color, #1f272e);
+	text-decoration: none;
+}
+.nxg-fbar-drop a:hover {
+	text-decoration: none;
+}
+.nxg-fbar-drop a.nxg-open {
+	flex: 1;
+	min-width: 0;
+	padding: 6px 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.nxg-fbar-drop a.nxg-side {
+	padding: 2px 6px;
+	font-size: var(--text-sm, 12px);
+	color: var(--text-muted, #6c7680);
+	border-radius: var(--border-radius-sm, 4px);
+	white-space: nowrap;
+}
+.nxg-fbar-drop a.nxg-side:hover {
+	color: var(--text-color, #1f272e);
+	background: var(--card-bg, #fff);
+}
+
+/* Narrow screens: Home and Menu; Menu opens every group as a panel above the bar. */
+@media (max-width: 1100px) {
+	.nxg-fbar-toggle {
+		display: inline-block;
+	}
+	.nxg-fbar-groups {
+		display: none;
+	}
+	.nxg-fbar.sheet .nxg-fbar-groups {
+		display: block;
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		transform: translateX(-50%);
+		width: min(380px, calc(100vw - 24px));
+		max-height: 70vh;
+		overflow-y: auto;
+		padding: 4px;
+		background: var(--card-bg, #fff);
+		border: 1px solid var(--border-color, #e2e2e2);
+		border-radius: var(--border-radius-md, 8px);
+		box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+	}
+	.nxg-fbar.sheet .nxg-fbar-group > button {
+		width: 100%;
+		text-align: left;
+	}
+	.nxg-fbar.sheet .nxg-fbar-group > button::after {
+		float: right;
+		margin-top: 7px;
+		border-top: 4px solid currentColor;
+		border-bottom: 0;
+	}
+	.nxg-fbar.sheet .nxg-fbar-drop {
+		position: static;
+		width: auto;
+		max-width: none !important;
+		border: 0;
+		box-shadow: none;
+		padding: 0 0 4px 12px;
+	}
+}
