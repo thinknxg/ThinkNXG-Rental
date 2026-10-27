@@ -1,4 +1,4 @@
-"""Menu bar on the thinkNXG Rental desk workspace (/app/thinknxg-rental).
+"""thinkNXG Rental menu bar, floating on every desk page while the user works in thinkNXG Rental.
 
 The bar has the same documents, in the same order, as the admin portal (/rental/admin): the
 document flow Lead -> Quotation -> Rental Site -> Hire Order / Hire Order Contract -> Rental Contract
@@ -8,8 +8,11 @@ Damage Settlement -> Sales Invoice, then the portal boards. Each item opens the 
 
 Labels come from the portal's ENTRY_TYPES (portal/entry.py), so a document renamed there is renamed
 here. A portal entry that is not placed in MENU below is added to the last document group, so a new
-portal entry still shows up on the desk. The bar itself is a Custom HTML Block that sync() writes on
-every migrate; its script calls get_menu(), which leaves out what the user may not read.
+portal entry still shows up on the desk. get_menu() leaves out what the user may not read.
+
+The bar is drawn by public/js/rental_menu.js (app_include_js), so it stays on forms, lists, reports
+and Print. The workspace itself shows the flow line, a Custom HTML Block that sync() writes on every
+migrate.
 """
 from urllib.parse import quote
 
@@ -160,31 +163,14 @@ def get_menu():
 
 
 # ----------------------------------------------------------------------------- the block
-HTML = """<nav class="nxg-menu" aria-label="thinkNXG Rental"></nav><ol class="nxg-flow"></ol>"""
+# The menu bar itself floats on every desk page (public/js/rental_menu.js); the workspace keeps the
+# flow line, so the order of the documents is in front of people where they start.
+HTML = """<div class="nxg-flow-title"></div><ol class="nxg-flow"></ol>"""
 
 STYLE = """
 :host { display: block; }
-.nxg-menu { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px; border: 1px solid var(--border-color, #e2e2e2);
-	border-radius: var(--border-radius-md, 8px); background: var(--card-bg, #fff); }
-.nxg-group { position: relative; }
-.nxg-group > button { font: inherit; font-size: var(--text-md, 13px); font-weight: 500; color: var(--text-color, #1f272e);
-	background: none; border: 0; border-radius: var(--border-radius, 6px); padding: 6px 12px; cursor: pointer; }
-.nxg-group > button:hover, .nxg-group.open > button { background: var(--subtle-fg, #f3f3f3); }
-.nxg-group > button::after { content: ""; display: inline-block; margin-left: 6px; vertical-align: 2px;
-	border: 4px solid transparent; border-top-color: currentColor; border-bottom: 0; opacity: .6; }
-.nxg-group.portal > button { color: var(--primary, #2490ef); }
-.nxg-drop { display: none; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: min(300px, calc(100vw - 48px)); margin: 0;
-	padding: 4px; list-style: none; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e2e2);
-	border-radius: var(--border-radius-md, 8px); box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12)); }
-.nxg-group.open .nxg-drop { display: block; }
-.nxg-drop li { display: flex; align-items: center; gap: 4px; border-radius: var(--border-radius, 6px); }
-.nxg-drop li:hover { background: var(--subtle-fg, #f3f3f3); }
-.nxg-drop a { color: var(--text-color, #1f272e); text-decoration: none; font-size: var(--text-md, 13px); }
-.nxg-drop a.nxg-open { flex: 1; padding: 6px 8px; white-space: nowrap; }
-.nxg-drop a.nxg-side { padding: 2px 6px; font-size: var(--text-sm, 12px); color: var(--text-muted, #6c7680);
-	border-radius: var(--border-radius-sm, 4px); }
-.nxg-drop a.nxg-side:hover { color: var(--text-color, #1f272e); background: var(--card-bg, #fff); }
-.nxg-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 10px 0 0; padding: 0; list-style: none;
+.nxg-flow-title { font-size: var(--text-sm, 12px); font-weight: 600; color: var(--text-muted, #6c7680); margin-bottom: 6px; }
+.nxg-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; margin: 0; padding: 0; list-style: none;
 	font-size: var(--text-sm, 12px); color: var(--text-muted, #6c7680); }
 .nxg-flow li { display: flex; align-items: center; }
 .nxg-flow li + li::before { content: "\\2192"; margin: 0 6px; }
@@ -195,54 +181,25 @@ STYLE = """
 """
 
 SCRIPT = """
-const nav = root_element.querySelector(".nxg-menu");
 const flow = root_element.querySelector(".nxg-flow");
 const esc = (s) => frappe.utils.escape_html(s || "");
-const link = (route, label, cls, title) =>
-	`<a class="${cls || ""}" href="${esc(route)}" ${title ? `title="${esc(title)}"` : ""}>${esc(label)}</a>`;
-
+root_element.querySelector(".nxg-flow-title").textContent = __("Document flow");
 frappe.xcall("thinknxg_rental.services.desk_menu.get_menu").then((m) => {
-	nav.innerHTML = m.groups.map((g) => `
-		<div class="nxg-group ${g.portal ? "portal" : ""}">
-			<button type="button" aria-expanded="false">${esc(g.label)}</button>
-			<ul class="nxg-drop">${g.items.map((i) => `<li>
-				${link(i.route, i.label, "nxg-open")}
-				${i.new ? link(i.new, "+ " + __("New"), "nxg-side", __("New {0}", [__(i.label)])) : ""}
-				${i.portal && i.doctype ? link(i.portal, __("Portal"), "nxg-side", __("Open in the admin portal")) : ""}
-			</li>`).join("")}</ul>
-		</div>`).join("");
-	flow.innerHTML = m.flow.map((step) =>
-		`<li>${step.map((d) => link(d.route, d.label)).join('<span class="nxg-or">/</span>')}</li>`).join("");
+	flow.innerHTML = m.flow.map((step) => `<li>${step.map((d) => `<a href="${esc(d.route)}">${esc(d.label)}</a>`)
+		.join('<span class="nxg-or">/</span>')}</li>`).join("");
 });
-
-const close = (except) => nav.querySelectorAll(".nxg-group.open").forEach((g) => {
-	if (g !== except) { g.classList.remove("open"); g.firstElementChild.setAttribute("aria-expanded", "false"); }
-});
+// The shadow root hides these links from the desk router, so route here and stay in the desk.
 root_element.addEventListener("click", (e) => {
-	const btn = e.target.closest(".nxg-group > button");
-	if (btn) {
-		const g = btn.parentElement;
-		close(g);
-		btn.setAttribute("aria-expanded", g.classList.toggle("open") ? "true" : "false");
-		return;
-	}
 	const a = e.target.closest("a");
-	if (!a) return;
-	close();
-	// Desk routes open in place; the shadow root hides the link from the desk router, so route here.
-	const href = a.getAttribute("href");
-	if (href.startsWith("/app/") && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-		e.preventDefault();
-		frappe.set_route(href);
-	}
+	if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+	e.preventDefault();
+	frappe.set_route(a.getAttribute("href"));
 });
-document.addEventListener("click", (e) => { if (!e.composedPath().includes(root_element)) close(); });
-root_element.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 """
 
 
 def sync():
-	"""Write the menu bar block (after_migrate). The workspace JSON places it at the top."""
+	"""Write the flow line block (after_migrate). The workspace JSON places it at the top."""
 	values = {"html": HTML, "style": STYLE, "script": SCRIPT, "private": 0}
 	if frappe.db.exists("Custom HTML Block", BLOCK):
 		doc = frappe.get_doc("Custom HTML Block", BLOCK)
