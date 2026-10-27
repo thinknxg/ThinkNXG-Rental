@@ -173,14 +173,14 @@ STYLE = """
 .nxg-group > button::after { content: ""; display: inline-block; margin-left: 6px; vertical-align: 2px;
 	border: 4px solid transparent; border-top-color: currentColor; border-bottom: 0; opacity: .6; }
 .nxg-group.portal > button { color: var(--primary, #2490ef); }
-.nxg-drop { display: none; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: min(300px, calc(100vw - 48px)); margin: 0;
+.nxg-drop { display: none; box-sizing: border-box; position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; width: 340px; margin: 0;
 	padding: 4px; list-style: none; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e2e2e2);
 	border-radius: var(--border-radius-md, 8px); box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12)); }
 .nxg-group.open .nxg-drop { display: block; }
 .nxg-drop li { display: flex; align-items: center; gap: 4px; border-radius: var(--border-radius, 6px); }
 .nxg-drop li:hover { background: var(--subtle-fg, #f3f3f3); }
 .nxg-drop a { color: var(--text-color, #1f272e); text-decoration: none; font-size: var(--text-md, 13px); }
-.nxg-drop a.nxg-open { flex: 1; padding: 6px 8px; white-space: nowrap; }
+.nxg-drop a.nxg-open { flex: 1; min-width: 0; padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nxg-drop a.nxg-side { padding: 2px 6px; font-size: var(--text-sm, 12px); color: var(--text-muted, #6c7680);
 	border-radius: var(--border-radius-sm, 4px); }
 .nxg-drop a.nxg-side:hover { color: var(--text-color, #1f272e); background: var(--card-bg, #fff); }
@@ -215,6 +215,17 @@ frappe.xcall("thinknxg_rental.services.desk_menu.get_menu").then((m) => {
 		`<li>${step.map((d) => link(d.route, d.label)).join('<span class="nxg-or">/</span>')}</li>`).join("");
 });
 
+// Keep an open list inside the workspace: no wider than the bar, and moved left when it would run
+// past the bar's right edge (the groups at the end of the bar).
+const place = (g) => {
+	const drop = g.querySelector(".nxg-drop");
+	const bar = nav.getBoundingClientRect();
+	drop.style.left = "0px";
+	drop.style.maxWidth = `${bar.width}px`;
+	const r = drop.getBoundingClientRect();
+	const shift = Math.max(bar.left - r.left, Math.min(0, bar.right - r.right));
+	drop.style.left = `${shift}px`;
+};
 const close = (except) => nav.querySelectorAll(".nxg-group.open").forEach((g) => {
 	if (g !== except) { g.classList.remove("open"); g.firstElementChild.setAttribute("aria-expanded", "false"); }
 });
@@ -223,7 +234,9 @@ root_element.addEventListener("click", (e) => {
 	if (btn) {
 		const g = btn.parentElement;
 		close(g);
-		btn.setAttribute("aria-expanded", g.classList.toggle("open") ? "true" : "false");
+		const open = g.classList.toggle("open");
+		btn.setAttribute("aria-expanded", open ? "true" : "false");
+		if (open) place(g);
 		return;
 	}
 	const a = e.target.closest("a");
@@ -237,6 +250,7 @@ root_element.addEventListener("click", (e) => {
 	}
 });
 document.addEventListener("click", (e) => { if (!e.composedPath().includes(root_element)) close(); });
+window.addEventListener("resize", () => nav.querySelectorAll(".nxg-group.open").forEach(place));
 root_element.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
 """
 
