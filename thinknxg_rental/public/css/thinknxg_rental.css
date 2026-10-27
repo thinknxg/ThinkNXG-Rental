@@ -26,19 +26,17 @@
 .nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_excess_basis"]  { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
 .nxg-hoc-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_excess_rate"]   { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
 
-/* Quotation Item grid, Deal Type = Material Sale: fixed column widths */
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_code"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_name"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="uom"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_weight"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"],
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="amount"] {
-    flex: 0 0 60px !important; width: 60px !important; max-width: 60px !important;
-}
-.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"] {
-    flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important;
-}
+/* Quotation Item grid, Deal Type = Material Sale: fixed column widths, scroll sideways on narrow screens */
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .form-grid-container { overflow-x: auto; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .form-grid { min-width: 1100px; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_code"] { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="item_name"] { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="uom"] { flex: 0 0 80px !important; width: 80px !important; max-width: 80px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="description"] { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_weight"] { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"] { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="rate"] { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="amount"] { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
 
 /* Quotation Item grid, Deal Type = Material Hire: fixed column widths, scroll sideways */
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid-container {
