@@ -17,6 +17,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from thinknxg_rental.services.utils import BASIS_FACTOR
+
 HIRE = ["Material Hire", "Hire Order Contract"]
 MH = ["Material Hire"]
 HOC = ["Hire Order Contract"]
@@ -39,11 +41,26 @@ TAX_TABLE = dict(fieldname="taxes", columns=[
 	{"fieldname": "tax_amount", "w": 1.6, "ro": 1},
 	{"fieldname": "total", "w": 1.6, "ro": 1},
 ])
+# Row values the portal works out while typing, the same way the desk form does (public/js/quotation_deal.js)
+# and the save does (events/quotation.py), so the row shows what will be saved. Each rule sets "target" to the
+# product of "product": a field name, or {field, per: {field, map, default}} for field / map[other field].
+# "blank_one" fields count as 1 when empty. A rule with "need_all" only runs when one of its own fields changes
+# and every one of them is filled, so a Qty typed by hand stays until a dimension changes.
+QUOTATION_CALC = [
+	# Hire Order Contract: Qty = Length x Breadth x Height, Amount = Qty x Rate x Rotation
+	{"target": "qty", "product": ["nxg_length", "nxg_breadth", "nxg_height"], "need_all": 1, "show_if": {"deal_type": HOC}},
+	{"target": "amount", "product": ["qty", "rate", "nxg_duration"], "blank_one": ["nxg_duration"], "show_if": {"deal_type": HOC}},
+	{"target": "amount", "product": ["qty", "rate"], "show_if": {"deal_type": [None, "", "Material Sale"]}},
+	# Material Hire: Qty x Rate, and Qty x Rate x Hire Days / basis days (blank Hire Days = one rate period)
+	{"target": "nxg_rate_basis_amount", "product": ["qty", "rate"], "show_if": {"deal_type": MH}},
+	{"target": "nxg_estimated_amount", "show_if": {"deal_type": MH}, "blank_one": ["nxg_hire_days"],
+		"product": ["qty", "rate", {"field": "nxg_hire_days", "per": {"field": "nxg_rate_basis", "map": BASIS_FACTOR, "default": 30}}]},
+]
 SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
 # show_if {field: [values]}, fetch {target: source field on the linked record}, wide}.
-# Item column: the same, plus w (relative width; the columns share the full table width) and ro.
+# Item column: the same, plus w (relative width; the columns share the full table width), ro and clears.
 ENTRY_TYPES = {
 	"lead": dict(
 		doctype="Lead",
@@ -54,7 +71,8 @@ ENTRY_TYPES = {
 		list_columns=[("lead_name", "Name"), ("company_name", "Company"), ("deal_type", "Deal type"), ("mobile_no", "Mobile")],
 		header=[
 			"first_name", "last_name", "company_name", "deal_type", "email_id", "mobile_no", "phone",
-			"source", "territory", "status", "company",
+			# v15+ Lead: Source is utm_source ("source" is gone); From Customer links the lead to an existing customer
+			"utm_source", "source", "customer", "territory", "status", "company",
 		],
 		next=[
 			# once a live quotation exists the button gives way to the quotation itself (listed below)
@@ -86,7 +104,7 @@ ENTRY_TYPES = {
 		],
 		tables=[
 			dict(fieldname="items", columns=[
-				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH},
+				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH, "clears": ["conversion_factor"]},
 				{"fieldname": "item_name", "w": 3, "ro": 1},
 				{"fieldname": "nxg_length", "w": 1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_breadth", "w": 1, "show_if": {"deal_type": HOC}},
@@ -94,7 +112,7 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_duration", "w": 1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_period", "w": 1.3, "show_if": {"deal_type": HOC}},
 				{"fieldname": "qty", "w": 1.2},
-				{"fieldname": "uom", "w": 1, "ro": 1},
+				{"fieldname": "uom", "w": 1.2, "clears": ["conversion_factor"]},
 				{"fieldname": "rate", "w": 1.5},
 				{"fieldname": "nxg_rate_basis", "w": 1.3, "show_if": {"deal_type": MH}},
 				{"fieldname": "nxg_hire_days", "w": 1, "show_if": {"deal_type": MH}},
@@ -104,7 +122,7 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_rate_basis_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
 				{"fieldname": "nxg_estimated_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
 				{"fieldname": "amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": NOT_MH}},
-			]),
+			], calc=QUOTATION_CALC),
 			TAX_TABLE,
 		],
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
@@ -268,9 +286,10 @@ ENTRY_TYPES = {
 				when={"docstatus": [1]}, when_fn=lambda d: _shortfall(d, "materials") > 0),
 			dict(label="Cross Hire Order", target="cross-hire-order", prefill={"rental_contract": lambda d: _source_contract(d)},
 				when={"docstatus": [1]}, when_fn=lambda d: _shortfall(d, "materials") > 0 and _source_contract(d)),
+			# one JCR per job line and erection: with several lines open, the button asks which one first
 			dict(label="Create Job Completion Report", target="jcr",
 				method="thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.make_jcr",
-				when={"docstatus": [1]}, when_fn=lambda d: _open_job_lines(d)),
+				when={"docstatus": [1]}, when_fn=lambda d: _open_job_lines(d), ask=lambda d: _jcr_line_ask(d)),
 		],
 		related=[
 			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"source_document": d.name, "docstatus": ["<", 2]},
@@ -279,7 +298,7 @@ ENTRY_TYPES = {
 					("end_date", "End", "Date"), ("total_at_site_qty", "At site", "Float")]),
 			# one row per JCR job line: a JCR can carry several job types, and one job type can sit at several locations
 			dict(label="Job Completion Reports", rows=lambda d: _hoc_jcr_lines(d),
-				columns=[("jcr", "JCR", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
+				columns=[("jcr", "JCR", "Data"), ("line", "Job line", "Data"), ("job_type_name", "Job type", "Data"), ("location", "Location", "Data"),
 					("job_qty", "Jobs", "Float"), ("erection_date", "Erected", "Date"), ("contract_end_date", "Contract ends", "Date"),
 					("dismantle_date", "Dismantled", "Date"), ("status", "Status", "Data"), ("billed", "Billed", "Currency"),
 					("pending", "Not yet invoiced", "Currency")]),
@@ -304,13 +323,18 @@ ENTRY_TYPES = {
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
-			dict(fieldname="job_lines", columns=[
+			# rows come from the contract's job lines (Create Job Completion Report, Get job lines), never typed in
+			dict(fieldname="job_lines", no_add=1, columns=[
 				{"fieldname": "job_type", "w": 2.4, "ro": 1},
 				{"fieldname": "job_type_name", "w": 2.4, "ro": 1},
 				{"fieldname": "location", "w": 1.8},
 				{"fieldname": "nxg_contract_qty", "w": 1.1, "ro": 1},
 				{"fieldname": "job_qty", "w": 1.1},
 				{"fieldname": "nxg_balance_qty", "w": 1.1, "ro": 1},
+				# as in the desk grid: the contract's Rotation, which rotation this is (blank = the current one), what is left
+				{"fieldname": "nxg_duration", "w": 1.1, "ro": 1},
+				{"fieldname": "nxg_rotation", "w": 1.1},
+				{"fieldname": "nxg_balance_rotation", "w": 1.1, "ro": 1},
 				{"fieldname": "erection_date", "w": 1.9},
 				{"fieldname": "included_days", "w": 1.1, "ro": 1},
 				{"fieldname": "contract_end_date", "w": 1.5, "ro": 1},
@@ -1028,8 +1052,9 @@ def _hoc_jcr_lines(hoc):
 		return []
 	names = [j.name for j in jcrs]
 	lines = frappe.get_all("Job Completion Report Line", filters={"parent": ["in", names], "parenttype": "Job Completion Report"},
-		fields=["name", "parent", "job_type", "job_type_name", "location", "job_qty", "erection_date", "contract_end_date",
+		fields=["name", "parent", "contract_item", "job_type", "job_type_name", "location", "job_qty", "erection_date", "contract_end_date",
 			"dismantle_date", "status", "total_billed_amount"], order_by="parent asc, idx asc")
+	line_no = {d.name: d.idx for d in hoc.items}
 	pending = {}
 	for s in frappe.get_all("JCR Billing Schedule", filters={"jcr": ["in", names], "status": "Pending"}, fields=["jcr", "jcr_line", "amount"]):
 		pending[(s.jcr, s.jcr_line)] = pending.get((s.jcr, s.jcr_line), 0) + flt(s.amount)
@@ -1037,7 +1062,8 @@ def _hoc_jcr_lines(hoc):
 	out = []
 	for l in lines:
 		j = head[l.parent]
-		out.append(frappe._dict(l, jcr=l.parent, url=j.url, status=l.status or j.status, billed=flt(l.total_billed_amount),
+		out.append(frappe._dict(l, jcr=l.parent, url=j.url, line=f"#{line_no[l.contract_item]}" if l.contract_item in line_no else "",
+			status="Draft" if j.docstatus == 0 else l.status or j.status, billed=flt(l.total_billed_amount),
 			pending=pending.get((l.parent, l.name), 0)))
 	return out
 
@@ -1076,7 +1102,18 @@ def record_deposit(rental_contract: str, deposit_received: float, deposit_refere
 def _open_job_lines(doc):
 	from thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract import get_open_job_lines
 
-	return bool(get_open_job_lines(doc))
+	return get_open_job_lines(doc)
+
+
+def _jcr_line_ask(hoc):
+	"""Create Job Completion Report on a contract with several open job lines: which line the JCR is for."""
+	lines = _open_job_lines(hoc)
+	if len(lines) < 2:
+		return []
+	return [{"fieldname": "contract_item", "label": "Job line", "fieldtype": "Select", "reqd": 1, "default": "",
+		"choices": [{"value": "", "label": _("Select the job line")}] + [{"value": l.name,
+			"label": _("#{0} {1} ({2} of {3} jobs open)").format(l.idx, " @ ".join(x for x in [l.job_type_name or l.job_type, l.location] if x),
+				f"{flt(l.remaining, 3):g}", f"{flt(l.qty, 3):g}")} for l in lines]}]
 
 
 @frappe.whitelist()
@@ -1149,11 +1186,16 @@ def _spec(meta, item, table=False):
 		"show_if": item.get("show_if") or {},
 		"create": item.get("create"),
 		"loads": item.get("loads"),
+		# row fields emptied when this one changes, so the save works them out again (a new UOM's conversion factor)
+		"clears": item.get("clears") or [],
 	}
 	if df.fieldtype == "Select":
 		spec["choices"] = [o for o in (df.options or "").split("\n")]
 	if table:
 		spec["w"] = flt(item.get("w")) or 1
+		# a new row starts with the field's plain default (Rotation 1, Rate Basis Monthly), as in the desk grid
+		if df.default and df.fieldtype in ("Int", "Float", "Currency", "Percent", "Check", "Select") and not str(df.default).startswith(("eval:", ":")):
+			spec["default"] = df.default
 	else:
 		spec["wide"] = cint(item.get("wide")) or df.fieldtype in ("Small Text", "Text", "Long Text", "Text Editor")
 	return spec
@@ -1169,7 +1211,8 @@ def get_form_specs(cfg):
 			continue
 		child = frappe.get_meta(df.options)
 		columns = [s for s in (_spec(child, c, table=True) for c in t["columns"]) if s]
-		tables.append({"fieldname": df.fieldname, "label": _(df.label), "readonly": cint(t.get("readonly")), "columns": columns})
+		tables.append({"fieldname": df.fieldname, "label": _(df.label), "readonly": cint(t.get("readonly")), "no_add": cint(t.get("no_add")),
+			"columns": columns, "calc": t.get("calc") or []})
 	totals = []
 	for f in cfg.get("totals", []):
 		df = meta.get_field(f)
@@ -1251,7 +1294,7 @@ def get_next_actions(key, cfg, doc):
 		if not frappe.has_permission(target["doctype"], "create"):
 			continue
 		if a.get("method"):
-			actions.append({"label": _(a["label"]), "make": f"{key}:{i}", "source": doc.name})
+			actions.append({"label": _(a["label"]), "make": f"{key}:{i}", "source": doc.name, "ask": _ask(a, doc)})
 		else:
 			values = {k: (v(doc) if callable(v) else doc.get(v)) for k, v in a["prefill"].items()}
 			actions.append({"label": _(a["label"]), "url": entry_url(a["target"], **values)})
@@ -1332,21 +1375,42 @@ def entry_links():
 	return out
 
 
-def _mapped(make, source):
+def _asked_values(action, doc, values):
+	"""The values the user gave for an action's ask panel: only the asked fields, required ones present,
+	and a choice list value one of its choices."""
+	values = (frappe.parse_json(values) if isinstance(values, str) else values) or {}
+	out = {}
+	for spec in _ask(action, doc):
+		value = values.get(spec["fieldname"])
+		if value in (None, ""):
+			if spec.get("reqd"):
+				frappe.throw(_("Select {0} first").format(spec["label"]) if spec["fieldtype"] == "Select" else _("{0} is required").format(spec["label"]))
+			continue
+		choices = [c["value"] if isinstance(c, dict) else c for c in spec.get("choices") or []]
+		if choices and value not in choices:
+			frappe.throw(_("{0}: {1} is not one of the choices. Reload the page and try again.").format(spec["label"], value))
+		out[spec["fieldname"]] = value
+	return out
+
+
+def _mapped(make, source, values=None):
 	"""The unsaved document an existing mapper (Lead -> Quotation, Hire Order -> Rental Contract, ...) builds.
 	source is the document the button was on. An action with source_field maps from a document it links
-	to instead (Rental Site -> its quotation), and args are read from it (the site goes to the Hire Order)."""
+	to instead (Rental Site -> its quotation), and args are read from it (the site goes to the Hire Order).
+	values are the answers to the action's ask panel (the job line of a JCR); they go to the mapper in args."""
 	src_key, _sep, idx = (make or "").partition(":")
 	cfg = get_entry_type(src_key)
 	action = cfg["next"][cint(idx)]
 	kwargs = {"source_name": source}
-	if action.get("source_field") or action.get("args"):
+	if action.get("source_field") or action.get("args") or action.get("ask"):
 		current = frappe.get_doc(cfg["doctype"], source)
 		current.check_permission("read")
 		if action.get("source_field"):
 			kwargs["source_name"] = current.get(action["source_field"])
-		if action.get("args"):
-			kwargs["args"] = json.dumps({k: current.get(v) for k, v in action["args"].items()})
+		args = {k: current.get(v) for k, v in (action.get("args") or {}).items()}
+		args.update(_asked_values(action, current, values) if action.get("ask") else {})
+		if args:
+			kwargs["args"] = json.dumps(args)
 	doc = frappe.get_attr(action["method"])(**kwargs)
 	if isinstance(doc, dict):
 		doc = frappe.get_doc(doc)
@@ -1354,7 +1418,7 @@ def _mapped(make, source):
 
 
 @frappe.whitelist(methods=["POST"])
-def prepare_mapped(make: str, source: str):
+def prepare_mapped(make: str, source: str, values: str | dict | None = None):
 	"""Run the mapper once in a POST, so what it creates on the way (the Customer made from a Lead)
 	is committed; the form page then maps again, finds that record and shows the unsaved document."""
 	src_key, _sep, idx = make.partition(":")
@@ -1364,8 +1428,9 @@ def prepare_mapped(make: str, source: str):
 	if action.get("creates"):
 		# a method that saves the new document itself: open that document
 		return {"url": entry_url(target, frappe.get_attr(action["method"])(**{action["creates"]: source}))}
-	_mapped(make, source)
-	return {"url": entry_url(target, make=make, source=source)}
+	_mapped(make, source, values)
+	values = (frappe.parse_json(values) if isinstance(values, str) else values) or {}
+	return {"url": entry_url(target, make=make, source=source, args=json.dumps(values) if values else None)}
 
 
 def get_form_boot(key, name=None, form_dict=None):
@@ -1377,7 +1442,7 @@ def get_form_boot(key, name=None, form_dict=None):
 		doc.check_permission("read")
 	elif form_dict.get("make") and form_dict.get("source"):
 		frappe.has_permission(doctype, "create", throw=True)
-		doc = _mapped(form_dict.get("make"), form_dict.get("source"))
+		doc = _mapped(form_dict.get("make"), form_dict.get("source"), form_dict.get("args"))
 	else:
 		frappe.has_permission(doctype, "create", throw=True)
 		doc = frappe.new_doc(doctype)

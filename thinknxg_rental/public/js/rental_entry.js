@@ -87,8 +87,9 @@
 			input = el("textarea", { id, onchange: (e) => set(e.target.value) });
 			input.value = value || "";
 		} else if (NUM.includes(spec.fieldtype)) {
+			// on every keystroke, so values worked out from this one follow while typing
 			input = el("input", { id, type: "number", step: spec.fieldtype === "Int" ? "1" : "any", inputmode: "decimal",
-				onchange: (e) => set(e.target.value === "" ? null : Number(e.target.value)) });
+				oninput: (e) => set(e.target.value === "" ? null : Number(e.target.value)) });
 			input.value = value === null || value === undefined ? "" : value;
 		} else if (spec.fieldtype === "Date") {
 			input = el("input", { id, type: "date", onchange: (e) => set(e.target.value || null) });
@@ -207,6 +208,41 @@
 		);
 	}
 
+	// ------------------------------------------------------------------ worked-out row values
+	// A table's "calc" rules (portal/entry.py) set a row value to a product of other values, as the desk
+	// form and the save do: Qty = Length x Breadth x Height, Amount = Qty x Rate x Rotation, ...
+	const cells = new WeakMap(); // row -> {fieldname: input or shown value}, to update a row without redrawing it
+	const factor = (row, f, blank_one) => {
+		if (typeof f === "object") {
+			const n = Number(row[f.field]) || 0;
+			if (!n) return (blank_one || []).includes(f.field) ? 1 : 0;
+			return n / (f.per.map[row[f.per.field]] || f.per.default || 1);
+		}
+		const n = Number(row[f]) || 0;
+		return !n && (blank_one || []).includes(f) ? 1 : n;
+	};
+	function recalc(t, row, changed) {
+		(t.calc || []).filter(visible).forEach((rule) => {
+			const names = rule.product.map((f) => (typeof f === "object" ? f.field : f));
+			if (rule.need_all && (!names.includes(changed) || names.some((f) => !Number(row[f])))) return;
+			const value = Math.round(rule.product.reduce((p, f) => p * factor(row, f, rule.blank_one), 1) * 1e6) / 1e6;
+			if (row[rule.target] === value) return;
+			row[rule.target] = value;
+			changed = rule.target; // a rule further down may use this one's result
+			const node = (cells.get(row) || {})[rule.target];
+			const col = t.columns.find((c) => c.fieldname === rule.target);
+			if (node && node.tagName === "INPUT") node.value = value;
+			else if (node) node.textContent = fmt(value, col && col.fieldtype);
+		});
+	}
+	const new_row = (t) => {
+		const row = {};
+		t.columns.forEach((c) => {
+			if (c.default !== undefined && c.default !== null) row[c.fieldname] = NUM.includes(c.fieldtype) || c.fieldtype === "Check" ? Number(c.default) : c.default;
+		});
+		return row;
+	};
+
 	// ------------------------------------------------------------------ item tables
 	// Columns share the whole width by weight; headings wrap instead of being cut off.
 	const tables = el("div");
@@ -215,6 +251,7 @@
 			...boot.tables.map((t) => {
 				const rows = (doc[t.fieldname] = doc[t.fieldname] || []);
 				const editable = boot.editable && !t.readonly;
+				if (editable) rows.forEach((row) => recalc(t, row)); // the Deal Type may have changed the rules
 				if (t.readonly && !rows.length) return null;
 				const cols = t.columns.filter(visible);
 				// One unit of weight is at least UNIT rem. A column is never narrower than its longest heading
@@ -240,9 +277,15 @@
 						el("td", { class: "rp-num rp-idx", text: i + 1 }),
 						cols.map((c) => {
 							const cell = el("td", { class: NUM.includes(c.fieldtype) ? "rp-num" : null, "data-label": c.label });
-							if (!editable || c.ro) cell.append(el("span", { class: "rp-value", text: fmt(row[c.fieldname], c.fieldtype) }));
+							if (!cells.has(row)) cells.set(row, {});
+							if (!editable || c.ro) cell.append((cells.get(row)[c.fieldname] = el("span", { class: "rp-value", text: fmt(row[c.fieldname], c.fieldtype) })));
 							else {
-								const parts = input_for(c, row, (s, v) => fetch_into(s, v, row, draw_tables), row);
+								const parts = input_for(c, row, (s, v) => {
+									(s.clears || []).forEach((f) => (row[f] = null));
+									fetch_into(s, v, row, draw_tables);
+									recalc(t, row, s.fieldname);
+								}, row);
+								cells.get(row)[c.fieldname] = parts[0];
 								parts[0].setAttribute("aria-label", `${c.label}, ${__("row")} ${i + 1}`);
 								cell.append(...parts);
 							}
@@ -256,7 +299,7 @@
 					el("div", { class: "rp-head rp-head--table" }, el("h2", { text: t.label }),
 						editable ? el("div", { class: "rp-actions" },
 							boot.fill && boot.fill.table === t.fieldname ? el("button", { type: "button", class: "rp-btn", text: __(boot.fill.label), onclick: fill }) : null,
-							el("button", { type: "button", class: "rp-btn", text: __("Add row"), onclick: () => { rows.push({}); draw_tables(); } })
+							t.no_add ? null : el("button", { type: "button", class: "rp-btn", text: __("Add row"), onclick: () => { rows.push(new_row(t)); draw_tables(); } })
 						) : null),
 					rows.length ? el("div", { class: "rp-grid-wrap" }, table) : el("p", { class: "rp-none", text: __("No rows yet.") })
 				);
@@ -290,7 +333,8 @@
 		call("thinknxg_rental.portal.entry.save_entry", { entry_type: boot.type, doc: JSON.stringify(payload), submit: submit ? 1 : 0 }, "POST")
 			.then((r) => {
 				say(submit ? __("{0} submitted.", [r.name]) : __("{0} saved.", [r.name]));
-				window.location.href = r.url;
+				// the saved document opens with its number and a note of what was done
+				window.location.href = r.url + "&done=" + (submit ? "submitted" : "saved");
 			})
 			.catch(() => {
 				say("");
@@ -311,13 +355,12 @@
 		if (boot.editable) save(false);
 	});
 
-	// next document (Lead -> Quotation -> Hire Order -> Rental Contract): map it, then open it here unsaved
+	// next document (Lead -> Quotation -> Hire Order -> Rental Contract): map it, then open it here unsaved.
+	// One that asks first (which job line a JCR is for) opens the ask panel, as the actions below do.
 	document.querySelectorAll("[data-make]").forEach((button) =>
 		button.addEventListener("click", () => {
-			button.disabled = true;
-			call("thinknxg_rental.portal.entry.prepare_mapped", { make: button.dataset.make, source: button.dataset.source }, "POST")
-				.then((r) => (window.location.href = r.url))
-				.catch(() => (button.disabled = false));
+			const action = (boot.next || []).find((a) => a.make === button.dataset.make) || { make: button.dataset.make, source: button.dataset.source };
+			run(action, button);
 		})
 	);
 
@@ -380,7 +423,9 @@
 			ask_panel.querySelectorAll("button").forEach((b) => (b.disabled = true));
 			button.disabled = true;
 			say(__("Working..."));
-			call("thinknxg_rental.portal.entry.run_action", { action: action.run, source: action.source, values: JSON.stringify(values) }, "POST")
+			(action.make
+				? call("thinknxg_rental.portal.entry.prepare_mapped", { make: action.make, source: action.source, values: JSON.stringify(values) }, "POST")
+				: call("thinknxg_rental.portal.entry.run_action", { action: action.run, source: action.source, values: JSON.stringify(values) }, "POST"))
 				.then((r) => {
 					say(r.message || "");
 					window.location.href = r.url;
@@ -436,4 +481,12 @@
 			if (doc[spec.fieldname] && Object.keys(fetch).some((k) => !doc[k])) fetch_into(spec, doc[spec.fieldname], doc, draw_all);
 		});
 	if (boot.editable && boot.fill && doc[boot.fill.needs] && !(doc[boot.fill.table] || []).some((r) => r.item_code || r.job_type)) fill();
+	// just saved or submitted here: say so, then drop the note from the address
+	const done = new URLSearchParams(window.location.search).get("done");
+	if (done && boot.name) {
+		say(done === "submitted" ? __("{0} submitted.", [boot.name]) : __("{0} saved.", [boot.name]));
+		const url = new URL(window.location.href);
+		url.searchParams.delete("done");
+		window.history.replaceState(null, "", url);
+	}
 })();

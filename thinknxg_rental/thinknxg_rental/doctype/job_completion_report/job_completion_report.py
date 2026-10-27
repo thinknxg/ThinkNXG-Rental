@@ -82,7 +82,7 @@ class JobCompletionReport(Document):
             if n_rot > 0:
                 row.job_qty = n_rot * flt(src.qty)
             if flt(row.job_qty) <= 0 and self.docstatus == 1:  # a draft may be saved blank; Submit needs Qty Done
-                frappe.throw(_("Row {0}: Enter Qty Done (it must be greater than zero)").format(row.idx))
+                frappe.throw(_("Row {0} ({1}): enter Qty Done (it must be greater than zero)").format(row.idx, line_label(src)))
             remaining = remaining_jobs(src, reported_other, returned_other)
             current_rotation = rotation_state(src, reported_other, returned_other)[1]
             if n_rot > 0 and flt(row.job_qty) > remaining + 1e-6:
@@ -100,7 +100,7 @@ class JobCompletionReport(Document):
             else:
                 row.nxg_rotation = current_rotation
             if flt(row.job_qty) > remaining + 1e-6:
-                frappe.throw(_("Row {0}: only {1} jobs remain for {2}").format(row.idx, max(remaining,0), row.job_type))
+                frappe.throw(_("Row {0} ({1}): only {2} jobs remain to report on {3}").format(row.idx, line_label(src), f"{flt(max(remaining, 0), 3):g}", hoc.name))
             row.job_type = src.job_type
             row.job_type_name = src.job_type_name
             row.location = row.location or src.location
@@ -112,7 +112,7 @@ class JobCompletionReport(Document):
             row.excess_rate = flt(src.excess_rate)
             row.contract_charge_billing = hoc.contract_charge_billing
             if not row.erection_date:
-                frappe.throw(_("Row {0}: Erection Date is required").format(row.idx))
+                frappe.throw(_("Row {0} ({1}): enter the Erection Date, or remove the row if this job line is not part of this JCR").format(row.idx, line_label(src)))
             row.contract_end_date = jcr_billing.get_contract_end(row.erection_date, row.included_days)
             if row.dismantle_date and getdate(row.dismantle_date) < getdate(row.erection_date):
                 frappe.throw(_("Row {0}: Dismantle Date cannot be before Erection Date").format(row.idx))
@@ -135,7 +135,7 @@ class JobCompletionReport(Document):
 
     def update_parent_status_preview(self):
         statuses=[r.status for r in self.job_lines]
-        if not statuses: self.status="Draft"; return
+        if not statuses or self.docstatus==0: self.status="Draft"; return  # a draft is not on site yet
         if all(s=="Completed" for s in statuses): self.status="Completed"
         elif any(s=="Dismantled" for s in statuses): self.status="Dismantled"
         elif any(s=="In Excess" for s in statuses): self.status="In Excess"
@@ -215,6 +215,11 @@ class JobCompletionReport(Document):
         self.flags.ignore_validate_update_after_submit=True
         self.save()
         return row.name
+
+
+def line_label(item):
+    """A contract job line as the user knows it: job type name and location."""
+    return " @ ".join(x for x in [item.get("job_type_name") or item.get("job_type"), item.get("location")] if x)
 
 
 def get_reported_qty_by_line(hire_order_contract, exclude=None):

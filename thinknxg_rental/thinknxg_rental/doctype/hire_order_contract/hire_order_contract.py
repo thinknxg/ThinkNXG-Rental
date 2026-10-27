@@ -205,12 +205,20 @@ def get_job_lines(hire_order_contract: str):
 
 @frappe.whitelist()
 def make_jcr(source_name: str, target_doc=None, args=None):
-    """Create one JCR containing every still-unreported job line on the Hire Order Contract.
-    Each child row can later carry its own erection/dismantle date."""
+    """Create one JCR for the Hire Order Contract. args {"contract_item": line} takes only that job line
+    (the portal asks which one when the contract has several); without it the JCR takes every job line
+    still to report. Each child row can later carry its own erection/dismantle date."""
     source = _source(source_name)
     lines = get_open_job_lines(source)
     if not lines:
         frappe.throw(_("Every job on this contract already has a Job Completion Report"))
+    contract_item = (frappe.parse_json(args) if isinstance(args, str) else args or {}).get("contract_item")
+    if contract_item:
+        if not any(d.name == contract_item for d in source.items):
+            frappe.throw(_("Job line {0} is not on Hire Order Contract {1}").format(contract_item, source.name))
+        lines = [l for l in lines if l.name == contract_item]
+        if not lines:
+            frappe.throw(_("Every job of that job line on {0} already has a Job Completion Report").format(source.name))
     target = frappe.new_doc("Job Completion Report")
     target.update({"company":source.company,"hire_order_contract":source.name,"rental_contract":get_contract_for_source("Hire Order Contract",source.name),"customer":source.customer,"rental_site":source.rental_site})
     for line in lines:
