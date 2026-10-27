@@ -5,7 +5,7 @@ from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from thinknxg_rental.services import ledger, stock
 from thinknxg_rental.services.utils import get_profile, get_settings
-from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import set_request_reference
+from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import check_request_unused, set_request_reference
 
 
 class HireOffHireNote(Document):
@@ -16,6 +16,7 @@ class HireOffHireNote(Document):
 		for field in ("customer", "customer_name", "rental_site", "project"):
 			self.set(field, self._contract.get(field))
 		self.set_last_billable_date()
+		check_request_unused(self)
 		self.validate_items()
 
 	def set_last_billable_date(self):

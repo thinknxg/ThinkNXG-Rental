@@ -3,7 +3,8 @@
 
 {% block admin_content %}
 <div class="rp-head">
-	<div><h1>{{ _("Yard") }}</h1><p class="rp-muted">{{ _("Every item with a Rental Item Profile. Free stock is yard stock less reservations.") }}</p></div>
+	<div><h1>{{ _("Yard") }}</h1><p class="rp-muted">{{ _("Every item with a Rental Item Profile. Free stock is yard stock less reservations.") }}
+		{% if yard_warehouse %}{{ _("Yard warehouse:") }} <a href="{{ desk('Warehouse', yard_warehouse) }}">{{ yard_warehouse | e }}</a>{% endif %}</p></div>
 	<div class="rp-actions"><a class="rp-btn" href="/app/query-report/Rental Stock Position">{{ _("Open as report") }}</a></div>
 </div>
 <div class="rp-filter">
@@ -18,12 +19,13 @@
 		<th>{{ _("Item") }}</th><th>{{ _("Where it is") }}</th>
 		<th class="rp-num">{{ _("Yard") }}</th><th class="rp-num">{{ _("Reserved") }}</th><th class="rp-num">{{ _("Free") }}</th>
 		<th class="rp-num">{{ _("At sites, own") }}</th><th class="rp-num">{{ _("At sites, cross hire") }}</th>
-		<th class="rp-num">{{ _("Inspection") }}</th><th class="rp-num">{{ _("Repair") }}</th><th class="rp-num">{{ _("Utilization") }}</th>
+		<th class="rp-num">{{ _("Inspection") }}</th><th class="rp-num">{{ _("Repair") }}</th><th class="rp-num">{{ _("Scrap") }}</th><th class="rp-num">{{ _("Utilization") }}</th>
 	</tr></thead>
 	<tbody>
 	{% for r in rows %}
 	<tr>
-		<td class="rp-first"><a href="{{ desk('Rental Item Profile', r.item_code) }}">{{ r.item_name | e }}</a><span class="rp-sub">{{ r.item_code | e }}</span></td>
+		<td class="rp-first"><a href="{{ desk('Rental Item Profile', r.item_code) }}">{{ r.item_name | e }}</a><span class="rp-sub">{{ r.item_code | e }}{% if r.item_group %}, {{ r.item_group | e }}{% endif %}</span>
+			<span class="rp-sub"><a href="/app/query-report/Stock Ledger?item_code={{ r.item_code | urlencode }}">{{ _("Stock ledger") }}</a></span></td>
 		<td data-label="{{ _('Where it is') }}">{{ yard_tube(r, _("{0} at sites, {1} reserved, {2} free").format(qty(r.at_site_own + r.at_site_cross_hire), qty(r.reserved_qty), qty(r.available_qty))) }}</td>
 		<td data-label="{{ _('Yard') }}" class="rp-num">{{ qty(r.yard_qty) }}</td>
 		<td data-label="{{ _('Reserved') }}" class="rp-num">{{ qty(r.reserved_qty) }}</td>
@@ -32,6 +34,7 @@
 		<td data-label="{{ _('At sites, cross hire') }}" class="rp-num">{{ qty(r.at_site_cross_hire) }}</td>
 		<td data-label="{{ _('Inspection') }}" class="rp-num">{{ qty(r.inspection_qty) }}</td>
 		<td data-label="{{ _('Repair') }}" class="rp-num">{{ qty(r.repair_qty) }}</td>
+		<td data-label="{{ _('Scrap') }}" class="rp-num">{{ qty(r.scrap_qty) }}</td>
 		<td data-label="{{ _('Utilization') }}" class="rp-num">{{ r.utilization | round | int }}%</td>
 	</tr>
 	{% endfor %}

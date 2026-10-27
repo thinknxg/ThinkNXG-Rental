@@ -56,6 +56,17 @@
 		return out;
 	};
 
+	// a read-only link opens the linked document: in the portal when it has a menu, else in the desk
+	const link_to = (spec, value) => {
+		if (!value || !["Link", "Dynamic Link"].includes(spec.fieldtype)) return null;
+		const doctype = link_doctype(spec);
+		if (!doctype) return null;
+		const key = (boot.links || {})[doctype];
+		const href = key ? `/rental/admin/entry?type=${key}&name=${encodeURIComponent(value)}`
+			: `/app/${doctype.toLowerCase().replace(/ /g, "-")}/${encodeURIComponent(value)}`;
+		return el("a", { href, text: value });
+	};
+
 	let list_id = 0;
 	function input_for(spec, target, on_change, row) {
 		const id = "rp-f-" + spec.fieldname + "-" + list_id++;
@@ -66,8 +77,10 @@
 		};
 		let input;
 		if (spec.fieldtype === "Select") {
+			// choices are option strings, or {value, label} for an action that asks which row
 			input = el("select", { id, onchange: (e) => set(e.target.value) },
-				spec.choices.map((c) => el("option", { value: c, selected: (value || "") === c, text: c ? __(c) : "" })));
+				spec.choices.map((c) => (typeof c === "object" ? c : { value: c, label: c ? __(c) : "" }))
+					.map((c) => el("option", { value: c.value, selected: (value || "") === c.value, text: c.label })));
 		} else if (spec.fieldtype === "Check") {
 			input = el("input", { id, type: "checkbox", checked: !!Number(value), onchange: (e) => set(e.target.checked ? 1 : 0) });
 		} else if (["Small Text", "Text", "Long Text", "Text Editor"].includes(spec.fieldtype)) {
@@ -177,7 +190,7 @@
 				const label = el("label", { text: spec.label }, spec.reqd && boot.editable && !spec.ro ? el("span", { class: "rp-req", text: " *" }) : null);
 				let body;
 				if (!boot.editable || spec.ro) {
-					body = [el("div", { class: "rp-value", text: fmt(doc[spec.fieldname], spec.fieldtype) || "–" })];
+					body = [el("div", { class: "rp-value" }, link_to(spec, doc[spec.fieldname]) || fmt(doc[spec.fieldname], spec.fieldtype) || "–")];
 				} else {
 					body = input_for(spec, doc, (s, v) => {
 						if (s.loads) load_table(s, v);
@@ -342,13 +355,79 @@
 		});
 	}
 
+	// ------------------------------------------------------------------ related documents
+	// What was made from or for this document (the JCRs of a Hire Order Contract, a contract's deliveries).
+	const related = el("div");
+	function draw_related() {
+		related.replaceChildren(...(boot.related || []).map((r) => el("section", { class: "rp-section" },
+			el("h2", { text: r.label }),
+			el("table", { class: "rp-table" },
+				el("thead", {}, el("tr", {}, r.columns.map((c) => el("th", { scope: "col", class: NUM.includes(c.fieldtype) ? "rp-num" : null, text: c.label })))),
+				el("tbody", {}, r.rows.map((row) => el("tr", {}, r.columns.map((c, i) => {
+					const text = fmt(row[c.fieldname], c.fieldtype);
+					const cls = [i === 0 ? "rp-first" : null, NUM.includes(c.fieldtype) ? "rp-num" : null].filter(Boolean).join(" ") || null;
+					if (i === 0) return el("td", { class: cls }, el("a", { href: row.url, text: text || row.name }));
+					return el("td", { class: cls, "data-label": c.label, text: c.fieldname === "status" && text ? __(text) : text });
+				}))))))));
+	}
+
+	// ------------------------------------------------------------------ actions on this document
+	// Extend, close, record dismantle, reject: some ask for a value first, in a panel above the form.
+	const ask_panel = el("div", { class: "rp-ask", hidden: true });
+	function run(action, button) {
+		const values = {};
+		const go_run = () => {
+			ask_panel.querySelectorAll("button").forEach((b) => (b.disabled = true));
+			button.disabled = true;
+			say(__("Working..."));
+			call("thinknxg_rental.portal.entry.run_action", { action: action.run, source: action.source, values: JSON.stringify(values) }, "POST")
+				.then((r) => {
+					say(r.message || "");
+					window.location.href = r.url;
+				})
+				.catch(() => {
+					say("");
+					button.disabled = false;
+					ask_panel.querySelectorAll("button").forEach((b) => (b.disabled = false));
+				});
+		};
+		if (!(action.ask || []).length) {
+			if (action.confirm && !window.confirm(action.confirm)) return;
+			return go_run();
+		}
+		action.ask.forEach((spec) => spec.default !== undefined && spec.default !== null && (values[spec.fieldname] = spec.default));
+		const fields = el("div", { class: "rp-fields" }, action.ask.map((spec) => {
+			const parts = input_for(spec, values, null);
+			return el("div", { class: spec.wide ? "rp-field rp-field--wide" : "rp-field" },
+				el("label", { for: parts[0].id, text: spec.label }, spec.reqd ? el("span", { class: "rp-req", text: " *" }) : null), ...parts);
+		}));
+		const ok = el("button", { type: "button", class: "rp-btn rp-btn--main", text: action.label, onclick: () => {
+			const missing = action.ask.find((spec) => spec.reqd && [undefined, null, ""].includes(values[spec.fieldname]));
+			if (missing) return say(__("Fill in {0} first.", [missing.label]), "stop");
+			if (action.confirm && !window.confirm(action.confirm)) return;
+			go_run();
+		} });
+		const cancel = el("button", { type: "button", class: "rp-btn rp-btn--plain", text: __("Cancel"), onclick: () => (ask_panel.hidden = true) });
+		ask_panel.replaceChildren(el("h2", { text: action.label }), fields, el("div", { class: "rp-actions" }, ok, cancel));
+		ask_panel.hidden = false;
+		const first = ask_panel.querySelector("input, select, textarea");
+		if (first) first.focus();
+	}
+	document.querySelectorAll("[data-run]").forEach((button) =>
+		button.addEventListener("click", () => {
+			const action = (boot.next || []).find((a) => a.run === button.dataset.run);
+			if (action) run(action, button);
+		})
+	);
+
 	function draw_all() {
 		draw_header();
 		draw_tables();
 		draw_totals();
 	}
-	form.replaceChildren(header, tables, totals, invoice, bar);
+	form.replaceChildren(ask_panel, header, tables, totals, invoice, related, bar);
 	draw_all();
+	draw_related();
 	draw_invoice();
 	// links already filled (a form opened from a button) bring their values along, as on a change
 	if (boot.editable)

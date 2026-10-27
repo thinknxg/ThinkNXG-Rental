@@ -7,4 +7,6 @@ from thinknxg_rental.portal.admin import build_admin_context, get_admin_contract
 def get_context(context):
 	build_admin_context(context, "contracts", _("Rental Contracts"))
 	context.q = (frappe.form_dict.get("q") or "").strip()
-	context.view, context.contracts = get_admin_contracts(frappe.form_dict.get("view"), context.q)
+	context.customer = (frappe.form_dict.get("customer") or "").strip()
+	context.site = (frappe.form_dict.get("site") or "").strip()
+	context.view, context.contracts = get_admin_contracts(frappe.form_dict.get("view"), context.q, context.customer, context.site)
