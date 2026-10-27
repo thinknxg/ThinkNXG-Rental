@@ -17,6 +17,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+from thinknxg_rental.services.utils import BASIS_FACTOR
+
 HIRE = ["Material Hire", "Hire Order Contract"]
 MH = ["Material Hire"]
 HOC = ["Hire Order Contract"]
@@ -39,6 +41,21 @@ TAX_TABLE = dict(fieldname="taxes", columns=[
 	{"fieldname": "tax_amount", "w": 1.6, "ro": 1},
 	{"fieldname": "total", "w": 1.6, "ro": 1},
 ])
+# Row values the portal works out while typing, the same way the desk form does (public/js/quotation_deal.js)
+# and the save does (events/quotation.py), so the row shows what will be saved. Each rule sets "target" to the
+# product of "product": a field name, or {field, per: {field, map, default}} for field / map[other field].
+# "blank_one" fields count as 1 when empty. A rule with "need_all" only runs when one of its own fields changes
+# and every one of them is filled, so a Qty typed by hand stays until a dimension changes.
+QUOTATION_CALC = [
+	# Hire Order Contract: Qty = Length x Breadth x Height, Amount = Qty x Rate x Rotation
+	{"target": "qty", "product": ["nxg_length", "nxg_breadth", "nxg_height"], "need_all": 1, "show_if": {"deal_type": HOC}},
+	{"target": "amount", "product": ["qty", "rate", "nxg_duration"], "blank_one": ["nxg_duration"], "show_if": {"deal_type": HOC}},
+	{"target": "amount", "product": ["qty", "rate"], "show_if": {"deal_type": [None, "", "Material Sale"]}},
+	# Material Hire: Qty x Rate, and Qty x Rate x Hire Days / basis days (blank Hire Days = one rate period)
+	{"target": "nxg_rate_basis_amount", "product": ["qty", "rate"], "show_if": {"deal_type": MH}},
+	{"target": "nxg_estimated_amount", "show_if": {"deal_type": MH}, "blank_one": ["nxg_hire_days"],
+		"product": ["qty", "rate", {"field": "nxg_hire_days", "per": {"field": "nxg_rate_basis", "map": BASIS_FACTOR, "default": 30}}]},
+]
 SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
@@ -54,7 +71,8 @@ ENTRY_TYPES = {
 		list_columns=[("lead_name", "Name"), ("company_name", "Company"), ("deal_type", "Deal type"), ("mobile_no", "Mobile")],
 		header=[
 			"first_name", "last_name", "company_name", "deal_type", "email_id", "mobile_no", "phone",
-			"source", "territory", "status", "company",
+			# v15+ Lead: Source is utm_source ("source" is gone); From Customer links the lead to an existing customer
+			"utm_source", "source", "customer", "territory", "status", "company",
 		],
 		next=[
 			# once a live quotation exists the button gives way to the quotation itself (listed below)
@@ -104,7 +122,7 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_rate_basis_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
 				{"fieldname": "nxg_estimated_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
 				{"fieldname": "amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": NOT_MH}},
-			]),
+			], calc=QUOTATION_CALC),
 			TAX_TABLE,
 		],
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
@@ -1169,6 +1187,9 @@ def _spec(meta, item, table=False):
 		spec["choices"] = [o for o in (df.options or "").split("\n")]
 	if table:
 		spec["w"] = flt(item.get("w")) or 1
+		# a new row starts with the field's plain default (Rotation 1, Rate Basis Monthly), as in the desk grid
+		if df.default and df.fieldtype in ("Int", "Float", "Currency", "Percent", "Check", "Select") and not str(df.default).startswith(("eval:", ":")):
+			spec["default"] = df.default
 	else:
 		spec["wide"] = cint(item.get("wide")) or df.fieldtype in ("Small Text", "Text", "Long Text", "Text Editor")
 	return spec
@@ -1185,7 +1206,7 @@ def get_form_specs(cfg):
 		child = frappe.get_meta(df.options)
 		columns = [s for s in (_spec(child, c, table=True) for c in t["columns"]) if s]
 		tables.append({"fieldname": df.fieldname, "label": _(df.label), "readonly": cint(t.get("readonly")), "no_add": cint(t.get("no_add")),
-			"columns": columns})
+			"columns": columns, "calc": t.get("calc") or []})
 	totals = []
 	for f in cfg.get("totals", []):
 		df = meta.get_field(f)

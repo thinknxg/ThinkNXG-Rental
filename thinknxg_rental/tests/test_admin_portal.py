@@ -583,3 +583,30 @@ class TestAdminPortal(IntegrationTestCase):
 			return existing
 		return frappe.get_doc({"doctype": "Rental Site", "site_name": name, "customer": customer, "company": self.company}).insert(
 			ignore_permissions=True).name
+
+	# ------------------------------------------------------------------ H: lead source, live quotation quantities
+	def test_h_lead_source_and_quotation_calc(self):
+		lead = form("lead")
+		head = {f["fieldname"]: f for f in lead["header"]}
+		self.assertEqual(head["utm_source"]["label"], "Source")
+		self.assertEqual(head["customer"]["label"], "From Customer")
+		frappe.set_user("Administrator")
+		if not frappe.db.exists("UTM Source", "Existing Customer"):
+			frappe.get_doc({"doctype": "UTM Source", "name": "Existing Customer"}).insert()
+		customer = frappe.db.get_value("Customer", {}, "name") or frappe.get_doc({"doctype": "Customer", "customer_name": "Portal Calc Customer",
+			"customer_group": self.customer_group, "territory": self.territory}).insert().name
+		frappe.set_user(STAFF)
+		lead["doc"].update(first_name="Sumi", deal_type="Hire Order Contract", company=self.company, utm_source="Existing Customer", customer=customer)
+		lead_name = save("lead", lead["doc"])
+		self.assertEqual(frappe.db.get_value("Lead", lead_name, ["utm_source", "customer"]), ("Existing Customer", customer))
+
+		key, q = create(form("lead", lead_name), "Create Quotation")
+		items = q["tables"][0]
+		self.assertEqual([r["target"] for r in items["calc"] if r["show_if"]["deal_type"] == ["Hire Order Contract"]], ["qty", "amount"])
+		self.assertEqual(next(c for c in items["columns"] if c["fieldname"] == "nxg_duration")["default"], "1")
+		# what the browser sends after typing Length 2, Breadth 3, Height 4, Rotation 3 and Rate 10 (Qty and Amount worked out)
+		job = ensure_item("PTA-CALC-JOB", "Portal Test Calc Job", stock=0)
+		q = self.quote(q, [{"item_code": job, "uom": "Nos", "nxg_length": 2, "nxg_breadth": 3, "nxg_height": 4, "nxg_duration": 3,
+			"qty": 24, "rate": 10, "amount": 720}], submit=False)
+		row = q["doc"]["items"][0]
+		self.assertEqual((flt(row["qty"]), flt(row["amount"])), (24, 720), "the save agrees with the portal: L x B x H, then x Rate x Rotation")
