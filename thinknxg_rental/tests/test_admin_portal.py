@@ -631,3 +631,31 @@ class TestAdminPortal(IntegrationTestCase):
 		save("quotation", q["doc"])
 		row = form("quotation", q["name"])["doc"]["items"][0]
 		self.assertEqual((row["uom"], flt(row["conversion_factor"]), flt(row["stock_qty"])), ("Nos", 1, 2))
+
+	def test_j_jcr_rotation_columns(self):
+		"""The portal JCR shows Rotation, Rotation No. (blank = the current rotation) and Rotation Balance, as the desk grid does."""
+		frappe.set_user("Administrator")
+		code = "PT-JOB-ROT"
+		if not frappe.db.exists("Item", code):
+			frappe.get_doc({"doctype": "Item", "item_code": code, "item_name": "Portal Test Rotation Job", "item_group": _leaf("Item Group"),
+				"stock_uom": "Nos", "is_stock_item": 0}).insert()
+		if not frappe.db.exists("Job Type", code):
+			frappe.get_doc({"doctype": "Job Type", "item_code": code, "rental_items": [{"item_code": self.tube, "qty": 10}]}).insert()
+		customer = self._customer("Portal Rotation Customer")
+		hoc = frappe.get_doc({"doctype": "Hire Order Contract", "company": self.company, "customer": customer,
+			"rental_site": self._site(customer, "Rotation Site"), "order_date": add_days(nowdate(), -30),
+			"required_from": add_days(nowdate(), -30), "contract_charge_billing": "On Erection",
+			"items": [{"job_type": code, "location": "Tower", "qty": 2, "nxg_duration": 3, "included_days": 30, "contract_rate": 1000,
+				"excess_rate_basis": "Daily", "excess_rate": 50}]})
+		hoc.insert()
+		hoc.submit()
+		frappe.set_user(STAFF)
+		key, j = create(form("hire-order-contract", hoc.name), "Create Job Completion Report")
+		cols = {c["fieldname"]: c for c in j["tables"][0]["columns"]}
+		self.assertEqual([(cols[f]["label"], cols[f]["ro"]) for f in ("nxg_duration", "nxg_rotation", "nxg_balance_rotation")],
+			[("Rotation", 1), ("Rotation No.", 0), ("Rotation Balance", 1)])
+		row = j["doc"]["job_lines"][0]
+		self.assertEqual(row["nxg_duration"], 3)
+		row.update(job_qty=2, erection_date="2026-10-01")
+		row = form("jcr", save("jcr", j["doc"], submit=True))["doc"]["job_lines"][0]
+		self.assertEqual((row["nxg_duration"], row["nxg_rotation"], flt(row["nxg_balance_rotation"])), (3, 1, 2))

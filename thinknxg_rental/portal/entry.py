@@ -331,6 +331,10 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_contract_qty", "w": 1.1, "ro": 1},
 				{"fieldname": "job_qty", "w": 1.1},
 				{"fieldname": "nxg_balance_qty", "w": 1.1, "ro": 1},
+				# as in the desk grid: the contract's Rotation, which rotation this is (blank = the current one), what is left
+				{"fieldname": "nxg_duration", "w": 1.1, "ro": 1},
+				{"fieldname": "nxg_rotation", "w": 1.1},
+				{"fieldname": "nxg_balance_rotation", "w": 1.1, "ro": 1},
 				{"fieldname": "erection_date", "w": 1.9},
 				{"fieldname": "included_days", "w": 1.1, "ro": 1},
 				{"fieldname": "contract_end_date", "w": 1.5, "ro": 1},
