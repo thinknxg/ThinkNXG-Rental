@@ -97,3 +97,10 @@
 
 /* Material Hire: header settings cell stays last, so header and rows line up */
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid .grid-heading-row .grid-static-col:not([data-fieldname]):last-child { order: 99 !important; }
+
+/* Quotation Item grid: single horizontal slider (the outer container scrolls, the inner grid must not) */
+.nxg-hoc-quotation .frappe-control[data-fieldname="items"] .form-grid,
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid,
+.nxg-ms-quotation .frappe-control[data-fieldname="items"] .form-grid {
+    overflow: visible !important;
+}
