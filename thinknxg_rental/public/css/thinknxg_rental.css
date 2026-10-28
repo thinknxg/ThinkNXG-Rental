@@ -104,3 +104,6 @@
 .nxg-ms-quotation .frappe-control[data-fieldname="items"] .form-grid {
     overflow: visible !important;
 }
+
+/* Hide Help inside the Cecypo Powerup button group */
+.inner-group-button[data-label="Powerup"] .dropdown-item[data-label="Help"] { display: none !important; }
