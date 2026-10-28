@@ -94,3 +94,6 @@
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid .grid-static-col[data-fieldname="rate"] { order: 9 !important; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid .grid-static-col[data-fieldname="nxg_rate_basis_amount"] { order: 10 !important; }
 .nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid .grid-static-col[data-fieldname="nxg_estimated_amount"] { order: 11 !important; }
+
+/* Material Hire: header settings cell stays last, so header and rows line up */
+.nxg-mh-quotation .frappe-control[data-fieldname="items"] .form-grid .grid-heading-row .grid-static-col:not([data-fieldname]):last-child { order: 99 !important; }
