@@ -176,6 +176,13 @@ def after_install():
 
 def after_migrate():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
+	create_custom_fields({
+	    "Sales Invoice": [
+	        dict(fieldname="deal_type", label="Invoice Type", fieldtype="Select",
+	             options="\nMaterial Hire\nMaterial Sale\nHire Order Contract",
+	             insert_after="customer_name", in_standard_filter=1),
+	    ]
+	}, ignore_validate=True)
 	make_property_setter("Quotation Item", "uom", "in_list_view", "1", "Check", validate_fields_for_doctype=False)
 	make_property_setter("Quotation Item", "uom", "columns", "1", "Int", validate_fields_for_doctype=False)
 	make_property_setter("Quotation Item", "item_code", "columns", "1", "Int", validate_fields_for_doctype=False)
