@@ -177,6 +177,13 @@ def after_install():
 def after_migrate():
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
 	create_custom_fields({
+	    "Sales Order": [
+	        dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
+	             options="\nMaterial Hire\nMaterial Sale\nHire Order Contract",
+	             insert_after="order_type", in_standard_filter=1),
+	    ]
+	}, ignore_validate=True)
+	create_custom_fields({
 	    "Sales Invoice": [
 	        dict(fieldname="deal_type", label="Invoice Type", fieldtype="Select",
 	             options="\nMaterial Hire\nMaterial Sale\nHire Order Contract",
