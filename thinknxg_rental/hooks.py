@@ -25,6 +25,9 @@ after_migrate = ["thinknxg_rental.services.job_type_migration.run",
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
 doc_events = {
+	"Hire Order Contract": {
+	    "validate": "thinknxg_rental.events.default_terms.apply",
+	},
 	"Purchase Order": {
 		"before_validate": "thinknxg_rental.events.purchase.po_before_validate",
 		"validate": "thinknxg_rental.events.purchase.po_validate",
@@ -40,10 +43,16 @@ doc_events = {
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
 	"Quotation": {
-		"validate": "thinknxg_rental.events.quotation.validate",
+		"validate": [
+		    "thinknxg_rental.events.quotation.validate",
+		    "thinknxg_rental.events.default_terms.apply",
+		],
 	},
 	"Sales Invoice": {
-		"validate": "thinknxg_rental.events.sales_invoice.validate",
+		"validate": [
+		    "thinknxg_rental.events.sales_invoice.validate",
+		    "thinknxg_rental.events.default_terms.apply",
+		],
 		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
 		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",
 		"on_trash": "thinknxg_rental.events.sales_invoice.unlink",
