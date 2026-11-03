@@ -38,11 +38,17 @@ def _deal_type(doc):
 
 
 def _render(name, doc):
+    """Template text with Jinja filled in. The document is passed as a dict (as ERPNext does),
+    and also as `doc`, so both {{ customer_name }} and {{ doc.customer_name }} work."""
+    text = frappe.db.get_value("Terms and Conditions", name, "terms")
+    if not text:
+        return None
     try:
-        from erpnext.setup.doctype.terms_and_conditions.terms_and_conditions import get_terms_and_conditions
-        return get_terms_and_conditions(name, doc)
+        context = doc.as_dict()
+        context["doc"] = doc
+        return frappe.render_template(text, context)
     except Exception:
-        return frappe.db.get_value("Terms and Conditions", name, "terms")
+        return text
 
 
 def apply(doc, method=None):
