@@ -124,9 +124,11 @@ function nxg_apply_default_item_columns(frm) {
 
 frappe.ui.form.on("Hire Order Contract", {
     onload(frm) {
+        frm.$wrapper.addClass("nxg-hoc-form");
         nxg_apply_default_item_columns(frm);
     },
     refresh(frm) {
+        frm.$wrapper.addClass("nxg-hoc-form");
         nxg_apply_default_item_columns(frm);
     },
 });

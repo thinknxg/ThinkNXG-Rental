@@ -128,3 +128,38 @@
 .frappe-control[data-fieldname="job_lines"] .grid-static-col[data-fieldname="description"] { flex: 0 0 250px !important; width: 250px !important; max-width: 250px !important; }
 .frappe-control[data-fieldname="job_lines"] .grid-static-col[data-fieldname="nxg_rotations_completed"] { flex: 0 0 130px !important; width: 130px !important; max-width: 130px !important; }
 .frappe-control[data-fieldname="job_lines"] .grid-static-col[data-fieldname="nxg_balance_rotation"] { flex: 0 0 140px !important; width: 140px !important; max-width: 140px !important; }
+
+/* Hire Order Contract, Job Types and Physical Rental Items grids: fixed widths so every column heading reads in full; scroll sideways on narrow screens */
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .form-grid-container { overflow-x: auto; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .form-grid { min-width: 1750px; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-row > .data-row,
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-heading-row .data-row { flex-wrap: nowrap; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-heading-row { height: auto !important; min-height: 36px; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-heading-row .grid-static-col .static-area { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.3; padding: 6px 0; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_item_code"] { flex: 0 0 100px !important; width: 100px !important; max-width: 100px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_uom"] { flex: 0 0 80px !important; width: 80px !important; max-width: 80px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_length"] { flex: 0 0 80px !important; width: 80px !important; max-width: 80px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_breadth"] { flex: 0 0 90px !important; width: 90px !important; max-width: 90px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_height"] { flex: 0 0 80px !important; width: 80px !important; max-width: 80px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_duration"] { flex: 0 0 90px !important; width: 90px !important; max-width: 90px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="nxg_period"] { flex: 0 0 90px !important; width: 90px !important; max-width: 90px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="job_type"] { flex: 0 0 140px !important; width: 140px !important; max-width: 140px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="location"] { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="qty"] { flex: 0 0 90px !important; width: 90px !important; max-width: 90px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="included_days"] { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="contract_rate"] { flex: 0 0 130px !important; width: 130px !important; max-width: 130px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="contract_amount"] { flex: 0 0 140px !important; width: 140px !important; max-width: 140px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="excess_rate_basis"] { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="items"] .grid-static-col[data-fieldname="excess_rate"] { flex: 0 0 160px !important; width: 160px !important; max-width: 160px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .form-grid-container { overflow-x: auto; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .form-grid { min-width: 930px; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-row > .data-row,
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-heading-row .data-row { flex-wrap: nowrap; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-heading-row { height: auto !important; min-height: 36px; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-heading-row .grid-static-col .static-area { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.3; padding: 6px 0; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="job_type"] { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="item_code"] { flex: 0 0 200px !important; width: 200px !important; max-width: 200px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="qty_per_job"] { flex: 0 0 110px !important; width: 110px !important; max-width: 110px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="qty"] { flex: 0 0 110px !important; width: 110px !important; max-width: 110px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="available_qty"] { flex: 0 0 150px !important; width: 150px !important; max-width: 150px !important; }
+.nxg-hoc-form .frappe-control[data-fieldname="materials"] .grid-static-col[data-fieldname="shortfall_qty"] { flex: 0 0 120px !important; width: 120px !important; max-width: 120px !important; }
