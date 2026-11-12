@@ -68,13 +68,12 @@ class JobCompletionReport(Document):
         contract_lines = {d.name:d for d in hoc.items}
         reported_other = get_reported_qty_by_line(hoc.name, exclude=self.name)
         returned_other = get_returned_qty_by_line(hoc.name, exclude=self.name)
-        seen = set()
+        # Several rows of the same job line are allowed, in this JCR or across JCRs, until the total is used up.
+        # reported_run = quantity on other submitted JCRs plus the rows above this one in this JCR.
+        reported_run = dict(reported_other)
         for row in self.job_lines:
             if not row.contract_item or row.contract_item not in contract_lines:
                 frappe.throw(_("Row {0}: select a valid Hire Order Contract job line").format(row.idx))
-            if row.contract_item in seen:
-                frappe.throw(_("Row {0}: the same contract job line cannot be added twice to one JCR").format(row.idx))
-            seen.add(row.contract_item)
             src = contract_lines[row.contract_item]
             n_rot = flt(row.get("nxg_rotations_done"))
             if n_rot < 0:
@@ -83,11 +82,11 @@ class JobCompletionReport(Document):
                 row.job_qty = n_rot * flt(src.qty)
             if flt(row.job_qty) <= 0 and self.docstatus == 1:  # a draft may be saved blank; Submit needs Qty Done
                 frappe.throw(_("Row {0} ({1}): enter Qty Done (it must be greater than zero)").format(row.idx, line_label(src)))
-            remaining = remaining_jobs(src, reported_other, returned_other)
-            current_rotation = rotation_state(src, reported_other, returned_other)[1]
+            remaining = remaining_jobs(src, reported_run, returned_other)
+            current_rotation = rotation_state(src, reported_run, returned_other)[1]
             if n_rot > 0 and flt(row.job_qty) > remaining + 1e-6:
                 # several rotations in one JCR: allowed once the earlier jobs are back, up to No. of Jobs x Rotation in total
-                done_other = flt(reported_other.get(src.name))
+                done_other = flt(reported_run.get(src.name))
                 at_site_other = done_other - flt(returned_other.get(src.name))
                 if at_site_other <= 1e-6:
                     remaining = max(flt(src.qty) * max(cint(src.nxg_duration), 1) - done_other, 0)
@@ -119,7 +118,8 @@ class JobCompletionReport(Document):
             upto = getdate(row.dismantle_date) if row.dismantle_date else max(getdate(nowdate()), getdate(row.erection_date))
             row.actual_days = max(date_diff(upto, row.erection_date) + 1, 0)
             row.excess_days = max(date_diff(upto, row.contract_end_date), 0)
-            row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_other.get(src.name), row.job_qty)
+            row.nxg_balance_qty, row.nxg_balance_rotation = line_balances(src.qty, src.nxg_duration, reported_run.get(src.name), row.job_qty)
+            reported_run[src.name] = flt(reported_run.get(src.name)) + flt(row.job_qty)
 
     def sync_legacy_fields(self):
         """Keep old fields populated from the first row for compatibility with old reports/integrations."""
@@ -295,12 +295,13 @@ def line_balances(qty, rotations, done_other, job_qty):
 
 
 @frappe.whitelist()
-def get_line_balance(hire_order_contract, contract_item, job_qty=0, exclude=None):
+def get_line_balance(hire_order_contract, contract_item, job_qty=0, exclude=None, prior_qty=0):
     frappe.has_permission("Job Completion Report", "read", throw=True)
     src = frappe.db.get_value("Hire Order Contract Item", contract_item, ["qty", "nxg_duration"], as_dict=True)
     if not src:
         return {"balance_qty": 0, "balance_rotation": 0}
     reported = get_reported_qty_by_line(hire_order_contract, exclude=exclude)
-    bq, br = line_balances(src.qty, src.nxg_duration, reported.get(contract_item), job_qty)
+    # prior_qty: same job line on rows above this one in the JCR being edited
+    bq, br = line_balances(src.qty, src.nxg_duration, flt(reported.get(contract_item)) + flt(prior_qty), job_qty)
     rd = 0
     return {"balance_qty": bq, "balance_rotation": br, "rotations_done": rd}

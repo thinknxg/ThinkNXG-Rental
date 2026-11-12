@@ -253,6 +253,10 @@ function nxg_update_balance(frm, cdt, cdn) {
             contract_item: row.contract_item,
             job_qty: flt(row.job_qty),
             exclude: frm.doc.name,
+            // same job line on the rows above this one in this JCR
+            prior_qty: (frm.doc.job_lines || [])
+                .filter((x) => x.contract_item === row.contract_item && cint(x.idx) < cint(row.idx))
+                .reduce((a, x) => a + flt(x.job_qty), 0),
         },
         callback: (r) => {
             const m = r.message || {};
@@ -269,9 +273,17 @@ frappe.ui.form.on("Job Completion Report", {
     },
 });
 
+// Rows of the same job line share one balance: a change on any row refreshes all rows of that job line.
+function nxg_update_item_balances(frm, contract_item) {
+    (frm.doc.job_lines || []).forEach((r) => {
+        if (!contract_item || r.contract_item === contract_item) nxg_update_balance(frm, r.doctype, r.name);
+    });
+}
+
 frappe.ui.form.on("Job Completion Report Line", {
-    job_qty(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
-    contract_item(frm, cdt, cdn) { nxg_update_balance(frm, cdt, cdn); },
+    job_qty(frm, cdt, cdn) { nxg_update_item_balances(frm, locals[cdt][cdn].contract_item); },
+    contract_item(frm, cdt, cdn) { nxg_update_item_balances(frm, locals[cdt][cdn].contract_item); },
+    job_lines_remove(frm) { nxg_update_item_balances(frm); },
 });
 
 // Users with a saved JCR line grid get the Qty column before Qty Done, once.
