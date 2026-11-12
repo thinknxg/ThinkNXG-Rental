@@ -111,7 +111,7 @@ def _title_text(jcr,line):
 
 def _period_rows(jcr,line,row,hoc):
     """Invoice row values for one billing period (contract or excess) of a JCR line."""
-    qty=flt(row.get("job_qty")) or flt(line.job_qty) or 1; qty=qty if qty==int(qty) else 1
+    qty=flt(row.get("job_qty")) or flt(line.job_qty) or 1
     span=f"{_dmy(row.period_from)} to {_dmy(row.period_to)}"; amount=flt(row.amount); unit=flt(amount/qty,3)
     values={"item_code":line.job_type,"item_name":line.job_type_name,"qty":qty,"rate":unit,"project":hoc.project,"cost_center":hoc.cost_center,
             "nxg_jcr":jcr.name,"nxg_jcr_billing_schedule":row.name,"nxg_locked_rate":unit,"nxg_locked_amount":amount}
