@@ -396,3 +396,72 @@ frappe.ui.form.on("Job Completion Report", {
         }
     },
 });
+
+// ---- Add Job Line: pick the job line (Job Type @ Location) in a dialog and add its row, as often as needed ----
+// "Add row" alone gives a blank row with no job line behind it. This button adds a proper row for the chosen job
+// line, so the same job line can be entered on several rows until its quantity is used up.
+function nxg_add_job_line(frm) {
+    if (!frm.doc.hire_order_contract) {
+        frappe.msgprint(__("Select the Hire Order Contract first."));
+        return;
+    }
+    frappe.call({
+        method: "thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract.get_job_lines",
+        args: { hire_order_contract: frm.doc.hire_order_contract },
+    }).then((r) => {
+        const m = r.message || {};
+        const lines = (m.lines || [])
+            .map((l) => {
+                const used = (frm.doc.job_lines || [])
+                    .filter((x) => x.contract_item === l.name)
+                    .reduce((a, x) => a + flt(x.job_qty), 0);
+                return Object.assign({}, l, { left: flt(l.remaining) - used });
+            })
+            .filter((l) => l.left > 1e-6);
+        if (!lines.length) {
+            frappe.msgprint(__("Every job on this contract is already used on this JCR or on submitted JCRs."));
+            return;
+        }
+        const opts = lines.map((l) => ({
+            value: l.name,
+            label: `${l.job_type_name || l.job_type}${l.location ? " @ " + l.location : ""} (${flt(l.left, 3)} left)`,
+        }));
+        frappe.prompt(
+            [
+                { fieldname: "line", fieldtype: "Select", label: __("Job Type Name"), options: opts, reqd: 1 },
+                { fieldname: "qty", fieldtype: "Float", label: __("Qty Done") },
+            ],
+            (v) => {
+                const l = lines.find((x) => x.name === v.line);
+                if (!l) return;
+                const row = frm.add_child("job_lines");
+                row.contract_item = l.name;
+                row.job_type = l.job_type;
+                row.job_type_name = l.job_type_name;
+                row.location = l.location;
+                row.job_qty = flt(v.qty) || null;
+                row.nxg_contract_qty = l.qty;
+                row.included_days = l.included_days;
+                row.nxg_duration = l.nxg_duration;
+                row.contract_rate = l.contract_rate;
+                row.contract_charge_billing = m.contract_charge_billing;
+                row.excess_rate_basis = l.excess_rate_basis;
+                row.excess_rate = l.excess_rate;
+                row.status = "Draft";
+                frm.refresh_field("job_lines");
+                nxg_update_item_balances(frm, l.name);
+                frm.dirty();
+            },
+            __("Add Job Line"),
+            __("Add")
+        );
+    });
+}
+
+frappe.ui.form.on("Job Completion Report", {
+    refresh(frm) {
+        if (frm.doc.docstatus !== 0) return;
+        const grid = frm.fields_dict.job_lines && frm.fields_dict.job_lines.grid;
+        if (grid && grid.add_custom_button) grid.add_custom_button(__("Add Job Line"), () => nxg_add_job_line(frm));
+    },
+});
