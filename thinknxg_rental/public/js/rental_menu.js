@@ -40,7 +40,7 @@
 	const has_shells = () => !!(sidebar() && typeof sidebar().shell_can_show === "function");
 
 	function in_rental() {
-		if (has_shells()) return sidebar().current_module === APP;
+		if (has_shells()) return [APP, "Rental Flow"].includes(sidebar().current_module);
 		return read("sessionStorage", CONTEXT_KEY) === "1";
 	}
 
