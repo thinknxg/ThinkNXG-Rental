@@ -4,6 +4,7 @@ import json
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from thinknxg_rental.command_center.registry import entry_route
 from thinknxg_rental.portal.entry import ENTRY_TYPES
 from thinknxg_rental.services import desk_menu
 
@@ -14,7 +15,7 @@ class TestDeskMenu(IntegrationTestCase):
 		portal = {i["portal"] for g in menu["groups"] for i in g["items"] if i.get("doctype") and i.get("portal")}
 		for key, cfg in ENTRY_TYPES.items():
 			if cfg.get("menu") != "none" and frappe.db.exists("DocType", cfg["doctype"]):
-				self.assertIn(f"/rental/admin/entries?type={key}", portal, key)
+				self.assertIn(f"/rental/admin/{entry_route(key)}", portal, key)
 
 	def test_flow_follows_the_portal_order(self):
 		flow = [d["label"] for step in desk_menu.get_menu()["flow"] for d in step]
