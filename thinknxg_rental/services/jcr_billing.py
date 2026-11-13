@@ -203,20 +203,21 @@ def get_combinable_jcrs(jcr: str):
 
 
 @frappe.whitelist()
-def make_combined_invoice(jcrs: str):
+def make_combined_invoice(jcrs: str, bill_upto: str | None = None):
     """Create the due billing periods of the given JCRs (without invoicing them one by one) and put
     every pending period on a single Sales Invoice."""
     names=list(dict.fromkeys(frappe.parse_json(jcrs) or []))
     if not names: frappe.throw(_("Select at least one JCR"))
+    upto=getdate(bill_upto) if bill_upto else getdate(get_last_day(nowdate()))  # excess is billed up to this date: month end unless a date is chosen
     _release_draft_invoices(names)
     for n in names:
         frappe.get_doc("Job Completion Report",n).check_permission("write")
-        generate_jcr_billing(n,invoice=0,on_demand=1,as_on=str(getdate(get_last_day(nowdate()))))  # excess runs to the month end, never to today
-    pending=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"Pending","amount":[">",0]},fields=["name","sales_invoice"])
-    pending=[r.name for r in pending if not r.sales_invoice]
+        generate_jcr_billing(n,invoice=0,on_demand=1,as_on=str(upto))  # excess runs to the chosen date (month end by default), never to today
+    pending=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"Pending","amount":[">",0]},fields=["name","sales_invoice","billing_type","period_to"])
+    pending=[r.name for r in pending if not r.sales_invoice and (r.billing_type=="Contract" or getdate(r.period_to)<=upto)]
     if not pending: frappe.throw(_("No billing period is due for the selected JCRs."))
-    free=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"No Charge","billing_type":["in",["Excess","Final Excess"]],"days":[">",0]},fields=["name","sales_invoice"])
-    free=[r.name for r in free if not r.sales_invoice]
+    free=frappe.get_all("JCR Billing Schedule",filters={"jcr":["in",names],"status":"No Charge","billing_type":["in",["Excess","Final Excess"]],"days":[">",0]},fields=["name","sales_invoice","period_to"])
+    free=[r.name for r in free if not r.sales_invoice and getdate(r.period_to)<=upto]
     return _create_invoice(pending+free)
 
 

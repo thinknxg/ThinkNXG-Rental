@@ -134,12 +134,18 @@ frappe.ui.form.on("Job Completion Report", {
         }
         frm.add_custom_button(__("Billing Schedule"), () => frappe.set_route("List", "JCR Billing Schedule", { jcr: frm.doc.name }));
         if (frm.doc.status !== "Completed") {
-            const make_invoice = (jcrs) => frappe.call({
+            const make_invoice = (jcrs) => frappe.prompt([
+                {
+                    fieldname: "bill_upto", fieldtype: "Date", label: __("Bill Up To"), reqd: 1,
+                    default: frappe.datetime.month_end(),
+                    description: __("Month end by default. Choose another date to bill only up to it; the next invoice then starts the day after.")
+                }
+            ], (v) => frappe.call({
                 method: "thinknxg_rental.services.jcr_billing.make_combined_invoice",
-                args: { jcrs: JSON.stringify(jcrs) }, freeze: true, freeze_message: __("Creating Sales Invoice...")
+                args: { jcrs: JSON.stringify(jcrs), bill_upto: v.bill_upto }, freeze: true, freeze_message: __("Creating Sales Invoice...")
             }).then(r => {
                 if (r.message) frappe.set_route("Form", "Sales Invoice", r.message);
-            });
+            }), __("Create Sales Invoice"), __("Create"));
             frm.add_custom_button(__("Sales Invoice"), () => make_invoice([frm.doc.name]), __("Create"));
             frm.add_custom_button(__("Multiple JCRs"), () => {
                 frappe.call({
