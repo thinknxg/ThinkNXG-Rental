@@ -73,6 +73,10 @@ def _make_schedule(doc,line,p):
     schedule.flags.ignore_permissions=True; schedule.insert(); return schedule
 
 
+def _slot(period_from,billing_type):
+    return (getdate(period_from),"Contract" if billing_type=="Contract" else "Excess")
+
+
 @frappe.whitelist()
 def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0, as_on: str | None = None):
     """Create the due billing periods of a JCR. With invoice=0 only the schedules are created (they stay Pending)."""
@@ -80,18 +84,32 @@ def generate_jcr_billing(jcr: str, invoice: int = 1, on_demand: int = 0, as_on: 
     if doc.docstatus!=1: frappe.throw(_("Submit the JCR first"))
     created=[]
     for line in doc.job_lines:
-        existing={(getdate(s.period_from),s.billing_type):s for s in get_schedules(doc.name,line.name)}
+        schedules=get_schedules(doc.name,line.name)
+        existing={}  # Excess and Final Excess are the same slot: one period starting on a given day
+        for s in schedules: existing.setdefault(_slot(s.period_from,s.billing_type),[]).append(s)
+        planned=set(); kept=set()
         for p in plan_periods(line,today=as_on,on_demand=cint(on_demand),partial=bool(as_on)):
-            row=existing.get((getdate(p.period_from),p.billing_type))
+            slot=_slot(p.period_from,p.billing_type); planned.add(slot)
+            group=existing.get(slot) or []
+            row=next((x for x in group if x.billing_type==p.billing_type),None) or (group[0] if group else None)
             if row:
+                kept.add(row.name)
                 if row.status=="Pending" and not row.sales_invoice:
-                    if getdate(row.period_to)!=getdate(p.period_to) or flt(row.job_qty)!=flt(p.qty): frappe.db.set_value("JCR Billing Schedule",row.name,{"job_qty":p.qty,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
+                    if getdate(row.period_to)!=getdate(p.period_to) or flt(row.job_qty)!=flt(p.qty) or row.billing_type!=p.billing_type: frappe.db.set_value("JCR Billing Schedule",row.name,{"billing_type":p.billing_type,"job_qty":p.qty,"period_to":p.period_to,"days":p.days,"contract_charge":p.contract_charge,"excess_charge":p.excess_charge,"amount":p.amount})
                     if flt(p.amount)>0 and cint(invoice): make_sales_invoice(row.name,None,as_on); created.append(row.name)
                 continue
             schedule=_make_schedule(doc,line,p)
             if flt(p.amount)>0:
                 if cint(invoice): make_sales_invoice(schedule.name,None,as_on)
                 created.append(schedule.name)
+        if line.dismantle_date:
+            # all jobs are back: nothing is billed after the last return date. Periods made before the dismantle was
+            # recorded that the plan no longer holds go (only Pending, never invoiced ones).
+            end=getdate(line.dismantle_date)
+            for s in schedules:
+                if s.name in kept or s.billing_type=="Contract" or s.sales_invoice or cint(s.billed) or s.status not in ("Pending","No Charge"): continue
+                if getdate(s.period_to)>end or _slot(s.period_from,s.billing_type) in planned:
+                    frappe.delete_doc("JCR Billing Schedule",s.name,ignore_permissions=True,force=True)
     update_jcr_progress(doc.name); return created
 
 
