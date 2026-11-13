@@ -1,8 +1,8 @@
-"""Admin portal (/rental/admin): a staff-only operations board built on the same data as the desk reports.
+"""Boards for rental staff, built on the same data as the desk reports: the yard, material at site,
+billing, cross hire and the customer request inbox. The Command Center (/rental/admin,
+command_center/api.py) shows them; they are kept here so the desk and the tests can use them too.
 
-Access is limited to System Manager, Rental Manager and Rental User. Pages are read-mostly; anything
-that changes a document either links to the desk form or calls a whitelisted method that checks
-the user's own DocType permissions.
+Access is limited to System Manager, Rental Manager and Rental User.
 """
 from urllib.parse import quote
 
@@ -10,20 +10,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, date_diff, flt, getdate, nowdate
 
-from thinknxg_rental.portal.entry import entry_nav
 from thinknxg_rental.portal.utils import get_requests, is_staff
-
-# The menu bar holds the board and the documents people enter every day (see portal/entry.py);
-# the optional documents (reservations, cross hire) and the read-mostly boards sit under "More".
-MORE_NAV = (
-	("requests", "/rental/admin/requests", "Customer requests"),
-	("contracts", "/rental/admin/contracts", "Contract status"),
-	("sites", "/rental/admin/sites", "Material at site"),
-	("yard", "/rental/admin/yard", "Yard"),
-	("billing", "/rental/admin/billing", "Billing"),
-	("suppliers", "/rental/admin/suppliers", "Cross hire"),
-)
-
 
 def desk(doctype, name=None, **filters):
 	"""Desk URL for a form or a filtered list."""
@@ -32,31 +19,6 @@ def desk(doctype, name=None, **filters):
 		return f"/app/{slug}/{quote(str(name))}"
 	query = "&".join(f"{k}={quote(str(v))}" for k, v in filters.items())
 	return f"/app/{slug}" + (f"?{query}" if query else "")
-
-
-def build_admin_context(context, active, title):
-	if frappe.session.user == "Guest":
-		frappe.local.flags.redirect_location = "/login?redirect-to=" + quote(frappe.request.path)
-		raise frappe.Redirect
-	if not is_staff():
-		raise frappe.PermissionError(_("The rental admin portal is for rental staff only."))
-	more = entry_nav("more") + [frappe._dict(key=k, route=r, label=_(label)) for k, r, label in MORE_NAV]
-	context.ra = frappe._dict(
-		active=active,
-		nav=[frappe._dict(key="board", route="/rental/admin", label=_("Board"))] + entry_nav(),
-		more=more,
-		more_active=any(m.key == active for m in more),
-		today=getdate(nowdate()),
-		can_bill=frappe.has_permission("Rental Billing Schedule", "submit"),
-		user=frappe.session.user,
-	)
-	context.desk = desk
-	context.title = title
-	context.no_cache = 1
-	context.show_sidebar = False
-	context.no_breadcrumbs = True
-	context.full_width = 1
-	return context.ra
 
 
 # ----------------------------------------------------------------------------- board

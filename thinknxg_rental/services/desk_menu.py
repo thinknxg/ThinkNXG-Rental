@@ -66,16 +66,16 @@ MENU = [
 		dict(report="Damage and Loss Register"),
 		dict(report="Hire Contract Profitability"),
 	]),
-	# The portal's boards, in its menu order (portal/admin.py MORE_NAV).
+	# The Command Center's boards (command_center/registry.py NAV).
 	dict(label="Admin Portal", portal=1, items=[
-		dict(url="/rental/admin", label="Board"),
+		dict(url="/rental/admin/dashboard", label="Command Center"),
 		dict(url="/rental/admin/requests", label="Customer requests"),
-		dict(url="/rental/admin/contracts", label="Contract status"),
-		dict(url="/rental/admin/sites", label="Material at site"),
-		dict(url="/rental/admin/yard", label="Yard"),
+		dict(url="/rental/admin/contracts", label="Rental contracts"),
+		dict(url="/rental/admin/material-at-site", label="Material at site"),
+		dict(url="/rental/admin/inventory", label="Rental yard"),
 		dict(url="/rental/admin/billing", label="Billing"),
-		dict(url="/rental/admin/suppliers", label="Cross hire suppliers"),
-		dict(url="/rental/admin/entries", label="Entries"),
+		dict(url="/rental/admin/supplier-position", label="Cross hire suppliers"),
+		dict(url="/rental/admin/outstanding", label="Outstanding payments"),
 	]),
 	dict(label="Setup", items=[
 		dict(doctype="Rental Settings"),
@@ -133,7 +133,9 @@ def _item(spec, entries):
 	if frappe.has_permission(doctype, "create") and not frappe.get_meta(doctype).issingle and not spec.get("filters"):
 		item["new"] = f"/app/{_slug(doctype)}/new"
 	if cfg and cfg.get("menu") != "none":
-		item["portal"] = f"/rental/admin/entries?type={spec['entry']}"
+		from thinknxg_rental.command_center.registry import entry_route
+
+		item["portal"] = f"/rental/admin/{entry_route(spec['entry'])}"
 	return item
 
 

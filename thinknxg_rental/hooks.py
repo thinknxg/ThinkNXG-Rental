@@ -71,10 +71,16 @@ doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice.js",
 }
 
+# Command Center: one single-page application answers every path under /rental/admin
+# (www/rental/admin/index.html). The customer portal's pages under /rental are not affected.
+website_route_rules = [
+	{"from_route": "/rental/admin/<path:app_path>", "to_route": "rental/admin"},
+]
+
 # Customer portal (Frappe website pages under /rental)
 standard_portal_menu_items = [
 	{"title": "Rental Portal", "route": "/rental", "role": "Customer"},
-	{"title": "Rental Admin", "route": "/rental/admin", "role": "Rental User"},
+	{"title": "Rental Command Center", "route": "/rental/admin", "role": "Rental User"},
 ]
 
 scheduler_events = {

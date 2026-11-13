@@ -176,25 +176,34 @@ catalogue, and set the help phone / email shown in the footer. The stylesheet is
 `public/css/rental_portal.css` (scoped under `.rp`, logical properties so Arabic / RTL lays out
 correctly). It loads the Barlow typefaces from Google Fonts and falls back to system fonts if blocked.
 
-## Admin portal
+## Command Center (staff portal)
 
-A staff-only operations board at **/rental/admin**, built as website pages in this app. It is for
-System Manager, Rental Manager and Rental User; anyone else gets a 403. It reads the same data as
-the desk reports, so the numbers always agree with them.
+**/rental/admin** is the staff application: a single-page Command Center for System Manager, Rental
+Manager and Rental User (anyone else gets a 403, guests are sent to the login page). It has no data of
+its own. Every figure comes from the same reports, ledgers and DocTypes as the desk, and every save,
+submit, mapping and action goes through the DocType or the app's existing whitelisted methods with the
+user's own permissions. Full details: [docs/COMMAND_CENTER.md](docs/COMMAND_CENTER.md).
 
-| Page | Shows |
+| Area | Pages |
 |---|---|
-| `/rental/admin` | Units out and free, utilization, a work queue (customer requests, draft deliveries, inspections pending, settlements to invoice, billing due, hires past end date, cross hire overdue), today's vehicles in and out, items running short. |
-| `/rental/admin/requests` | Customer portal requests, oldest first. **Start** marks one In Progress; **Handle in desk** opens it for conversion. |
-| `/rental/admin/contracts` (More > Contract status) | Live / past end date / all contracts with search, delivered and at-site quantities, billed-up-to, and a link to the customer's own view. |
-| `/rental/admin/sites` | All material at customer sites by customer, site and contract, with ownership, supplier and replacement value. Printable. |
-| `/rental/admin/yard` | Every rentable item: yard, reserved, free, at sites (own / cross hire), inspection, repair, utilization. |
-| `/rental/admin/billing` | Accrued unbilled rental per contract with **Bill now** / **Bill all due** (whole completed periods only, same as the nightly job), and unpaid rental invoices with days late. |
-| `/rental/admin/suppliers` | Open cross hire by supplier and order: on hire, at customer site, idle, overdue days. |
+| Main | Dashboard (12 live KPIs, itemised work queue, charts, today's deliveries and returns, recent documents; Today / Week / Month / Quarter / Year / Custom), Notifications, My Tasks |
+| Sales & enquiries | Leads, Quotations, Customers (360 view), Rental Sites, Customer Requests (inbox with Take, Handle, Assign, Reject, Create Hire Order / Off-Hire Note, Apply extension) |
+| Rental operations | Hire Orders, Hire Order Contracts, Rental Contracts, JCRs, Delivery Orders, Off-Hire Notes |
+| Inventory & yard | Material Reservations, Rental Yard (tube per item, movement history), Material at Customer Sites, Return Inspections, Damage Settlements, Rental Stock Position |
+| Cross hire | Cross Hire Orders, Cross Hire Receipts, Supplier Off-Hire, Supplier Hire Bills, Supplier Position |
+| Billing & finance | Rental Billing (Bill now / Bill all due through the billing engine), Unbilled Rental, Sales Invoices, Outstanding Payments (aged by customer), Damage & Loss Recovery |
+| Reports & analytics | Rental Utilization, the six rental reports with their filters and CSV export, Billing schedules |
+| System | Rental Settings, Rental Item Profiles, Items, Warehouses, Users & Roles (System Manager), Open the desk |
 
-### Data entry in the admin portal
+The sidebar shows only what the user may read, and the server checks again on every call. Global search
+(Ctrl K), Quick Create (n), breadcrumbs, favourites and recent documents, toasts, confirmations and
+keyboard shortcuts work across the app; lists page, sort, filter and export on the server. Old portal
+addresses (`/rental/admin/entry?type=...`, `/yard`, `/suppliers`, `/entries?type=...`) open the matching
+Command Center page.
 
-The menu bar follows the order of work; the optional documents and the boards above sit under **More**.
+### Data entry in the Command Center
+
+Each document opens in the shared form at `/rental/admin/<list>/<name>` (`/new` for a new one). The next steps it offers:
 
 | Menu | Document | Next step offered on the form |
 |---|---|---|
@@ -207,12 +216,12 @@ The menu bar follows the order of work; the optional documents and the boards ab
 | Rental Contracts | Rental Contract | New Delivery Order, New Off-Hire Note |
 | Delivery Orders | Hire Delivery Order (**Get items from contract**) | New Off-Hire Note |
 | Off-Hire Notes | Hire Off-Hire Note (**Get items at site**) | Once submitted: Create Return Inspection (when returned items need inspecting), then Create Damage Settlement |
-| More > Return Inspections | Rental Return Inspection (good / repairable / damaged per item) | Create Damage Settlement |
-| More > Damage Settlements | Rental Damage Settlement | Create Sales Invoice (saves the draft invoice and opens it) |
-| More > Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
-| More > Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
-| More > Sales Orders | Sales Order (made from a submitted Material Sale quotation, or entered directly) | Delivery and billing stay in the desk |
-| More > Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
+| Return Inspections | Rental Return Inspection (good / repairable / damaged per item) | Create Damage Settlement |
+| Damage Settlements | Rental Damage Settlement | Create Sales Invoice (saves the draft invoice and opens it) |
+| Material Reservations | Rental Material Reservation | Create Cross Hire Order (shortfall), New Delivery Order |
+| Cross Hire Orders | Cross Hire Order | Receipts and supplier bills stay in the desk |
+| Sales Orders | Sales Order (made from a submitted Material Sale quotation, or entered directly) | Delivery and billing stay in the desk |
+| Sales Invoices | Sales Invoice (opened after invoicing JCRs, or entered directly) | |
 
 Quotations, Sales Orders and Sales Invoices show Currency, the **Payment Terms Template**, the **Sales
 Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing a template fills the
@@ -236,17 +245,17 @@ button once saved. It opens ERPNext's print view with the document's default pri
 printing; Get PDF is on the same page. A Cross Hire Order also has **Print Purchase Order** for the
 Purchase Order it made on submit.
 
-Each menu lists drafts, submitted documents or all, with search. The form is
-`/rental/admin/entry?type=<menu>&name=<document>`. Saving goes through the DocType itself
+Each list pages, sorts, filters and exports on the server. Saving goes through the DocType itself
 (`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the
 ERPNext document: same naming series, validations, stock entries and ledger, and it shows straight away
-in the desk. A menu only appears for users who can read that DocType. Cancelling and amending stay in
-the desk (**Open in desk** on every form). Item tables use the full page width: columns share it by
+in the desk. A menu only appears for users who can read that DocType. Users with Cancel permission can
+cancel a submitted document from the form's **More** menu; amending stays in the desk (**Open in desk** on
+every form). Item tables use the full page width: columns share it by
 weight, headings wrap between words, and a table with many columns scrolls sideways on small screens.
 Which fields and columns each document shows is set in `ENTRY_TYPES` in `portal/entry.py`.
 
-Everything else links through to the desk form. The workspace
-has an **Admin Portal** shortcut, and the admin bar links back to the desk and to the customer portal.
+Everything else links through to the desk form. The desk workspace bar has an **Admin Portal** group that
+opens the Command Center pages.
 
 ## Reports
 
