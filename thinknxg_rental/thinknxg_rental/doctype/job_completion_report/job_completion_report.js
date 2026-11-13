@@ -133,7 +133,7 @@ frappe.ui.form.on("Job Completion Report", {
             }));
         }
         frm.add_custom_button(__("Billing Schedule"), () => frappe.set_route("List", "JCR Billing Schedule", { jcr: frm.doc.name }));
-        if (frm.doc.status !== "Completed") {
+        if (frm.doc.status !== "Cancelled") {
             const make_invoice = (jcrs) => frappe.prompt([
                 {
                     fieldname: "bill_upto", fieldtype: "Date", label: __("Bill Up To"), reqd: 1,

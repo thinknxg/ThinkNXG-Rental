@@ -210,14 +210,15 @@ def make_sales_invoice(schedule: str, posting_date: str | None = None, due_date:
 def get_combinable_jcrs(jcr: str):
     """Other open JCRs of the same customer and company that can share one invoice."""
     doc=frappe.get_doc("Job Completion Report",jcr); doc.check_permission("read")
-    rows=frappe.get_all("Job Completion Report",filters={"docstatus":1,"customer":doc.customer,"company":doc.company,"name":["!=",jcr],"status":["not in",["Completed","Cancelled"]]},
-                        fields=["name","rental_contract","hire_order_contract"],order_by="creation asc")
+    rows=frappe.get_all("Job Completion Report",filters={"docstatus":1,"customer":doc.customer,"company":doc.company,"name":["!=",jcr],"status":["!=","Cancelled"]},
+                        fields=["name","status","rental_contract","hire_order_contract"],order_by="creation asc")
     pending={r.jcr:r for r in frappe.db.sql("""select s.jcr as jcr, count(*) as periods, sum(s.amount) as amount from `tabJCR Billing Schedule` s
         left join `tabSales Invoice` si on si.name=s.sales_invoice
         where s.jcr in %s and ((s.status='Pending' and ifnull(s.sales_invoice,'')='') or si.docstatus=0) group by s.jcr""",[tuple(r.name for r in rows) or ("",)],as_dict=True)}
     for r in rows:
         p=pending.get(r.name); r.pending_periods=p.periods if p else 0; r.pending_amount=flt(p.amount) if p else 0
-    return rows
+    # a Completed JCR is listed only while it still has periods to invoice
+    return [r for r in rows if r.status!="Completed" or r.pending_periods]
 
 
 @frappe.whitelist()
@@ -251,9 +252,13 @@ def _release_draft_invoices(names):
     for inv in drafts:
         others=frappe.db.sql_list("select distinct jcr from `tabJCR Billing Schedule` where sales_invoice=%s and jcr not in %s",(inv,names))
         if others: frappe.throw(_("Draft invoice {0} also holds {1}. Tick those JCRs as well, or deal with that draft first.").format(inv,", ".join(others)))
+    released=set()
     for inv in drafts:
+        released.update(frappe.db.sql_list("select distinct jcr from `tabJCR Billing Schedule` where sales_invoice=%s",inv))
         frappe.db.sql("update `tabJCR Billing Schedule` set sales_invoice=null, billed=0, status=if(amount>0,'Pending',status) where sales_invoice=%s",inv)
         frappe.delete_doc("Sales Invoice",inv,ignore_permissions=True)
+    # the periods are Pending again, so a JCR that was marked Completed because of this draft is open again
+    for n in released: update_jcr_progress(n)
 
 
 def update_jcr_progress(jcr_name):
