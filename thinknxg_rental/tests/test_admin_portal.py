@@ -91,38 +91,44 @@ def settings():
 	return frappe.get_cached_doc("Rental Settings")
 
 
+def prepare(cls):
+	"""Company, rental warehouses, items with stock and the test users, set on the test class.
+	Shared with the other test modules that run whole flows."""
+	frappe.set_user("Administrator")
+	cls.company = frappe.db.get_single_value("Rental Settings", "company") or frappe.db.get_value("Company", {}, "name")
+	s = frappe.get_single("Rental Settings")
+	if not s.rental_yard_warehouse:
+		from thinknxg_rental.services.setup import setup_company
+
+		setup_company(cls.company)
+	frappe.clear_cache(doctype="Rental Settings")
+	cls.yard = settings().rental_yard_warehouse
+	ensure_user(STAFF, ["Rental Manager", "Sales User", "Sales Manager", "Stock User", "Purchase User", "Accounts User", "Projects User"])
+	ensure_user(OUTSIDER, ["Sales User"])
+	cls.tube = ensure_item("PTA-TUBE", "Portal Test Tube 6m")
+	cls.coupler = ensure_item("PTA-COUPLER", "Portal Test Coupler")
+	for code in (cls.tube, cls.coupler):
+		if not frappe.db.exists("Rental Item Profile", {"item": code}):
+			frappe.get_doc({"doctype": "Rental Item Profile", "item": code, "category": "Scaffolding", "daily_rate": 4,
+				"replacement_value": 500}).insert(ignore_permissions=True)
+	if flt(frappe.db.get_value("Bin", {"item_code": cls.tube, "warehouse": cls.yard}, "actual_qty")) < 1000:
+		# received well before the backdated deliveries in the tests
+		se = frappe.get_doc({"doctype": "Stock Entry", "stock_entry_type": "Material Receipt", "company": cls.company,
+			"set_posting_time": 1, "posting_date": add_days(nowdate(), -90), "items": [
+			{"item_code": cls.tube, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 400},
+			{"item_code": cls.coupler, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 20}]})
+		se.insert(ignore_permissions=True)
+		se.submit()
+	cls.customer_group = _leaf("Customer Group")
+	cls.territory = _leaf("Territory")
+	frappe.db.commit()
+
+
 class TestAdminPortal(IntegrationTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
-		frappe.set_user("Administrator")
-		cls.company = frappe.db.get_single_value("Rental Settings", "company") or frappe.db.get_value("Company", {}, "name")
-		s = frappe.get_single("Rental Settings")
-		if not s.rental_yard_warehouse:
-			from thinknxg_rental.services.setup import setup_company
-
-			setup_company(cls.company)
-		frappe.clear_cache(doctype="Rental Settings")
-		cls.yard = settings().rental_yard_warehouse
-		ensure_user(STAFF, ["Rental Manager", "Sales User", "Sales Manager", "Stock User", "Purchase User", "Accounts User", "Projects User"])
-		ensure_user(OUTSIDER, ["Sales User"])
-		cls.tube = ensure_item("PTA-TUBE", "Portal Test Tube 6m")
-		cls.coupler = ensure_item("PTA-COUPLER", "Portal Test Coupler")
-		for code in (cls.tube, cls.coupler):
-			if not frappe.db.exists("Rental Item Profile", {"item": code}):
-				frappe.get_doc({"doctype": "Rental Item Profile", "item": code, "category": "Scaffolding", "daily_rate": 4,
-					"replacement_value": 500}).insert(ignore_permissions=True)
-		if flt(frappe.db.get_value("Bin", {"item_code": cls.tube, "warehouse": cls.yard}, "actual_qty")) < 1000:
-			# received well before the backdated deliveries in the tests
-			se = frappe.get_doc({"doctype": "Stock Entry", "stock_entry_type": "Material Receipt", "company": cls.company,
-				"set_posting_time": 1, "posting_date": add_days(nowdate(), -90), "items": [
-				{"item_code": cls.tube, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 400},
-				{"item_code": cls.coupler, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 20}]})
-			se.insert(ignore_permissions=True)
-			se.submit()
-		cls.customer_group = _leaf("Customer Group")
-		cls.territory = _leaf("Territory")
-		frappe.db.commit()
+		prepare(cls)
 
 	def setUp(self):
 		frappe.set_user(STAFF)
