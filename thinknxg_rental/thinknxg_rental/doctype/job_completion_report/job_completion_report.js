@@ -123,7 +123,9 @@ frappe.ui.form.on("Job Completion Report", {
                 ], v => frm.call("record_dismantle", v).then(() => frm.reload_doc()), __("Record Dismantle"), __("Stop the Clock"));
             }).addClass("btn-primary");
         }
-        if (frm.doc.status !== "Completed") {
+        // Hidden for Hire Order Contract JCRs: invoices are made with Create > Sales Invoice (Bill Up To). Set to true to show it again.
+        const nxg_show_generate_billing = false;
+        if (nxg_show_generate_billing && frm.doc.status !== "Completed") {
             frm.add_custom_button(__("Generate Billing"), () => frappe.call({
                 method: "thinknxg_rental.services.jcr_billing.generate_jcr_billing",
                 args: { jcr: frm.doc.name, on_demand: 1 }, freeze: true
