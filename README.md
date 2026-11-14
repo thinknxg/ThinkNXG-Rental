@@ -233,7 +233,15 @@ Site when left empty and can be changed. Deliveries, off-hires and cross hire ta
 Contract, so a new Rental
 Contract, Delivery Order or Off-Hire Note opened from the previous step already has Project, Customer
 Name and Rental Site filled; a Job Completion Report fills Customer Name from its Hire Order Contract.
-Wherever Project is entered, **+ New Project** creates one without leaving the form. Cost Center is
+Wherever Project is entered, **+ New Project** creates one without leaving the form.
+
+**Project Title** (Lead and Quotation) holds the customer's project name before a Project exists. It and
+the Lead's Project go to the Quotation made from the Lead. When a Rental Site is saved from a quotation
+(desk or Command Center), its Project is the site's own, else the quotation's, else the lead's; if none of
+them has one, the Project named like the Project Title is used (same company, this customer or none), or
+created. The site, the quotation and the lead then get that Project **only where their Project is empty**:
+an existing Project link is never replaced, and changing the Project Title later does not relink anything.
+Users who may not create Projects get none made for them. See `services/project_link.py`. Cost Center is
 entered on Hire Orders, Hire Order Contracts and Rental Contracts (a Hire Order's Cost Center is carried
 to its Rental Contract).
 

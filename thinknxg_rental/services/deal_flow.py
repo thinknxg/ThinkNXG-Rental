@@ -89,11 +89,16 @@ def make_quotation_from_lead(source_name: str, target_doc=None):
         _set_party_from_lead(src, target)
         if src.get("company") and target.meta.has_field("company"):
             target.company = src.company
+        # Project Title and Project go across only into empty fields (never replace a set Project)
+        from thinknxg_rental.services.project_link import carry_to_quotation
+
+        carry_to_quotation(src, target)
 
     return get_mapped_doc(
         "Lead",
         source_name,
-        {"Lead": {"doctype": "Quotation", "validation": {"docstatus": ["=", 0]}}},
+        {"Lead": {"doctype": "Quotation", "validation": {"docstatus": ["=", 0]},
+            "field_no_map": ["project", "project_title"]}},
         target_doc,
         post_process,
     )

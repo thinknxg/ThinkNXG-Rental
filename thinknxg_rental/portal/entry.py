@@ -70,7 +70,7 @@ ENTRY_TYPES = {
 		search_fields=["lead_name", "company_name", "email_id", "mobile_no"],
 		list_columns=[("lead_name", "Name"), ("company_name", "Company"), ("deal_type", "Deal type"), ("mobile_no", "Mobile")],
 		header=[
-			"first_name", "last_name", "company_name", "deal_type", "email_id", "mobile_no", "phone",
+			"first_name", "last_name", "company_name", "deal_type", "project_title", PROJECT, "email_id", "mobile_no", "phone",
 			# v15+ Lead: Source is utm_source ("source" is gone); From Customer links the lead to an existing customer
 			"utm_source", "source", "customer", "territory", "status", "company",
 		],
@@ -96,7 +96,7 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, PROJECT,
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, "project_title", PROJECT,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
