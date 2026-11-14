@@ -17,6 +17,18 @@ MH_DEPENDS_ON = 'eval:parent.deal_type=="Material Hire"'
 
 def get_custom_fields():
 	return {
+		# Rental section of the Item form (services/item_rental.py, public/js/item_rental.js). Only the
+		# classification is stored on the Item; the profile values live in Rental Item Profile.
+		"Item": [
+			dict(fieldname="nxg_rental_section", label="Rental", fieldtype="Section Break", insert_after="asset_naming_series",
+				depends_on="eval:doc.is_stock_item", collapsible=0),
+			dict(fieldname="nxg_rental_classification", label="Rental Classification", fieldtype="Select",
+				options="Stock\nStock + Asset", default="Stock", insert_after="nxg_rental_section", depends_on="eval:doc.is_stock_item",
+				description="Stock: counted units. Stock + Asset: counted and every unit identified by its serial number "
+					"(switches on Has Serial No), with its own movements and inspection history."),
+			dict(fieldname="nxg_rental_profile_html", label="Rental Item Profile", fieldtype="HTML",
+				insert_after="nxg_rental_classification", depends_on="eval:doc.is_stock_item"),
+		],
 		"Lead": [
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="status", in_standard_filter=1,
@@ -67,6 +79,23 @@ def get_custom_fields():
 			dict(fieldname="nxg_hire_days", label="Hire Days", fieldtype="Int", insert_after="nxg_rate_basis", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON, description="Amount = Qty x Hire Days / basis days x Rate. Blank counts as one rate period."),
 			dict(fieldname="nxg_rate_basis_amount", label="Rate Basis Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_hire_days", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON, description="Qty x Rate"),
 			dict(fieldname="nxg_estimated_amount", label="Estimated Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_rate_basis_amount", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
+			# Damage and loss charges agreed on this quotation: the Rental Item Profile's values when the
+			# item is picked (services/item_rental.py), then this row's own, never written back.
+			dict(fieldname="nxg_charges_section", label="Rental Charges", fieldtype="Section Break", insert_after="nxg_estimated_amount",
+				depends_on=MH_DEPENDS_ON, collapsible=0),
+			dict(fieldname="nxg_repair_charge", label="Standard Repair Charge per Unit", fieldtype="Currency", options="currency",
+				insert_after="nxg_charges_section", non_negative=1, depends_on=MH_DEPENDS_ON,
+				description="From the item's Rental Item Profile. Change it for this quotation only."),
+			dict(fieldname="nxg_charges_cb", fieldtype="Column Break", insert_after="nxg_repair_charge"),
+			dict(fieldname="nxg_lost_charge", label="Lost Charge per Unit", fieldtype="Currency", options="currency",
+				insert_after="nxg_charges_cb", non_negative=1, depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_charges_cb2", fieldtype="Column Break", insert_after="nxg_lost_charge"),
+			dict(fieldname="nxg_beyond_repair_charge", label="Beyond Repair / Damage Charge per Unit", fieldtype="Currency", options="currency",
+				insert_after="nxg_charges_cb2", non_negative=1, depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_charges_set", label="Rental Charges Set", fieldtype="Check", hidden=1, read_only=1,
+				insert_after="nxg_beyond_repair_charge"),
+			# closes the section, so ERPNext's own row fields after it keep their place
+			dict(fieldname="nxg_charges_end", fieldtype="Section Break", insert_after="nxg_charges_set"),
 		],
 		"Purchase Order": [
 			dict(fieldname="nxg_is_cross_hire", label="Is Cross Hire Order", fieldtype="Check", read_only=1, no_copy=1,

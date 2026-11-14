@@ -627,3 +627,47 @@ frappe.ui.form.on("Quotation", {
         }
     },
 });
+
+// Rental charges per row: the item's Rental Item Profile values when the item is picked, then this
+// quotation's own (editable, saved on the row, never written back to the profile). Opening a saved
+// quotation shows what was saved; nothing is fetched again. The server fills rows added without the
+// form (services/item_rental.py quotation_charges).
+const NXG_CHARGE_FIELDS = ["nxg_repair_charge", "nxg_lost_charge", "nxg_beyond_repair_charge"];
+
+function nxg_fetch_charges(frm, cdt, cdn) {
+	// ERPNext v16 picks the item on the server (process_item_selection) and sends the whole row back;
+	// the app's hook on that call adds the charges there. Only the legacy browser-side mode fetches here.
+	if (!cint(frappe.boot.sysdefaults.use_legacy_js_reactivity)) return;
+	frappe.after_ajax(() => nxg_apply_charges(frm, cdt, cdn));
+}
+
+function nxg_apply_charges(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	if (!row) return;
+	if (!row.item_code) {
+		frappe.model.set_value(cdt, cdn, Object.fromEntries(NXG_CHARGE_FIELDS.map((f) => [f, 0])));
+		return;
+	}
+	frappe.call({
+		method: "thinknxg_rental.services.item_rental.get_item_rental_charges",
+		args: { item_code: row.item_code, company: frm.doc.company, currency: frm.doc.currency, conversion_rate: frm.doc.conversion_rate },
+	}).then((r) => {
+		const v = r.message || {};
+		if (locals[cdt][cdn] && locals[cdt][cdn].item_code === row.item_code) {
+			const values = Object.fromEntries(NXG_CHARGE_FIELDS.map((f) => [f, flt(v[f])]));
+			values.nxg_charges_set = 1;
+			frappe.model.set_value(cdt, cdn, values);
+		}
+	});
+}
+
+const nxg_charge_typed = (frm, cdt, cdn) => {
+	if (!locals[cdt][cdn].nxg_charges_set) frappe.model.set_value(cdt, cdn, "nxg_charges_set", 1);
+};
+
+frappe.ui.form.on("Quotation Item", {
+	item_code: nxg_fetch_charges,
+	nxg_repair_charge: nxg_charge_typed,
+	nxg_lost_charge: nxg_charge_typed,
+	nxg_beyond_repair_charge: nxg_charge_typed,
+});

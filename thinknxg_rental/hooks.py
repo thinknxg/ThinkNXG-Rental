@@ -25,6 +25,12 @@ after_migrate = ["thinknxg_rental.services.job_type_migration.run",
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
 doc_events = {
+	# Rental section of the Item form: Rental Item Profile saved with the Item, Stock / Stock + Asset
+	"Item": {
+		"before_validate": "thinknxg_rental.services.item_rental.item_before_validate",
+		"validate": "thinknxg_rental.services.item_rental.item_validate",
+		"on_update": "thinknxg_rental.services.item_rental.item_on_update",
+	},
 	"Hire Order Contract": {
 	    "validate": "thinknxg_rental.events.default_terms.apply",
 	},
@@ -46,7 +52,10 @@ doc_events = {
 		"validate": [
 		    "thinknxg_rental.events.quotation.validate",
 		    "thinknxg_rental.events.default_terms.apply",
+		    "thinknxg_rental.services.item_rental.quotation_charges",
 		],
+		# item picked in the form (ERPNext v16 does this on the server): the row's rental charge defaults
+		"process_item_selection": "thinknxg_rental.services.item_rental.quotation_item_selected",
 	},
 	"Sales Invoice": {
 		"validate": [
@@ -64,6 +73,7 @@ app_include_js = ["/assets/thinknxg_rental/js/rental_flow.js", "/assets/thinknxg
 app_include_css = ["/assets/thinknxg_rental/css/thinknxg_rental.css", "/assets/thinknxg_rental/css/rental_menu.css"]
 
 doctype_js = {
+	"Item": "public/js/item_rental.js",
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
 	"Purchase Order": "public/js/purchase_order.js",

@@ -241,7 +241,8 @@
 		};
 		filterInput.addEventListener("input", draw);
 		draw();
-		const detail = item && r.movements ? itemDetail(rows.find((x) => x.item_code === item), r, ctx) : null;
+		const selected = rows.find((x) => x.item_code === item);
+		const detail = item && r.movements ? [itemDetail(selected, r, ctx), selected ? unitsPanel(selected, r) : null] : null;
 		ctx.root.replaceChildren(
 			cc.pagehead(__("Rental Yard"), __("Every rental item and where its units are now: at customer sites, reserved, in inspection or repair, or free in the yard. From the Rental Stock Position report."),
 				[cc.btn(__("Stock position report"), null, { href: cc.base + "/reports/stock-availability", kind: "ghost", icon: "boxes" }), cc.btn(__("New reservation"), null, { href: cc.base + "/reservations/new", icon: "bookmark" })]),
@@ -251,6 +252,28 @@
 				el("div", { class: "cc-search" }, cc.icon("search", "cc-i--sm"), filterInput),
 				el("select", { "aria-label": __("Category"), onchange: (e) => setQuery(ctx, { category: e.target.value, item: null }) }, el("option", { value: "", text: __("All categories") }), r.categories.map((c) => el("option", { value: c, text: c, selected: c === category })))), body));
 	};
+	// Stock + Asset item: each unit (serial number), where it is, and its history on demand
+	function unitsPanel(row, r) {
+		if (!r.units) return null;
+		const showHistory = async (u) => {
+			const h = await cc.api("unit_history", { item: row.item_code, serial_no: u.name });
+			const link = (t, text) => (t && cc.target(t) ? (cc.target(t).startsWith(cc.base) ? cc.link(cc.target(t), text) : el("a", { href: cc.target(t), text })) : text);
+			cc.dialog({ title: __("Unit {0}", [u.name]), wide: true, body: el("div", { class: "cc-stack" },
+				el("p", { class: "cc-muted", style: "margin:0", text: [row.item_name, u.place, u.site].filter(Boolean).join(", ") }),
+				h.moves.length ? table([__("When"), __("Warehouse"), num(__("Qty")), __("Document")], h.moves.map((m) => ({ cells: [
+					cc.datetime(m.posting_datetime), m.warehouse, el("span", { style: `color:${m.qty < 0 ? "var(--bad)" : "var(--ok)"};font-weight:600`, text: (m.qty > 0 ? "+" : "") + cc.qty(m.qty) }),
+					link(m.target, m.source_name)] })), { cards: false }) : el("p", { class: "cc-muted", text: __("No movements yet.") }),
+				el("h3", { style: "margin:0;font:600 16px var(--font-cond)", text: __("Return inspections") }),
+				h.inspections.length ? table([__("Date"), __("Grade"), __("Inspection")], h.inspections.map((g) => ({ cells: [cc.date(g.posting_date), cc.pill(g.grade, g.grade === "Good" ? "ok" : g.grade === "Repairable" ? "warn" : "bad"), link(g.target, g.inspection)] })), { cards: false })
+					: el("p", { class: "cc-muted", style: "margin:0", text: __("Not inspected yet.") })) });
+		};
+		const counts = {};
+		r.units.forEach((u) => (counts[u.place] = (counts[u.place] || 0) + 1));
+		return cc.panel(__("Units ({0})", [r.units.length]), r.units.length ? table([__("Serial number"), __("Where"), __("Status"), ""], r.units.map((u) => ({ cells: [
+			el("b", { text: u.name }), el("div", {}, u.place, u.site ? el("span", { class: "cc-sub" }, cc.link("sites/" + encodeURIComponent(u.site), u.site)) : null),
+			cc.pill(u.status), cc.btn(__("History"), () => showHistory(u), { sm: true, kind: "ghost" })] }))) : cc.empty(__("No units yet"), __("Units get their serial numbers when they are received into stock.")),
+			{ flush: true, note: __("Stock + Asset: every unit is identified by its serial number. {0}", [Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ")]) });
+	}
 	function itemDetail(row, r, ctx) {
 		if (!row) return null;
 		const moves = r.movements || [];

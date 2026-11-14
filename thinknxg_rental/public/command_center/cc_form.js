@@ -168,6 +168,26 @@
 			}).catch(() => {});
 		}
 
+		// a row's defaults from a server method when a field changes (the item's rental charges): written
+		// over the row's values, as picking a new item should; later edits are the row's own
+		function rowDefaults(spec, value, row) {
+			const d = spec.defaults;
+			if (!d || !d.method) return;
+			const args = {};
+			Object.entries(d.args || {}).forEach(([k, v]) => (args[k] = v === "$value" ? value : typeof v === "string" && v.startsWith("$") ? doc[v.slice(1)] : v));
+			if (!value) return;
+			cc.call(d.method, args, { silent: true }).then((values) => {
+				if (row[spec.fieldname] !== value) return;
+				// only the row's own columns (the answer may carry extras, such as has_profile)
+				const columns = new Set(boot.tables.flatMap((t) => t.columns.map((c) => c.fieldname)));
+				Object.entries(values || {}).forEach(([k, v]) => {
+					if (columns.has(k)) row[k] = v;
+				});
+				if (d.marker) row[d.marker] = 1;
+				drawTables();
+			}).catch(() => {});
+		}
+
 		// ------------------------------------------------------------------ header fields
 		const header = el("div", { class: "cc-fields" });
 		function drawHeader() {
@@ -258,7 +278,9 @@
 							} else {
 								const parts = inputFor(c, row, (s, v) => {
 									(s.clears || []).forEach((f) => (row[f] = null));
+									if (s.marks) row[s.marks] = 1;
 									fetchInto(s, v, row, drawTables);
+									rowDefaults(s, v, row);
 									recalc(t, row, s.fieldname);
 								}, row);
 								cells.get(row)[c.fieldname] = parts[0];

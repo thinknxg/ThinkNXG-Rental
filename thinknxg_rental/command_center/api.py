@@ -469,7 +469,26 @@ def inventory(category: str | None = None, item: str | None = None, warehouse: s
 	if item:
 		out["movements"] = item_movements(item, warehouse)
 		out["warehouses"] = item_warehouses(item)
+		from thinknxg_rental.services.item_rental import is_unit_tracked, units
+
+		# Stock + Asset: every unit (Serial No) and where it is
+		out["units"] = units(item) if is_unit_tracked(item) and frappe.has_permission("Serial No", "read") else None
 	return out
+
+
+@frappe.whitelist()
+def unit_history(item: str, serial_no: str):
+	"""One unit of a Stock + Asset item: its movements and its return inspections."""
+	R.check_staff()
+	frappe.has_permission("Serial No", "read", doc=serial_no, throw=True)
+	from thinknxg_rental.services.item_rental import unit_history as history
+
+	h = history(item, serial_no)
+	for m in h["moves"]:
+		m.target = _target(m.source_doctype, m.source_name)
+	for g in h["inspections"]:
+		g["target"] = {"url": f"/app/rental-return-inspection/{g['inspection']}"}
+	return frappe.parse_json(frappe.as_json(h))
 
 
 def item_warehouses(item):

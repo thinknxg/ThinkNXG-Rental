@@ -111,12 +111,12 @@ def prepare(cls):
 		if not frappe.db.exists("Rental Item Profile", {"item": code}):
 			frappe.get_doc({"doctype": "Rental Item Profile", "item": code, "category": "Scaffolding", "daily_rate": 4,
 				"replacement_value": 500}).insert(ignore_permissions=True)
-	if flt(frappe.db.get_value("Bin", {"item_code": cls.tube, "warehouse": cls.yard}, "actual_qty")) < 1000:
-		# received well before the backdated deliveries in the tests
+	# each item topped up on its own (received well before the backdated deliveries in the tests)
+	low = [{"item_code": code, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": rate} for code, rate in ((cls.tube, 400), (cls.coupler, 20))
+		if flt(frappe.db.get_value("Bin", {"item_code": code, "warehouse": cls.yard}, "actual_qty")) < 1000]
+	if low:
 		se = frappe.get_doc({"doctype": "Stock Entry", "stock_entry_type": "Material Receipt", "company": cls.company,
-			"set_posting_time": 1, "posting_date": add_days(nowdate(), -90), "items": [
-			{"item_code": cls.tube, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 400},
-			{"item_code": cls.coupler, "t_warehouse": cls.yard, "qty": 1000, "basic_rate": 20}]})
+			"set_posting_time": 1, "posting_date": add_days(nowdate(), -90), "items": low})
 		se.insert(ignore_permissions=True)
 		se.submit()
 	cls.customer_group = _leaf("Customer Group")

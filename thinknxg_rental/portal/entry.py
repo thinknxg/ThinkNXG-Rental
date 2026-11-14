@@ -26,6 +26,10 @@ NOT_MH = [None, "", "Material Sale", "Hire Order Contract"]
 LIVE_CONTRACT = {"docstatus": 1, "status": ["not in", ["Completed", "Cancelled"]]}
 STOCK_ITEM = {"is_stock_item": 1, "disabled": 0}
 ITEM_FETCH = {"item_name": "item_name", "uom": "stock_uom"}
+# Quotation rows: the Rental Item Profile's damage and loss charges as defaults (services/item_rental.py)
+RENTAL_CHARGES = {"method": "thinknxg_rental.services.item_rental.get_item_rental_charges",
+	"args": {"item_code": "$value", "company": "$company", "currency": "$currency", "conversion_rate": "$conversion_rate"},
+	"marker": "nxg_charges_set"}
 COST_CENTER = {"fieldname": "cost_center", "filters": {"company": "$company", "is_group": 0}}
 # "create" puts a "New Project" button beside the field (name typed in place, company and customer from the form).
 PROJECT = {"fieldname": "project", "filters": {"company": "$company"},
@@ -104,7 +108,8 @@ ENTRY_TYPES = {
 		],
 		tables=[
 			dict(fieldname="items", columns=[
-				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH, "clears": ["conversion_factor"]},
+				{"fieldname": "item_code", "w": 3, "filters": {"disabled": 0}, "fetch": ITEM_FETCH, "clears": ["conversion_factor"],
+					"defaults": RENTAL_CHARGES},
 				{"fieldname": "item_name", "w": 3, "ro": 1},
 				{"fieldname": "nxg_length", "w": 1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_breadth", "w": 1, "show_if": {"deal_type": HOC}},
@@ -119,8 +124,11 @@ ENTRY_TYPES = {
 				{"fieldname": "nxg_included_days", "w": 1.1, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_excess_basis", "w": 1.3, "show_if": {"deal_type": HOC}},
 				{"fieldname": "nxg_excess_rate", "w": 1.4, "show_if": {"deal_type": HOC}},
-				{"fieldname": "nxg_rate_basis_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
-				{"fieldname": "nxg_estimated_amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": MH}},
+				{"fieldname": "nxg_rate_basis_amount", "w": 2, "ro": 1, "show_if": {"deal_type": MH}},
+				{"fieldname": "nxg_estimated_amount", "w": 2, "ro": 1, "show_if": {"deal_type": MH}},
+				{"fieldname": "nxg_repair_charge", "label": "Repair / unit", "w": 1.4, "show_if": {"deal_type": MH}, "marks": "nxg_charges_set"},
+				{"fieldname": "nxg_lost_charge", "label": "Lost / unit", "w": 1.4, "show_if": {"deal_type": MH}, "marks": "nxg_charges_set"},
+				{"fieldname": "nxg_beyond_repair_charge", "label": "Beyond repair / unit", "w": 1.4, "show_if": {"deal_type": MH}, "marks": "nxg_charges_set"},
 				{"fieldname": "amount", "w": 1.5, "ro": 1, "show_if": {"deal_type": NOT_MH}},
 			], calc=QUOTATION_CALC),
 			TAX_TABLE,
@@ -1188,6 +1196,10 @@ def _spec(meta, item, table=False):
 		"loads": item.get("loads"),
 		# row fields emptied when this one changes, so the save works them out again (a new UOM's conversion factor)
 		"clears": item.get("clears") or [],
+		# defaults: a method whose answer is written into the row when this field changes (the item's
+		# rental charges); marks: a row field set to 1 when the user types here (keep what was typed)
+		"defaults": item.get("defaults"),
+		"marks": item.get("marks"),
 	}
 	if df.fieldtype == "Select":
 		spec["choices"] = [o for o in (df.options or "").split("\n")]
