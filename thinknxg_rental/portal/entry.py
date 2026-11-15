@@ -546,6 +546,7 @@ ENTRY_TYPES = {
 				{"fieldname": "uom", "w": 1, "ro": 1},
 				{"fieldname": "required_qty", "w": 1.2},
 				{"fieldname": "source_warehouse", "w": 2.2, "filters": {"is_group": 0}},
+				{"fieldname": "ownership", "w": 1.3, "ro": 1},
 				{"fieldname": "available_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "reserved_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "shortfall_qty", "w": 1.2, "ro": 1},
