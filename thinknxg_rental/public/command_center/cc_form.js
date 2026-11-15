@@ -168,6 +168,45 @@
 			}).catch(() => {});
 		}
 
+		// copies: Rate Basis picks its rate into Rate ({to, from: {value: field}}); a basis rate moves Rate
+		// when the row is on that basis ({to, when: {field: value}}). The server keeps the same rule on save.
+		function copyInRow(spec, value, row) {
+			const c = spec.copies;
+			if (!c || !c.to) return null;
+			let next;
+			if (c.from) next = row[c.from[value || "Monthly"]];
+			else if (c.when && Object.entries(c.when).every(([f, v]) => (row[f] || "Monthly") === v)) next = value;
+			if (Number(next) > 0 && Number(row[c.to]) !== Number(next)) {
+				row[c.to] = Number(next);
+				// update just that cell: redrawing the table would take the cursor out of the field being typed in
+				const node = (cells.get(row) || {})[c.to];
+				if (node && node.tagName === "INPUT") node.value = row[c.to];
+				else if (node) node.textContent = cc.fmt(row[c.to], "Currency", boot.currency);
+				return c.to;
+			}
+			return null;
+		}
+
+		// a row's defaults from a server method when a field changes (the item's rental charges): written
+		// over the row's values, as picking a new item should; later edits are the row's own
+		function rowDefaults(spec, value, row) {
+			const d = spec.defaults;
+			if (!d || !d.method) return;
+			const args = {};
+			Object.entries(d.args || {}).forEach(([k, v]) => (args[k] = v === "$value" ? value : typeof v === "string" && v.startsWith("$") ? doc[v.slice(1)] : v));
+			if (!value) return;
+			cc.call(d.method, args, { silent: true }).then((values) => {
+				if (row[spec.fieldname] !== value) return;
+				// only the row's own columns (the answer may carry extras, such as has_profile)
+				const columns = new Set(boot.tables.flatMap((t) => t.columns.map((c) => c.fieldname)));
+				Object.entries(values || {}).forEach(([k, v]) => {
+					if (columns.has(k)) row[k] = v;
+				});
+				if (d.marker) row[d.marker] = 1;
+				drawTables();
+			}).catch(() => {});
+		}
+
 		// ------------------------------------------------------------------ header fields
 		const header = el("div", { class: "cc-fields" });
 		function drawHeader() {
@@ -258,8 +297,12 @@
 							} else {
 								const parts = inputFor(c, row, (s, v) => {
 									(s.clears || []).forEach((f) => (row[f] = null));
+									if (s.marks) row[s.marks] = 1;
+									const copied = copyInRow(s, v, row);
 									fetchInto(s, v, row, drawTables);
+									rowDefaults(s, v, row);
 									recalc(t, row, s.fieldname);
+									if (copied) recalc(t, row, copied);
 								}, row);
 								cells.get(row)[c.fieldname] = parts[0];
 								parts[0].setAttribute("aria-label", `${c.label}, ${__("row")} ${i + 1}`);

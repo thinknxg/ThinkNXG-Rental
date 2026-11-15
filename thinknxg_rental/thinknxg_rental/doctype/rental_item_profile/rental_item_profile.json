@@ -25,6 +25,8 @@
   "replacement_value",
   "cb_15",
   "repair_charge",
+  "lost_charge",
+  "beyond_repair_charge",
   "inspection_required"
  ],
  "fields": [
@@ -150,7 +152,23 @@
   {
    "fieldname": "repair_charge",
    "fieldtype": "Currency",
-   "label": "Standard Repair Charge per Unit"
+   "label": "Standard Repair Charge per Unit",
+   "non_negative": 1,
+   "description": "Per unit returned repairable. Default for quotation rows."
+  },
+  {
+   "fieldname": "lost_charge",
+   "label": "Lost Charge per Unit",
+   "fieldtype": "Currency",
+   "non_negative": 1,
+   "description": "Per unit not returned. Default for quotation rows."
+  },
+  {
+   "fieldname": "beyond_repair_charge",
+   "label": "Beyond Repair / Damage Charge per Unit",
+   "fieldtype": "Currency",
+   "non_negative": 1,
+   "description": "Per unit returned damaged beyond repair. Default for quotation rows."
   },
   {
    "fieldname": "inspection_required",
@@ -160,7 +178,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-14 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Item Profile",
