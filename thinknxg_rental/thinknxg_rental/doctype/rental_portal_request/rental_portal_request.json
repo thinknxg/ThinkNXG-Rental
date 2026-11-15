@@ -13,6 +13,7 @@
   "request_date",
   "status",
   "company",
+  "subject",
   "sb_122",
   "rental_contract",
   "rental_site",
@@ -45,7 +46,7 @@
    "fieldname": "request_type",
    "fieldtype": "Select",
    "label": "Request Type",
-   "options": "Hire Enquiry\nOff-Hire Request\nExtension Request",
+   "options": "Hire Enquiry\nAdditional Material Request\nExtension Request\nOff-Hire Request\nPickup Request\nDelivery Reschedule\nReplacement Request\nDamage Report\nMissing Material Report\nComplaint\nSupport Request",
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1
@@ -111,7 +112,7 @@
    "fieldtype": "Link",
    "label": "Rental Contract",
    "options": "Rental Contract",
-   "depends_on": "eval:doc.request_type!='Hire Enquiry'",
+   "depends_on": "eval:!['Hire Enquiry'].includes(doc.request_type)",
    "mandatory_depends_on": "eval:doc.request_type!='Hire Enquiry'"
   },
   {
@@ -125,7 +126,7 @@
   {
    "fieldname": "site_location",
    "fieldtype": "Data",
-   "label": "Site / Delivery Location"
+   "label": "Location / Pickup Address"
   },
   {
    "fieldname": "cb_123",
@@ -134,7 +135,8 @@
   {
    "fieldname": "required_date",
    "fieldtype": "Date",
-   "label": "Required From / Collection Date"
+   "label": "Requested Date",
+   "description": "Hire Enquiry / Additional Material: needed from. Return / Pickup: pickup date. Delivery Reschedule: the new delivery date."
   },
   {
    "fieldname": "expected_return_date",
@@ -153,7 +155,7 @@
    "fieldname": "sb_124",
    "fieldtype": "Section Break",
    "label": "Items",
-   "depends_on": "eval:doc.request_type!='Extension Request'"
+   "depends_on": "eval:!['Extension Request','Delivery Reschedule','Complaint','Support Request'].includes(doc.request_type)"
   },
   {
    "fieldname": "items",
@@ -200,10 +202,17 @@
    "options": "reference_doctype",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Subject",
+   "length": 140,
+   "in_list_view": 0
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-15 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Portal Request",

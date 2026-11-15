@@ -24,7 +24,16 @@ after_migrate = ["thinknxg_rental.services.job_type_migration.run",
 ]
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
+_N = "thinknxg_rental.services.customer_notify."  # customer portal notifications
+
 doc_events = {
+	# customer portal notifications (services/customer_notify.py)
+	"Rental Contract": {"on_submit": _N + "rental_contract_submitted"},
+	"Hire Delivery Order": {"on_submit": _N + "delivery_submitted"},
+	"Hire Off-Hire Note": {"on_submit": _N + "off_hire_submitted"},
+	"Rental Return Inspection": {"on_submit": _N + "inspection_submitted"},
+	"Payment Entry": {"on_submit": _N + "payment_submitted"},
+	"Sales Order": {"on_submit": _N + "sales_order_submitted"},
 	# Rental section of the Item form: Rental Item Profile saved with the Item
 	"Item": {
 		"validate": "thinknxg_rental.services.item_rental.item_validate",
@@ -48,6 +57,7 @@ doc_events = {
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
 	"Quotation": {
+		"on_submit": _N + "quotation_submitted",
 		"validate": [
 		    # rates and rate basis first: the hire amounts below are worked out from Rate
 		    "thinknxg_rental.services.item_rental.quotation_rates",
@@ -69,7 +79,7 @@ doc_events = {
 		    "thinknxg_rental.events.sales_invoice.validate",
 		    "thinknxg_rental.events.default_terms.apply",
 		],
-		"on_submit": "thinknxg_rental.events.sales_invoice.on_submit",
+		"on_submit": ["thinknxg_rental.events.sales_invoice.on_submit", _N + "sales_invoice_submitted"],
 		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",
 		"on_trash": "thinknxg_rental.events.sales_invoice.unlink",
 		"on_cancel": "thinknxg_rental.events.sales_invoice.on_cancel",
@@ -89,12 +99,15 @@ doctype_js = {
 }
 
 # Command Center: one single-page application answers every path under /rental/admin
-# (www/rental/admin/index.html). The customer portal's pages under /rental are not affected.
+# (www/rental/admin/index.html).
 website_route_rules = [
+	{"from_route": "/rental/admin", "to_route": "rental/admin"},
 	{"from_route": "/rental/admin/<path:app_path>", "to_route": "rental/admin"},
+	# customer Command Center: one single-page application for /rental and every path under it
+	{"from_route": "/rental/<path:app_path>", "to_route": "rental"},
 ]
 
-# Customer portal (Frappe website pages under /rental)
+# Customer Command Center (www/rental/index.html, public/customer_portal)
 standard_portal_menu_items = [
 	{"title": "Rental Portal", "route": "/rental", "role": "Customer"},
 	{"title": "Rental Command Center", "route": "/rental/admin", "role": "Rental User"},
@@ -104,5 +117,6 @@ scheduler_events = {
 	"daily": [
 		"thinknxg_rental.services.billing.run_daily_billing",
 		"thinknxg_rental.services.jcr_billing.run_daily_jcr_billing",
+		"thinknxg_rental.services.customer_notify.rental_expiry_reminders",
 	],
 }

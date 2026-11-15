@@ -65,6 +65,16 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.3 - customer Command Center
+
+- **/rental is now a full customer application**: dashboard, rental orders, active rentals, deliveries,
+  returns, quotations, sales orders, invoices, payments, account statement, documents, history, profile,
+  contacts, notifications and settings, with global search, on desktop and phone.
+- **Eleven request types** with attachments and a message thread; staff complete service requests with a
+  reply. Customers are notified of confirmations, deliveries, returns, invoices, payments, request updates
+  and rentals ending soon.
+- The old server-rendered portal pages are replaced; their URLs open the new pages.
+
 ### Changes in 2.2 - multi-location warehouses
 
 - **Several own rental warehouses and cross hire warehouses**, at any locations, in two tables of Rental
@@ -151,44 +161,66 @@ material is already in the site warehouse) but starts customer billing.
 When everything is back, **Complete Order** closes the Cross Hire Order and its Purchase Order (the PO
 never reaches 100 % received on its own because the charge lines are billed, not received).
 
-## Customer portal
+## Customer Command Center (customer portal)
 
-Server-rendered Frappe website pages inside this app (no separate frontend), at **/rental**:
+A single-page application at **/rental** for the customer's own people, served by this app (no extra
+frontend framework, no build step): `www/rental/index.html` is the shell, `public/customer_portal/` the
+interface, `portal/customer.py` the API. Every path under `/rental` opens it, except `/rental/admin`
+(the staff Command Center). Old links (`/rental/contracts`, `/rental/contract?name=`, `/rental/material`,
+`/rental/invoices`, `/rental/requests`) open the matching new page.
 
-| Page | Shows |
+| Area | Pages |
 |---|---|
-| `/rental` | Units on hire and sites, live contracts, unpaid invoices, requests in progress, latest deliveries and returns. |
-| `/rental/contracts`, `/rental/contract?name=` | Contract terms, each item's contracted / delivered / returned / at-site quantity, movements, invoices, extensions. |
-| `/rental/material` | Printable material-at-site list by site and contract. |
-| `/rental/invoices` | Rental and damage invoices with billing period; each links to the standard ERPNext `/invoices/<name>` page. |
-| `/rental/requests` | Raise and track requests: collect material (off-hire), hire more material, extend a hire. |
+| Overview | Dashboard: units on site by site, 8 KPIs (each opens its list), rental operations (active rentals, upcoming deliveries, scheduled pickups, overdue returns, pending extensions), deliveries and returns per month, recent orders, upcoming activity (deliveries, pickups, return dates, inspections, payments due), recent notifications. |
+| Rental operations | My Rental Orders (contracts and hire orders awaiting contract; search, status, site and date filters; detail with lines, ordered / delivered / returned / on site / to deliver, rates, timeline built only from real documents, deliveries, returns, invoices, requests, PDFs), Active Rentals (per contract and item, ending soon / overdue / partially returned, extend or return from a line), Rental Deliveries, Material Returns (returns made and pickups requested), Extension Requests, Additional Material. |
+| Commercial | Quotations, Sales Orders (shown only when the customer has any), Invoices (outstanding and overdue totals), Payments (with the invoices each was applied to), Account Statement (opening balance, every debit and credit, running and closing balance, CSV and print). |
+| Customer services | Service Requests, Complaints, Support Tickets, Communication History. |
+| Resources | Rental Documents, Delivery Documents, Invoices & Receipts (PDF of each), Rental History. |
+| Account | Company Profile (company, tax ID, addresses, authorised sites), Contacts (edit your own name, job title and phone), Notifications, Settings (e-mail notifications, password). |
 
-**Giving a customer access:** open the Customer, add their user under *Portal Users* (ERPNext gives the
-user the Customer role). A user linked through a Contact also works for the rental pages, but the
-standard invoice page needs the Portal Users entry. "Rental Portal" is added to the portal menu on
-`bench migrate`.
+Header: breadcrumb, global search (Ctrl / Cmd + K) across the customer's orders, deliveries, returns,
+invoices, quotations, sales orders, requests and payments, notification bell, help menu (support request,
+rental team e-mail and phone), company switcher for a login linked to several customers, account menu.
+Desktop has a collapsible sidebar; tablets and phones get a drawer and record cards instead of wide tables.
 
-**Requests** arrive as **Rental Portal Request** documents (workspace > Hire Operations):
+**Giving a customer access:** open the Customer and add their user under *Portal Users* (or link a
+Contact that has the user). A login linked to several customers can switch between them or see all.
+Disabled customers no longer open the portal.
 
-- Hire Enquiry -> **Create Hire Order**
-- Off-Hire Request -> **Create Off-Hire Note**, pre-filled with the requested quantities. The note's
-  off-hire date is the day the customer raised the request, so the grace period runs from their notice.
-- Extension Request -> **Extend Contract**
-- **Reject** asks for a reason, which the customer sees. Anything typed in *Response to Customer* is shown.
+**Requests** (Rental Portal Request) now cover: Additional Material, Rental Extension, Material Return,
+Material Pickup, Delivery Rescheduling, Material Replacement, Damaged Material, Missing Material, New Hire
+Enquiry, Complaint and General Support. The form asks only what each type needs and the server checks
+everything again (the contract is the customer's and live, quantities fit what is on site, dates are not
+in the past, the new return date is later). Customers can attach photos or documents (private files, up
+to 10 per request, 10 MB each) and message the team on the request; staff replies appear in the same
+thread. In the staff Command Center:
 
-Submitting the Hire Order or Off-Hire Note marks the request Completed.
+- Hire Enquiry, Additional Material -> **Create Hire Order**
+- Material Return, Material Pickup -> **Create Off-Hire Note**
+- Extension -> **Extend Contract**
+- Reschedule, replacement, damage, missing, complaint, support (and additional material) -> **Complete**
+  with a reply the customer sees
+- **Reject** with a reason
 
-**Staff preview:** Rental Manager / Rental User / System Manager can open `/rental?customer=<Customer ID>`
-to see exactly what that customer sees.
+**Notifications:** Frappe Notification Logs for every portal user of the customer, so read / unread, the
+bell and e-mail (per user) work as usual. Raised when an order is confirmed, material is dispatched or
+returned, returned material is inspected, an invoice or quotation is issued, a payment is received, a
+request is received or changes status, and daily for rentals that end within 7 days or have just ended
+(once each).
 
-**What customers never see:** other customers' data, supplier names, or whether material is own stock
-or cross-hired. Portal users get no permissions on the rental DocTypes; every page reads through
-queries filtered by the customers linked to the logged-in user.
+**Security:** every API call resolves the customers from the session user (Portal Users and linked
+Contacts); a customer passed by the browser only narrows that set. Portal users get no desk permissions
+on the rental DocTypes: every read is a query filtered by those customers, and single documents are
+checked for ownership and submission before anything is returned, printed or attached. Never sent:
+other customers' data, warehouses, own / cross hire ownership, suppliers, costs, internal comments.
 
-Rental Settings > Customer Portal: switch requests on or off, show standard rates in the enquiry
-catalogue, and set the help phone / email shown in the footer. The stylesheet is
-`public/css/rental_portal.css` (scoped under `.rp`, logical properties so Arabic / RTL lays out
-correctly). It loads the Barlow typefaces from Google Fonts and falls back to system fonts if blocked.
+**Staff preview:** Rental Manager / Rental User / System Manager open `/rental`, pick a customer, and see
+exactly what that customer sees, read-only.
+
+Rental Settings > Customer Portal: switch requests on or off, show standard rates in the request catalogue,
+and set the help phone / e-mail. PDFs use each document's default print format; on a server without
+Chromium set `chromium_path` in `common_site_config.json` (Frappe's own setting). Full details:
+[docs/CUSTOMER_PORTAL.md](docs/CUSTOMER_PORTAL.md).
 
 ## Items, rental profiles, rates and damage charges
 
