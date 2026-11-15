@@ -205,6 +205,10 @@ def get_custom_fields():
 			dict(fieldname="nxg_hire_voucher_no", label="Rental Document", fieldtype="Dynamic Link",
 				options="nxg_hire_voucher_type", read_only=1, no_copy=1, insert_after="nxg_hire_voucher_type",
 				depends_on="nxg_hire_voucher_no"),
+			# moving supplier-owned material between cross hire warehouses: whose material it is
+			dict(fieldname="nxg_cross_hire_order", label="Cross Hire Order", fieldtype="Link", options="Cross Hire Order",
+				insert_after="nxg_hire_voucher_no", no_copy=1, depends_on="eval:doc.purpose=='Material Transfer'",
+				description="Required when moving cross-hired (supplier) material between cross hire warehouses."),
 		],
 	}
 
@@ -366,6 +370,9 @@ def setup_company(company: str | None = None):
 		current = settings.get(field)
 		if not current or frappe.db.get_value("Warehouse", current, "company") != company:
 			settings.set(field, ensure_warehouse(label, company, is_group=is_group))
+	# rental warehouse tables: rows of another company go; an empty table takes the yard as its default
+	for table in ("own_rental_warehouses", "cross_hire_warehouses"):
+		settings.set(table, [r for r in settings.get(table) if frappe.db.get_value("Warehouse", r.warehouse, "company") == company])
 
 	group = frappe.db.exists("Item Group", "Rental Services")
 	if not group:

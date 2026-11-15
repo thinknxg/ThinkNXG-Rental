@@ -5,6 +5,8 @@ frappe.query_reports["Cross Hire Position"] = {
 		{ fieldname: "rental_contract", label: __("Customer Contract"), fieldtype: "Link", options: "Rental Contract" },
 		{ fieldname: "item_code", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "include_closed", label: __("Include Fully Returned"), fieldtype: "Check" },
+		{ fieldname: "warehouse", label: __("Cross Hire Warehouse"), fieldtype: "Link", options: "Warehouse" },
+		{ fieldname: "location", label: __("Location"), fieldtype: "Data" },
 	],
 	formatter(value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);

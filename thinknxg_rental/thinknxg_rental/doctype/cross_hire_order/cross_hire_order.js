@@ -3,6 +3,9 @@ frappe.ui.form.on("Cross Hire Order", {
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
 		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["not in", ["Completed", "Cancelled"]] } }));
 		frm.set_query("taxes_and_charges", () => ({ filters: { company: frm.doc.company } }));
+		thinknxg_rental.rental_warehouses().then((list) =>
+			frm.set_query("receipt_warehouse", () => ({ filters: { name: ["in", list.filter((w) => w.category === "Cross Hire").map((w) => w.warehouse)], company: frm.doc.company } }))
+		);
 	},
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1 || frm.doc.status === "Completed") return;

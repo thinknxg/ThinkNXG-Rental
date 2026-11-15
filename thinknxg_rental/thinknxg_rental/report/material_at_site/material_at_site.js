@@ -9,5 +9,7 @@ frappe.query_reports["Material at Site"] = {
 		{ fieldname: "item_code", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "ownership", label: __("Ownership"), fieldtype: "Select", options: "\nOwn\nCross Hire" },
 		{ fieldname: "supplier", label: __("Cross Hire Supplier"), fieldtype: "Link", options: "Supplier" },
+		{ fieldname: "delivered_from", label: __("Delivered From"), fieldtype: "Link", options: "Warehouse" },
+		{ fieldname: "location", label: __("Location"), fieldtype: "Data" },
 	],
 };

@@ -1,7 +1,16 @@
 frappe.ui.form.on("Hire Off-Hire Note", {
 	setup(frm) {
 		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["in", ["On Hire", "Active"]] } }));
-		frm.set_query("target_warehouse", "items", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
+		// own material: an own rental warehouse or the inspection warehouse; cross hire: a cross hire warehouse
+		Promise.all([thinknxg_rental.rental_warehouses(), frappe.db.get_single_value("Rental Settings", "inspection_warehouse")]).then(([list, inspection]) => {
+			const of = (kind) => list.filter((w) => w.category === kind).map((w) => w.warehouse);
+			frm.set_query("target_warehouse", "items", (doc, cdt, cdn) => {
+				const cross = locals[cdt][cdn].ownership === "Cross Hire";
+				return { filters: { name: ["in", cross ? of("Cross Hire") : of("Own").concat(inspection ? [inspection] : [])], company: frm.doc.company } };
+			});
+			frm.set_query("return_to_warehouse", "items", () => ({ filters: { name: ["in", of("Own")], company: frm.doc.company } }));
+			frm.set_query("delivered_from", "items", () => ({ filters: { name: ["in", list.map((w) => w.warehouse)] } }));
+		});
 	},
 	refresh(frm) {
 		const base = "thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.";

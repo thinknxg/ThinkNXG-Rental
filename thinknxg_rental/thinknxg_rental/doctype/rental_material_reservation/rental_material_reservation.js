@@ -1,8 +1,13 @@
 frappe.ui.form.on("Rental Material Reservation", {
 	setup(frm) {
 		frm.set_query("item_code", "items", () => ({ filters: { is_stock_item: 1, disabled: 0 } }));
-		frm.set_query("source_warehouse", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
-		frm.set_query("source_warehouse", "items", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
+		// own rental warehouses for the default; own or cross hire warehouses (any location) on the rows
+		thinknxg_rental.rental_warehouses().then((list) => {
+			const own = list.filter((w) => w.category === "Own").map((w) => w.warehouse);
+			const all = list.map((w) => w.warehouse);
+			frm.set_query("source_warehouse", () => ({ filters: { name: ["in", own], company: frm.doc.company } }));
+			frm.set_query("source_warehouse", "items", () => ({ filters: { name: ["in", all], company: frm.doc.company } }));
+		});
 		frm.set_query("rental_contract", () => ({ filters: { docstatus: 1, status: ["not in", ["Completed", "Cancelled"]] } }));
 		frm.set_query("source_document", () => ({ filters: { docstatus: 1 } }));
 	},
@@ -29,7 +34,7 @@ frappe.ui.form.on("Rental Material Reservation", {
 	},
 	refresh(frm) {
 		if (frm.doc.docstatus === 0 && !frm.is_new()) {
-			frm.set_intro(__("Reserved and shortfall quantities are recalculated from live yard stock every time you save and again on submit."));
+			frm.set_intro(__("Each row is reserved in its own warehouse. Rows without one are placed on save: split over the own rental warehouses with free stock (the default first), else to cross hire. Quantities are recalculated from live stock on save and again on submit."));
 		}
 		if (frm.doc.docstatus !== 1) return;
 		if (["Reserved", "Partially Reserved"].includes(frm.doc.status)) {
@@ -79,7 +84,13 @@ function refresh_row(frm, cdt, cdn, keep_warehouse) {
 				shortfall_qty: flt(d.required_qty) - reserved,
 			});
 			frm.refresh_field("items");
-			if (m.ownership === "Cross Hire") {
+			d.location = m.location;
+			if ((m.plan || []).length > 1) {
+				frappe.show_alert({
+					message: __("{0}: saving splits it over {1}", [d.item_code, m.plan.map((p) => `${p.source_warehouse} (${p.required_qty})`).join(", ")]),
+					indicator: "blue",
+				}, 8);
+			} else if (m.ownership === "Cross Hire") {
 				frappe.show_alert({ message: __("{0}: no own stock is free, so it is to cross hire (received in {1}).", [d.item_code, m.source_warehouse]), indicator: "orange" }, 7);
 			} else if (flt(d.required_qty) > flt(m.available_qty) && m.elsewhere.length) {
 				frappe.show_alert({

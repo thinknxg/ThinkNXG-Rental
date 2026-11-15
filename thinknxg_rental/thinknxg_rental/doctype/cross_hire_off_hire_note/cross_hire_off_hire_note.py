@@ -16,6 +16,12 @@ class CrossHireOffHireNote(Document):
 		if cho.docstatus != 1 or cho.status == "Completed":
 			frappe.throw(_("Cross Hire Order {0} is not open").format(self.cross_hire_order))
 		self.return_from_warehouse = self.return_from_warehouse or cho.receipt_warehouse
+		# supplier material goes back from a cross hire warehouse (or the site it was received at),
+		# never out of own rental stock
+		from thinknxg_rental.services import warehouses as rw
+
+		rw.validate_cross_hire(self.return_from_warehouse, _("Return From: "), allowed=[cho.receipt_warehouse],
+			allow_inactive=True, company=self.company)
 		self.last_billable_date = self.last_billable_date or self.off_hire_date
 		if getdate(self.last_billable_date) > getdate(self.off_hire_date):
 			frappe.throw(_("Supplier Bills Upto cannot be after the Off-Hire Date"))

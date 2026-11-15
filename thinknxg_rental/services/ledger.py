@@ -48,6 +48,31 @@ def get_site_balance(rental_contract):
 	return {(r.item_code, r.ownership, r.cho): flt(r.qty) for r in rows if flt(r.qty)}
 
 
+def get_site_balance_by_origin(rental_contract):
+	"""{(item_code, ownership, cross_hire_order, delivered_from): qty} at site for a contract. Movements
+	recorded before warehouses were traced per movement have an empty Delivered From."""
+	rows = frappe.db.sql(
+		"""
+		select item_code, ownership, ifnull(cross_hire_order, '') as cho, ifnull(origin_warehouse, '') as origin, sum(qty) as qty
+		from `tabRental Ownership Ledger`
+		where position_type = %s and rental_contract = %s
+		group by item_code, ownership, ifnull(cross_hire_order, ''), ifnull(origin_warehouse, '')
+		""",
+		(AT_SITE, rental_contract),
+		as_dict=True,
+	)
+	return {(r.item_code, r.ownership, r.cho, r.origin): flt(r.qty) for r in rows if abs(flt(r.qty)) > 1e-9}
+
+
+def get_last_delivery(rental_contract, item_code, origin_warehouse=None):
+	"""The latest Hire Delivery Order that dispatched this item to the contract (from origin_warehouse)."""
+	filters = {"rental_contract": rental_contract, "item_code": item_code, "position_type": AT_SITE,
+		"voucher_type": "Hire Delivery Order", "qty": [">", 0]}
+	if origin_warehouse:
+		filters["origin_warehouse"] = origin_warehouse
+	return frappe.db.get_value("Rental Ownership Ledger", filters, "voucher_no", order_by="posting_date desc, creation desc")
+
+
 def get_cross_hire_qty(cross_hire_order, item_code, position_type):
 	return flt(
 		frappe.db.sql(

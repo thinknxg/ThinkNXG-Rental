@@ -10,6 +10,15 @@ def execute(filters=None):
 		if filters.get(field):
 			conditions.append(f"l.{field} = %({field})s")
 			values[field] = filters[field]
+	if filters.get("delivered_from"):
+		conditions.append("ifnull(l.origin_warehouse, '') = %(delivered_from)s")
+		values["delivered_from"] = filters.delivered_from
+	if filters.get("location"):
+		from thinknxg_rental.services import warehouses as rw
+
+		whs = [w for w, loc in rw.locations().items() if loc == filters.location] or ["-"]
+		conditions.append("l.origin_warehouse in %(location_whs)s")
+		values["location_whs"] = tuple(whs)
 	if filters.get("as_on_date"):
 		conditions.append("l.posting_date <= %(as_on_date)s")
 		values["as_on_date"] = filters.as_on_date
@@ -17,7 +26,7 @@ def execute(filters=None):
 		f"""
 		select l.customer, c.customer_name, l.rental_site, l.project, l.rental_contract, l.item_code, i.item_name,
 			i.stock_uom as uom, l.ownership, l.supplier, l.cross_hire_order, l.source_type, l.source_document,
-			sum(l.qty) as qty,
+			l.warehouse as site_warehouse, ifnull(l.origin_warehouse, '') as delivered_from, sum(l.qty) as qty,
 			min(case when l.movement_type = 'Dispatch' then l.posting_date end) as first_dispatch,
 			ifnull(p.replacement_value, 0) as replacement_rate
 		from `tabRental Ownership Ledger` l
@@ -26,7 +35,8 @@ def execute(filters=None):
 		left join `tabRental Item Profile` p on p.name = l.item_code
 		where {" and ".join(conditions)}
 		group by l.customer, c.customer_name, l.rental_site, l.project, l.rental_contract, l.item_code, i.item_name,
-			i.stock_uom, l.ownership, l.supplier, l.cross_hire_order, l.source_type, l.source_document, p.replacement_value
+			i.stock_uom, l.ownership, l.supplier, l.cross_hire_order, l.source_type, l.source_document, l.warehouse,
+			ifnull(l.origin_warehouse, ''), p.replacement_value
 		having sum(l.qty) > 0
 		order by l.customer, l.rental_site, l.rental_contract, l.item_code, l.ownership
 		""",
@@ -34,7 +44,11 @@ def execute(filters=None):
 		as_dict=True,
 	)
 	as_on = filters.get("as_on_date") or nowdate()
+	from thinknxg_rental.services import warehouses as rw
+
 	for r in rows:
+		r.delivered_from = r.delivered_from or None
+		r.location = rw.location_of(r.delivered_from) if r.delivered_from else None
 		r.days_at_site = date_diff(as_on, r.first_dispatch) + 1 if r.first_dispatch else 0
 		r.replacement_value = flt(r.qty) * flt(r.replacement_rate)
 	columns = [
@@ -50,6 +64,9 @@ def execute(filters=None):
 		{"label": _("Ownership"), "fieldname": "ownership", "width": 95},
 		{"label": _("Supplier"), "fieldname": "supplier", "fieldtype": "Link", "options": "Supplier", "width": 130},
 		{"label": _("Cross Hire Order"), "fieldname": "cross_hire_order", "fieldtype": "Link", "options": "Cross Hire Order", "width": 140},
+		{"label": _("Site Warehouse"), "fieldname": "site_warehouse", "fieldtype": "Link", "options": "Warehouse", "width": 150},
+		{"label": _("Delivered From"), "fieldname": "delivered_from", "fieldtype": "Link", "options": "Warehouse", "width": 150},
+		{"label": _("Location"), "fieldname": "location", "width": 110},
 		{"label": _("Qty at Site"), "fieldname": "qty", "fieldtype": "Float", "width": 100},
 		{"label": _("First Dispatch"), "fieldname": "first_dispatch", "fieldtype": "Date", "width": 105},
 		{"label": _("Days at Site"), "fieldname": "days_at_site", "fieldtype": "Int", "width": 95},

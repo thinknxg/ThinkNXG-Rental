@@ -101,13 +101,47 @@ def get_rental_rate(item_code, rate_basis="Monthly", customer=None, posting_date
 	return flt(get_profile(item_code).get(field))
 
 
-def get_bin_qty(item_code, warehouse):
+def get_bin_qty(item_code, warehouse, for_update=False):
+	"""Stock of an item in one warehouse. for_update reads the latest committed figure and locks the
+	Bin row until the transaction ends (used where stock is reserved or dispatched)."""
 	if not (item_code and warehouse):
 		return 0.0
-	return flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty"))
+	return flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": warehouse}, "actual_qty", for_update=for_update))
 
 
-def get_open_reservations(item_code, warehouse):
+def get_open_reservations(item_code, warehouse, for_update=False):
+	"""Open own-stock reservation balances of an item in one warehouse. Cross hire rows hold no stock.
+
+	for_update (used with the item's Bin locked, when stock is reserved or dispatched): the reservation
+	rows are read with a locking read, which sees what other sessions committed while this one waited
+	for the Bin. Only the rows are locked, never their reservations, so two submissions never wait on
+	each other's document."""
+	if for_update:
+		rows = frappe.db.sql(
+			"""
+			select ri.parent as name, (ri.reserved_qty - ri.dispatched_qty - ri.released_qty) as balance
+			from `tabRental Material Reservation Item` ri
+			where ri.docstatus = 1 and ri.parenttype = 'Rental Material Reservation'
+				and ri.item_code = %s and ri.source_warehouse = %s
+				and (ri.reserved_qty - ri.dispatched_qty - ri.released_qty) > 0
+			for update
+			""",
+			(item_code, warehouse),
+			as_dict=True,
+		)
+		parents = {}
+		if rows:
+			for p in frappe.get_all("Rental Material Reservation", filters={"name": ["in", list({r.name for r in rows})]},
+					fields=["name", "status", "rental_contract", "source_type", "source_document"]):
+				parents[p.name] = p
+		out = []
+		for r in rows:
+			p = parents.get(r.name) or frappe._dict()
+			if p.get("status") in ("Released", "Dispatched"):
+				continue
+			out.append(frappe._dict(name=r.name, balance=r.balance, rental_contract=p.get("rental_contract"),
+				source_type=p.get("source_type"), source_document=p.get("source_document")))
+		return out
 	return frappe.db.sql(
 		"""
 		select r.name, r.rental_contract, r.source_type, r.source_document,
@@ -140,10 +174,10 @@ def get_contract_for_source(source_type, source_document):
 	)
 
 
-def get_reserved_for_others(item_code, warehouse, rental_contract=None, source=None, reservation=None):
+def get_reserved_for_others(item_code, warehouse, rental_contract=None, source=None, reservation=None, for_update=False):
 	"""Open reservations that do not belong to this contract / source document."""
 	total = 0.0
-	for row in get_open_reservations(item_code, warehouse):
+	for row in get_open_reservations(item_code, warehouse, for_update=for_update):
 		if reservation and row.name == reservation:
 			continue
 		if rental_contract and row.rental_contract == rental_contract:
@@ -178,7 +212,6 @@ def item_rental_details(item_code, customer=None, rate_basis=None, posting_date=
 		frappe.throw(_("{0} is not a stock item. Rental material must have Maintain Stock enabled.").format(item_code))
 	profile = get_profile(item_code)
 	rate_basis = rate_basis or profile.get("default_rate_basis") or "Monthly"
-	warehouse = warehouse or get_settings().rental_yard_warehouse
 	return {
 		"item_name": item.item_name,
 		"uom": item.stock_uom,
@@ -188,7 +221,8 @@ def item_rental_details(item_code, customer=None, rate_basis=None, posting_date=
 		"replacement_value": flt(profile.get("replacement_value")),
 		"minimum_hire_days": cint(profile.get("minimum_hire_days")),
 		"weight_per_unit": flt(profile.get("weight_per_unit")),
-		"available_qty": get_available_qty(item_code, warehouse) if warehouse else 0,
+		# one warehouse when asked, else every own rental warehouse
+		"available_qty": get_available_qty(item_code, warehouse) if warehouse else _available_own(item_code),
 	}
 
 
@@ -199,3 +233,9 @@ def check_duplicate_items(doc, key_fields=("item_code",), table="items"):
 		if key in seen:
 			frappe.throw(_("Row #{0}: {1} is entered more than once").format(row.idx, frappe.bold(row.item_code)))
 		seen.add(key)
+
+
+def _available_own(item_code):
+	from thinknxg_rental.services.warehouses import available_own_qty
+
+	return available_own_qty(item_code)

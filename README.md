@@ -65,6 +65,20 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.2 - multi-location warehouses
+
+- **Several own rental warehouses and cross hire warehouses**, at any locations, in two tables of Rental
+  Settings (warehouse, location, default, active). The existing yards become the defaults on
+  `bench migrate`; a single-yard setup works as before.
+- **Reservations per warehouse**: a row is placed and split over the warehouses with free stock; submits
+  are locked so two reservations never take the same stock.
+- **Deliveries from several warehouses**, held to each warehouse's reservation and ownership category.
+- **Returns to any warehouse**, split per row (e.g. 60 to Calicut, 40 to Kochi), with Delivered From,
+  Return Warehouse and Good Stock Returns To kept apart; inspection sends good stock to the chosen warehouse.
+- **Transfers between locations** with ordinary Stock Entries, checked for ownership and reservations.
+- New **Rental Inventory** report; Stock Position, Material at Site and Cross Hire Position by warehouse
+  and location. Full details: [docs/MULTI_LOCATION_WAREHOUSES.md](docs/MULTI_LOCATION_WAREHOUSES.md).
+
 ### Changes in 2.0.2
 
 - **JCR with several job types.** Create > Job Completion Report on a Hire Order Contract now asks which job
@@ -212,7 +226,7 @@ user's own permissions. Full details: [docs/COMMAND_CENTER.md](docs/COMMAND_CENT
 | Main | Dashboard (12 live KPIs, itemised work queue, charts, today's deliveries and returns, recent documents; Today / Week / Month / Quarter / Year / Custom), Notifications, My Tasks |
 | Sales & enquiries | Leads, Quotations, Customers (360 view), Rental Sites, Customer Requests (inbox with Take, Handle, Assign, Reject, Create Hire Order / Off-Hire Note, Apply extension) |
 | Rental operations | Hire Orders, Hire Order Contracts, Rental Contracts, JCRs, Delivery Orders, Off-Hire Notes |
-| Inventory & yard | Material Reservations, Rental Yard (tube per item, movement history), Material at Customer Sites, Return Inspections, Damage Settlements, Rental Stock Position |
+| Inventory & yard | Material Reservations, Rental Yard (tube per item, movement history), Material at Customer Sites, Return Inspections, Damage Settlements, Rental Stock Position, Inventory by Warehouse |
 | Cross hire | Cross Hire Orders, Cross Hire Receipts, Supplier Off-Hire, Supplier Hire Bills, Supplier Position |
 | Billing & finance | Rental Billing (Bill now / Bill all due through the billing engine), Unbilled Rental, Sales Invoices, Outstanding Payments (aged by customer), Damage & Loss Recovery |
 | Reports & analytics | Rental Utilization, the six rental reports with their filters and CSV export, Billing schedules |
@@ -290,8 +304,9 @@ opens the Command Center pages.
 
 ## Reports
 
-Material at Site, Rental Stock Position (availability, reservations, utilization %), Cross Hire Position
-(with overdue days), Unbilled Rental (accrued to date), Damage and Loss Register, Rental Contract
+Material at Site (with the warehouse it was delivered from), Rental Stock Position (availability,
+reservations, utilization %; by location or warehouse), Rental Inventory (per location, warehouse,
+ownership and stock status), Cross Hire Position (with overdue days and cross hire warehouse), Unbilled Rental (accrued to date), Damage and Loss Register, Rental Contract
 Profitability (rental revenue + recoveries - cross hire cost).
 
 ## Verification
@@ -314,8 +329,9 @@ browser-side form were not driven in a browser.
   ERPNext otherwise refuses them for users who cannot read the party's ledger account.
 - Job type contracts: one excess rate per job line; a dismantle date inside an already-invoiced month
   needs that invoice cancelled first; material quantities per job are set on the Hire Order Contract.
-- Rental Settings holds one set of default warehouses, so the app is designed for one rental company
-  per site. Rental Sites of another company still get their own site warehouses.
+- Rental Settings holds the rental warehouses of one company (any number of own rental and cross hire
+  warehouses, at any locations), so the app is designed for one rental company per site. Rental Sites of
+  another company still get their own site warehouses.
 - Transactions are in company currency.
 - Security deposit is recorded on the contract (required / received / reference); take the money with a
   normal Payment Entry.

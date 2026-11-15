@@ -475,8 +475,14 @@ def inventory(category: str | None = None, item: str | None = None, warehouse: s
 def item_warehouses(item):
 	if not frappe.has_permission("Warehouse", "read"):
 		return []
-	return frappe.get_all("Bin", filters={"item_code": item, "actual_qty": ["!=", 0]}, fields=["warehouse", "actual_qty", "reserved_qty"],
+	from thinknxg_rental.services import warehouses as rw
+
+	rows = frappe.get_all("Bin", filters={"item_code": item, "actual_qty": ["!=", 0]}, fields=["warehouse", "actual_qty", "reserved_qty"],
 		order_by="actual_qty desc")
+	for r in rows:
+		r.location = rw.location_of(r.warehouse)
+		r.category = rw.category_of(r.warehouse)
+	return rows
 
 
 def item_movements(item, warehouse=None, limit=60):
@@ -780,6 +786,11 @@ def report_meta(view: str):
 	for f in R.REPORT_FILTERS.get(name, []):
 		f = dict(f, label=_(f["label"]))
 		f["default"] = values.get(f["default"], f["default"])
+		if f.get("options") == "$locations":
+			# the locations of the rental warehouses in Rental Settings
+			from thinknxg_rental.services.inventory import get_locations
+
+			f["options"] = [""] + get_locations()
 		filters.append(f)
 	return {"name": name, "label": _(name), "description": _(report.get("description") or ""), "filters": filters,
 		"desk_url": f"/app/query-report/{name}"}

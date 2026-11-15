@@ -4,7 +4,8 @@ from frappe.model.document import Document
 from frappe.utils import cint, date_diff, flt, getdate
 
 from thinknxg_rental.services import cross_hire, ledger
-from thinknxg_rental.services.utils import as_system, check_duplicate_items, estimate_amount, require_setting
+from thinknxg_rental.services import warehouses as rw
+from thinknxg_rental.services.utils import as_system, check_duplicate_items, estimate_amount
 
 
 class CrossHireOrder(Document):
@@ -41,7 +42,11 @@ class CrossHireOrder(Document):
 				frappe.throw(_("Select the customer Rental Contract to receive cross-hired material directly at site"))
 			self.receipt_warehouse = frappe.db.get_value("Rental Site", self.rental_site, "cross_hire_site_warehouse")
 		else:
-			self.receipt_warehouse = require_setting("cross_hire_yard_warehouse")
+			# any active cross hire warehouse, at any location; the default when none is chosen
+			if not self.receipt_warehouse or rw.is_site_warehouse(self.receipt_warehouse):
+				self.receipt_warehouse = rw.require_default(rw.CROSS_HIRE)
+			if self.docstatus == 0 or self.is_new():
+				rw.validate_cross_hire(self.receipt_warehouse, _("Cross Hire Warehouse: "), company=self.company)
 		if not self.receipt_warehouse:
 			frappe.throw(_("Could not determine the cross hire receipt warehouse"))
 

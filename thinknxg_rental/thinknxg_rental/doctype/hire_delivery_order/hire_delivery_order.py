@@ -4,8 +4,10 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, getdate
 
 from thinknxg_rental.services import ledger, stock
+from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import (
 	get_available_qty,
+	get_reserved_for_others,
 	get_bin_qty,
 	get_contract_for_source,
 	get_contract_source,
@@ -53,36 +55,68 @@ class HireDeliveryOrder(Document):
 		self.validate_reservation()
 
 	def set_reserved_warehouses(self):
-		"""Own stock leaves from the warehouse it was reserved in, which can differ item by item."""
+		"""Own stock leaves from the warehouses it was reserved in. A row without a warehouse is split
+		over the item's reservation allocations (the named reservation, else the contract's reservations,
+		oldest first); what no allocation covers leaves from the default own rental warehouse. A row
+		with a warehouse keeps it: the warehouse is never changed behind the user's back."""
 		from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
-			get_reservation_warehouses,
+			get_reservation_allocations,
 			get_reserved_stock,
 		)
 
-		if self.rental_material_reservation:
-			reserved_in = get_reservation_warehouses(self.rental_material_reservation)
-			for d in self.items:
-				if d.ownership == "Cross Hire" or d.item_code not in reserved_in:
-					continue
-				if not d.source_warehouse:
-					d.source_warehouse = reserved_in[d.item_code]
-				elif d.source_warehouse != reserved_in[d.item_code]:
-					frappe.throw(
-						_("Row #{0}: {1} is reserved in {2} on reservation {3}, not in {4}. "
-							"Use that warehouse, or clear the reservation field.").format(
-							d.idx, frappe.bold(d.item_code), reserved_in[d.item_code], self.rental_material_reservation, d.source_warehouse
-						)
-					)
+		if self.docstatus != 0:
 			return
-		first = {}
-		for item_code, warehouse, _balance in get_reserved_stock(self.rental_contract):
-			first.setdefault(item_code, warehouse)
-		for d in self.items:
-			if d.ownership != "Cross Hire" and not d.source_warehouse and d.item_code in first:
-				d.source_warehouse = first[d.item_code]
+		if self.rental_material_reservation:
+			allocations = [(i, w, q) for (i, w), q in get_reservation_allocations(self.rental_material_reservation).items() if q > 0]
+		else:
+			allocations = list(get_reserved_stock(self.rental_contract))
+		left = {}
+		for item_code, warehouse, qty in allocations:
+			left.setdefault(item_code, []).append([warehouse, qty])
+		for d in self.items:  # rows that name their warehouse use up its allocation first
+			if d.ownership != "Cross Hire" and d.source_warehouse:
+				for alloc in left.get(d.item_code, []):
+					if alloc[0] == d.source_warehouse:
+						alloc[1] -= flt(d.qty)
+		order = []
+		default = rw.default_own_warehouse()
+		for d in list(self.items):
+			if d.ownership == "Cross Hire" or d.source_warehouse:
+				order.append(d)
+				continue
+			remaining, first = flt(d.qty), True
+			for alloc in left.get(d.item_code, []):
+				if remaining <= 1e-9:
+					break
+				take = min(remaining, alloc[1])
+				if take <= 1e-9:
+					continue
+				row = d if first else self._copy_row(d)
+				row.source_warehouse, row.qty = alloc[0], take
+				alloc[1] -= take
+				remaining -= take
+				first = False
+				order.append(row)
+			if remaining > 1e-9:
+				if first:
+					d.source_warehouse = default
+					order.append(d)
+				else:
+					# validate_reservation still holds a named reservation to its balance
+					row = self._copy_row(d)
+					row.source_warehouse, row.qty = default, remaining
+					order.append(row)
+		self.items = order
+		for i, d in enumerate(self.items, 1):
+			d.idx = i
+
+	def _copy_row(self, d):
+		row = self.append("items", {k: d.get(k) for k in ("item_code", "item_name", "uom", "ownership", "batch_no", "serial_no", "remarks")})
+		self.items.remove(row)
+		return row
 
 	def validate_reservation(self):
-		"""When a reservation is named, own-stock lines are held to its reserved balance."""
+		"""When a reservation is named, own-stock lines are held to its balance in each warehouse."""
 		for d in self.items:
 			d.reservation_balance = 0
 		if not self.rental_material_reservation:
@@ -101,27 +135,39 @@ class HireDeliveryOrder(Document):
 		if frappe.db.get_value("Rental Material Reservation", self.rental_material_reservation, "status") == "Released":
 			frappe.throw(_("Reservation {0} has been released").format(self.rental_material_reservation))
 		balance = get_reservation_balance(self.rental_material_reservation)
+		reserved_in = {}
+		for item_code, warehouse in balance:
+			reserved_in.setdefault(item_code, []).append(warehouse)
 		wanted = {}
 		for d in self.items:
-			if d.ownership == "Own":
-				d.reservation_balance = balance.get(d.item_code, 0)
-				wanted[d.item_code] = wanted.get(d.item_code, 0) + flt(d.qty)
-		for item_code, qty in wanted.items():
-			if qty > balance.get(item_code, 0) + 1e-6:
+			if d.ownership != "Own":
+				continue
+			key = (d.item_code, d.source_warehouse)
+			if d.item_code in reserved_in and d.source_warehouse not in reserved_in[d.item_code]:
 				frappe.throw(
-					_("{0}: dispatching {1} of own stock but reservation {2} has a balance of {3}. "
+					_("Row #{0}: {1} is reserved in {2} on reservation {3}, not in {4}. "
+						"Use that warehouse, or clear the reservation field.").format(
+						d.idx, frappe.bold(d.item_code), ", ".join(reserved_in[d.item_code]), self.rental_material_reservation, d.source_warehouse
+					)
+				)
+			d.reservation_balance = balance.get(key, 0)
+			wanted[key] = wanted.get(key, 0) + flt(d.qty)
+		for (item_code, warehouse), qty in wanted.items():
+			if qty > balance.get((item_code, warehouse), 0) + 1e-6:
+				frappe.throw(
+					_("{0}: dispatching {1} of own stock from {2} but reservation {3} has a balance of {4} there. "
 						"Reserve more, use cross-hired stock, or clear the reservation field.").format(
-						frappe.bold(item_code), qty, self.rental_material_reservation, balance.get(item_code, 0)
+						frappe.bold(item_code), qty, warehouse, self.rental_material_reservation, balance.get((item_code, warehouse), 0)
 					)
 				)
 
 	def validate_items(self):
-		settings = get_settings()
 		site = frappe.db.get_value(
 			"Rental Site", self.rental_site, ["site_warehouse", "cross_hire_site_warehouse"], as_dict=True
 		)
 		contract_items = {d.item_code: d for d in self._contract.items}
-		per_item, per_cho = {}, {}
+		reserved_warehouses = self._reserved_warehouses()
+		per_item, per_cho, per_bin, per_custody = {}, {}, {}, {}
 		self.total_qty = self.total_weight = 0
 		for d in self.items:
 			if flt(d.qty) <= 0:
@@ -132,6 +178,7 @@ class HireDeliveryOrder(Document):
 			d.contract_qty = row.qty
 			d.previously_delivered = row.dispatched_qty
 			d.balance_to_deliver = flt(row.qty) - flt(d.previously_delivered)
+			prefix = _("Row #{0}: ").format(d.idx)
 			if d.ownership == "Cross Hire":
 				if not d.cross_hire_order:
 					frappe.throw(_("Row #{0}: Cross Hire Order is required for cross-hired material").format(d.idx))
@@ -141,19 +188,34 @@ class HireDeliveryOrder(Document):
 				if cho.docstatus != 1 or cho.status == "Completed":
 					frappe.throw(_("Row #{0}: Cross Hire Order {1} is not open").format(d.idx, d.cross_hire_order))
 				d.supplier = cho.supplier
-				d.source_warehouse = d.source_warehouse or cho.receipt_warehouse or settings.cross_hire_yard_warehouse
+				d.source_warehouse = d.source_warehouse or cho.receipt_warehouse or rw.default_cross_hire_warehouse()
 				d.target_warehouse = site.cross_hire_site_warehouse
+				# supplier material leaves only from a cross hire warehouse (or the site it was received at)
+				rw.validate_cross_hire(d.source_warehouse, prefix, allowed=[cho.receipt_warehouse, site.cross_hire_site_warehouse],
+					allow_inactive=True, company=self.company)
 				key = (d.cross_hire_order, d.item_code)
 				per_cho[key] = per_cho.get(key, 0) + flt(d.qty)
+				if d.source_warehouse != d.target_warehouse:
+					key = (d.cross_hire_order, d.item_code, d.source_warehouse)
+					per_custody[key] = per_custody.get(key, 0) + flt(d.qty)
 			else:
 				d.cross_hire_order = None
 				d.supplier = None
-				d.source_warehouse = d.source_warehouse or settings.rental_yard_warehouse
+				d.source_warehouse = d.source_warehouse or rw.default_own_warehouse()
 				d.target_warehouse = site.site_warehouse
+				# own stock leaves only from an own rental warehouse; a warehouse retired after the
+				# reservation was made still delivers what is reserved in it
+				if d.source_warehouse:
+					rw.validate_own(d.source_warehouse, prefix, company=self.company,
+						allow_inactive=(d.item_code, d.source_warehouse) in reserved_warehouses)
 			if not d.source_warehouse or not d.target_warehouse:
 				frappe.throw(_("Row #{0}: source and site warehouse are required. Check Rental Settings and the Rental Site.").format(d.idx))
 			if d.ownership == "Own" and d.source_warehouse == d.target_warehouse:
 				frappe.throw(_("Row #{0}: own material cannot be dispatched from the site warehouse itself").format(d.idx))
+			d.location = rw.location_of(d.source_warehouse)
+			if d.source_warehouse != d.target_warehouse:
+				key = (d.item_code, d.source_warehouse)
+				per_bin[key] = per_bin.get(key, 0) + flt(d.qty)
 			d.weight = flt(d.qty) * flt(get_profile(d.item_code).get("weight_per_unit"))
 			per_item[d.item_code] = per_item.get(d.item_code, 0) + flt(d.qty)
 			self.total_qty += flt(d.qty)
@@ -176,8 +238,51 @@ class HireDeliveryOrder(Document):
 						frappe.bold(item_code), free, cho, qty
 					)
 				)
+		if per_custody:
+			# the order's own material must be in that cross hire warehouse: another supplier's is not taken
+			from thinknxg_rental.services.inventory import in_custody_not_at_site
+
+			for (cho, item_code, warehouse), qty in per_custody.items():
+				held = flt(in_custody_not_at_site([item_code], cho).get((cho, item_code, warehouse)))
+				if qty > held + 1e-6:
+					frappe.throw(
+						_("{0}: only {1} of Cross Hire Order {2} is in {3} (dispatching {4})").format(
+							frappe.bold(item_code), held, cho, warehouse, qty
+						)
+					)
+		self._per_bin = per_bin
+		self.validate_stock(per_bin)
+
+	def _reserved_warehouses(self):
+		from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
+			get_reservation_allocations,
+			get_reserved_stock,
+		)
+
+		if self.rental_material_reservation:
+			return set(get_reservation_allocations(self.rental_material_reservation, balance=False))
+		return {(i, w) for i, w, _q in get_reserved_stock(self.rental_contract)}
+
+	def validate_stock(self, per_bin, lock=False):
+		"""Each source warehouse must hold what leaves it."""
+		if lock:
+			rw.lock_bins(per_bin)
+		for (item_code, warehouse), qty in per_bin.items():
+			in_stock = get_bin_qty(item_code, warehouse, for_update=lock)
+			if qty > in_stock + 1e-6:
+				frappe.throw(
+					_("{0}: dispatching {1} from {2} but only {3} is in stock there").format(frappe.bold(item_code), qty, warehouse, in_stock),
+					title=_("Not Enough Stock"),
+				)
+
+	def _submit(self):
+		# stock rows first, before this document is locked (see Rental Material Reservation._submit)
+		rw.lock_bins((d.item_code, d.source_warehouse) for d in self.items if d.source_warehouse and d.source_warehouse != d.target_warehouse)
+		return super()._submit()
 
 	def before_submit(self):
+		# lock the stock rows this delivery draws from, so a concurrent reservation or delivery waits
+		self.validate_stock(getattr(self, "_per_bin", None) or {}, lock=True)
 		settings = get_settings()
 		if not cint(settings.enforce_reservation_on_dispatch):
 			return
@@ -187,7 +292,9 @@ class HireDeliveryOrder(Document):
 				key = (d.item_code, d.source_warehouse)
 				needed[key] = needed.get(key, 0) + flt(d.qty)
 		for (item_code, warehouse), qty in needed.items():
-			available = get_available_qty(item_code, warehouse, self.rental_contract, get_contract_source(self.rental_contract))
+			available = get_bin_qty(item_code, warehouse, for_update=True) - get_reserved_for_others(
+				item_code, warehouse, self.rental_contract, get_contract_source(self.rental_contract), for_update=True
+			)
 			if qty > available + 1e-6:
 				frappe.throw(
 					_("{0}: {1} required from {2} but only {3} is free ({4} in stock, the rest is reserved for other contracts).").format(
@@ -210,7 +317,8 @@ class HireDeliveryOrder(Document):
 			for d in self.items
 		]
 		# cross hire delivered by the supplier straight to site is already in the site warehouse: no transfer
-		self.db_set("stock_entry", stock.make_stock_entry(self, "Material Transfer", rows, self.posting_date))
+		stock_entry = stock.make_stock_entry(self, "Material Transfer", rows, self.posting_date)
+		self.db_set("stock_entry", stock_entry)
 		for d in self.items:
 			ledger.add_entry(
 				self,
@@ -228,6 +336,10 @@ class HireDeliveryOrder(Document):
 				project=self.project,
 				rental_site=self.rental_site,
 				warehouse=d.target_warehouse,
+				origin_warehouse=d.source_warehouse,
+				source_warehouse=d.source_warehouse,
+				target_warehouse=d.target_warehouse,
+				stock_entry=stock_entry if d.source_warehouse != d.target_warehouse else None,
 				voucher_detail_no=d.name,
 			)
 		self.update_related()
@@ -262,7 +374,6 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 	materials exploded from the Hire Order Contract. With a reservation, own stock is limited to its balance."""
 	from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
 		get_reservation_balance,
-		get_reservation_warehouses,
 		get_reserved_stock,
 	)
 
@@ -270,10 +381,8 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 	contract.check_permission("read")
 	source = get_contract_source(rental_contract)
 	reserved = get_reservation_balance(reservation) if reservation else {}
-	reserved_in = get_reservation_warehouses(reservation) if reservation else {}
-	reserved_stock = [] if reservation else get_reserved_stock(rental_contract)
-	settings = get_settings()
-	yard = settings.rental_yard_warehouse
+	reserved_stock = [(i, w, q) for (i, w), q in reserved.items()] if reservation else get_reserved_stock(rental_contract)
+	own_warehouses = rw.own_warehouses()
 	chos = frappe.get_all(
 		"Cross Hire Order",
 		filters={"docstatus": 1, "rental_contract": rental_contract, "status": ["!=", "Completed"]},
@@ -295,7 +404,7 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 		}
 		taken = {}
 
-		def take_own(warehouse, cap):
+		def take_own(warehouse, cap, balance=None):
 			nonlocal pending
 			if not warehouse or pending <= 0:
 				return
@@ -304,25 +413,27 @@ def get_dispatch_items(rental_contract: str, reservation: str | None = None):
 			if qty > 0:
 				taken[warehouse] = taken.get(warehouse, 0) + qty
 				pending -= qty
-				out.append(dict(base, qty=qty, ownership="Own", source_warehouse=warehouse))
+				row = dict(base, qty=qty, ownership="Own", source_warehouse=warehouse, location=rw.location_of(warehouse))
+				if balance is not None:
+					row["reservation_balance"] = balance
+				out.append(row)
 
-		if reservation:
-			# only what this reservation holds, from the warehouse it holds it in
-			base["reservation_balance"] = reserved.get(d.item_code, 0)
-			take_own(reserved_in.get(d.item_code), max(reserved.get(d.item_code, 0), 0))
-		else:
-			# reserved stock first, warehouse by warehouse, then free stock in the default yard
-			for item_code, warehouse, balance in reserved_stock:
-				if item_code == d.item_code:
-					take_own(warehouse, balance)
-			take_own(yard, pending)
+		# reserved stock first, warehouse by warehouse (only the named reservation's, when one is given)
+		for item_code, warehouse, balance in reserved_stock:
+			if item_code == d.item_code:
+				take_own(warehouse, max(balance, 0), balance if reservation else None)
+		if not reservation:
+			# then free stock: the default own warehouse, then the other own warehouses
+			for warehouse in own_warehouses:
+				take_own(warehouse, pending)
 		for cho in chos:
 			if pending <= 0:
 				break
 			free = min(pending, max(ledger.get_cross_hire_undelivered(cho.name, d.item_code), 0))
 			if free > 0:
 				out.append(
-					dict(base, qty=free, ownership="Cross Hire", cross_hire_order=cho.name, supplier=cho.supplier, source_warehouse=cho.receipt_warehouse)
+					dict(base, qty=free, ownership="Cross Hire", cross_hire_order=cho.name, supplier=cho.supplier,
+						source_warehouse=cho.receipt_warehouse, location=rw.location_of(cho.receipt_warehouse))
 				)
 				pending -= free
 	return out

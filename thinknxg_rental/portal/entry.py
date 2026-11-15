@@ -62,6 +62,28 @@ QUOTATION_CALC = [
 	{"target": "nxg_estimated_amount", "show_if": {"deal_type": MH}, "blank_one": ["nxg_hire_days"],
 		"product": ["qty", "rate", {"field": "nxg_hire_days", "per": {"field": "nxg_rate_basis", "map": BASIS_FACTOR, "default": 30}}]},
 ]
+def _wh_filter(*kinds):
+	"""Link filter: the active rental warehouses of the given kinds (own, cross, inspection)."""
+	def filters():
+		from thinknxg_rental.services import warehouses as rw
+
+		names = []
+		if "own" in kinds:
+			names += rw.own_warehouses()
+		if "cross" in kinds:
+			names += rw.cross_hire_warehouses()
+		if "inspection" in kinds and rw.settings().inspection_warehouse:
+			names.append(rw.settings().inspection_warehouse)
+		return {"name": ["in", names or [""]], "is_group": 0}
+
+	return filters
+
+
+OWN_WH = _wh_filter("own")
+CROSS_WH = _wh_filter("cross")
+RENTAL_WH = _wh_filter("own", "cross")
+RETURN_WH = _wh_filter("own", "cross", "inspection")
+
 SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
@@ -507,7 +529,8 @@ ENTRY_TYPES = {
 				{"fieldname": "uom", "w": 1, "ro": 1},
 				{"fieldname": "ownership", "w": 1.3},
 				{"fieldname": "cross_hire_order", "w": 2, "filters": {"docstatus": 1, "status": ["!=", "Completed"]}},
-				{"fieldname": "source_warehouse", "w": 2.2, "filters": {"is_group": 0}},
+				{"fieldname": "source_warehouse", "w": 2.2, "filters": RENTAL_WH},
+				{"fieldname": "location", "w": 1.3, "ro": 1},
 				{"fieldname": "contract_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "previously_delivered", "w": 1.3, "ro": 1},
 				{"fieldname": "balance_to_deliver", "w": 1.3, "ro": 1},
@@ -536,7 +559,7 @@ ENTRY_TYPES = {
 			{"fieldname": "customer_name", "ro": 1},
 			{"fieldname": "rental_site", "filters": {"customer": "$customer"}},
 			"company", "reservation_date", "required_from", "required_to",
-			{"fieldname": "source_warehouse", "filters": {"is_group": 0}},
+			{"fieldname": "source_warehouse", "filters": OWN_WH},
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
@@ -545,7 +568,8 @@ ENTRY_TYPES = {
 				{"fieldname": "item_name", "w": 3, "ro": 1},
 				{"fieldname": "uom", "w": 1, "ro": 1},
 				{"fieldname": "required_qty", "w": 1.2},
-				{"fieldname": "source_warehouse", "w": 2.2, "filters": {"is_group": 0}},
+				{"fieldname": "source_warehouse", "w": 2.2, "filters": RENTAL_WH},
+				{"fieldname": "location", "w": 1.3, "ro": 1},
 				{"fieldname": "ownership", "w": 1.3, "ro": 1},
 				{"fieldname": "available_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "reserved_qty", "w": 1.2, "ro": 1},
@@ -581,7 +605,9 @@ ENTRY_TYPES = {
 			{"fieldname": "rental_contract", "filters": LIVE_CONTRACT, "fetch": {"project": "project"}},
 			PROJECT,
 			{"fieldname": "material_reservation", "filters": {"docstatus": 1}},
-			"hire_from", "expected_return_date", "rate_basis", "receive_at", "taxes_and_charges",
+			"hire_from", "expected_return_date", "rate_basis", "receive_at",
+			{"fieldname": "receipt_warehouse", "filters": CROSS_WH, "show_if": {"receive_at": ["Cross Hire Yard"]}},
+			"taxes_and_charges",
 			{"fieldname": "remarks", "wide": 1},
 		],
 		tables=[
@@ -676,7 +702,7 @@ ENTRY_TYPES = {
 			{"fieldname": "supplier_name", "ro": 1},
 			{"fieldname": "purchase_order", "ro": 1},
 			"company", "off_hire_date", "last_billable_date",
-			{"fieldname": "return_from_warehouse", "filters": {"is_group": 0, "company": "$company"}},
+			{"fieldname": "return_from_warehouse", "filters": {"is_group": 0, "company": "$company"}},  # a cross hire warehouse (checked on save)
 			"vehicle_no", "driver_name", "supplier_acknowledgement",
 			{"fieldname": "purchase_returns", "ro": 1, "wide": 1},
 			{"fieldname": "remarks", "wide": 1},
@@ -829,9 +855,13 @@ ENTRY_TYPES = {
 				{"fieldname": "ownership", "w": 1.3},
 				{"fieldname": "cross_hire_order", "w": 2},
 				{"fieldname": "at_site_qty", "w": 1.2, "ro": 1},
+				{"fieldname": "delivered_from", "w": 2, "filters": RENTAL_WH},
 				{"fieldname": "returned_qty", "w": 1.2},
 				{"fieldname": "lost_qty", "w": 1.2},
 				{"fieldname": "pending_qty", "w": 1.3, "ro": 1},
+				# where it is moved now, and the own warehouse good stock ends up in (after inspection)
+				{"fieldname": "target_warehouse", "w": 2, "filters": RETURN_WH},
+				{"fieldname": "return_to_warehouse", "w": 2, "filters": OWN_WH},
 				{"fieldname": "remarks", "w": 2},
 			]),
 		],
@@ -883,6 +913,7 @@ ENTRY_TYPES = {
 				{"fieldname": "good_qty", "w": 1.2},
 				{"fieldname": "repairable_qty", "w": 1.4},
 				{"fieldname": "damaged_qty", "w": 1.3},
+				{"fieldname": "good_warehouse", "w": 2, "filters": OWN_WH},
 				{"fieldname": "damage_notes", "w": 3},
 			]),
 		],
@@ -1200,7 +1231,8 @@ def _spec(meta, item, table=False):
 		"options": item.get("link") or df.options or "",
 		"reqd": cint(df.reqd),
 		"ro": cint(item.get("ro", df.read_only)),
-		"filters": item.get("filters") or {},
+		# filters can be worked out when the form opens (the rental warehouses of Rental Settings)
+		"filters": (item["filters"]() if callable(item.get("filters")) else item.get("filters")) or {},
 		"fetch": item.get("fetch") or {},
 		"show_if": item.get("show_if") or {},
 		"create": item.get("create"),

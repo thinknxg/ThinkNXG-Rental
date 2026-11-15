@@ -20,6 +20,14 @@
   "cb_67",
   "requires_inspection",
   "target_warehouse",
+  "return_to_warehouse",
+  "location",
+  "sb_wh_trace",
+  "delivered_from",
+  "delivery_order",
+  "cb_wh_trace",
+  "site_warehouse",
+  "stock_entry",
   "sb_68",
   "batch_no",
   "cb_69",
@@ -35,7 +43,7 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 3
+   "columns": 2
   },
   {
    "fieldname": "item_name",
@@ -100,7 +108,7 @@
    "fieldtype": "Float",
    "label": "Returned Qty",
    "in_list_view": 1,
-   "columns": 2,
+   "columns": 1,
    "bold": 1
   },
   {
@@ -133,7 +141,10 @@
    "fieldname": "target_warehouse",
    "fieldtype": "Link",
    "label": "Return Warehouse",
-   "options": "Warehouse"
+   "options": "Warehouse",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Where the returned material is moved: an own rental warehouse, the inspection warehouse, or for cross hire a cross hire warehouse."
   },
   {
    "fieldname": "sb_68",
@@ -171,10 +182,63 @@
    "label": "Excess Qty",
    "in_list_view": 1,
    "columns": 1
+  },
+  {
+   "fieldname": "return_to_warehouse",
+   "fieldtype": "Link",
+   "label": "Good Stock Returns To",
+   "options": "Warehouse",
+   "description": "Own rental warehouse the material goes back to: straight away, or after inspection when it goes to the inspection warehouse first."
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Return Location",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_wh_trace",
+   "fieldtype": "Section Break",
+   "label": "Traceability",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "delivered_from",
+   "fieldtype": "Link",
+   "label": "Delivered From",
+   "options": "Warehouse",
+   "description": "The warehouse this material was dispatched from. Left empty, it is filled from what is at site."
+  },
+  {
+   "fieldname": "delivery_order",
+   "fieldtype": "Link",
+   "label": "Hire Delivery Order",
+   "options": "Hire Delivery Order",
+   "read_only": 1,
+   "description": "The latest delivery of this item from that warehouse to the contract."
+  },
+  {
+   "fieldname": "cb_wh_trace",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "site_warehouse",
+   "fieldtype": "Link",
+   "label": "Site Warehouse",
+   "options": "Warehouse",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "links": [],
- "modified": "2026-10-11 16:05:51.201103",
+ "modified": "2026-11-15 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Off-Hire Item",
