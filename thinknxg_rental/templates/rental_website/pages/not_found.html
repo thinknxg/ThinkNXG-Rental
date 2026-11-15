@@ -1,0 +1,17 @@
+{%- from "templates/rental_website/macros.html" import icon, category_card with context -%}
+<section class="rw-section"><div class="rw-wrap rw-narrow rw-notfound">
+	{{ icon("search-x", "rw-i--xl") }}
+	<h1>{{ _("We could not find that page") }}</h1>
+	<p>{{ _("The product or page may have been renamed or is no longer offered. Search the catalogue or pick a category.") }}</p>
+	<form class="rw-hero__search rw-hero__search--block" action="/hire/equipment" method="get" role="search">
+		<label class="rw-sr" for="rw-nf-q">{{ _("Search equipment") }}</label>{{ icon("search") }}
+		<input id="rw-nf-q" type="search" name="q" placeholder="{{ _('Search equipment') }}"><button class="rw-btn rw-btn--primary" type="submit">{{ _("Search") }}</button>
+	</form>
+	<div class="rw-ctas"><a class="rw-btn" href="/hire">{{ _("Home") }}</a><a class="rw-btn" href="/hire/equipment">{{ _("Full catalogue") }}</a><a class="rw-btn rw-btn--ghost" href="/hire/contact">{{ _("Contact us") }}</a></div>
+</div></section>
+{% if rw_top_categories %}
+<section class="rw-section rw-tone--tinted"><div class="rw-wrap">
+	<div class="rw-shead"><div><h2>{{ _("Equipment categories") }}</h2></div></div>
+	<div class="rw-catgrid">{% for c in rw_top_categories[:8] %}{{ category_card(c) }}{% endfor %}</div>
+</div></section>
+{% endif %}

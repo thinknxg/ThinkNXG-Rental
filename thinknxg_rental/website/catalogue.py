@@ -9,7 +9,7 @@ own rental warehouse) shown as a band, never as a quantity.
 """
 import frappe
 from frappe import _
-from frappe.utils import cint, date_diff, flt, getdate, strip_html
+from frappe.utils import cint, date_diff, flt, fmt_money, getdate, strip_html
 
 from thinknxg_rental.website.theme import slugify
 
@@ -153,6 +153,27 @@ def currency():
 	return frappe.get_cached_value("Company", company, "default_currency") if company else None
 
 
+def currency_precision(code=None):
+	"""Decimals of the currency (OMR 3, INR 2), from its smallest fraction."""
+	code = code or currency()
+	fraction = cint(frappe.get_cached_value("Currency", code, "fraction_units")) if code else 0
+	return max(len(str(fraction)) - 1, 0) if fraction else 2
+
+
+def money(value):
+	"""An amount as the website shows it everywhere (server and rw.js): the ISO code, then the number in
+	the system number format with the currency's decimals - e.g. "OMR 1,250.500"."""
+	code = currency()
+	number = fmt_money(flt(value), precision=currency_precision(code))
+	return f"{code} {number}" if code else number
+
+
+def public_file(url):
+	"""A file a visitor may load: never one from /private/files (those need a login and leak names)."""
+	url = (url or "").strip()
+	return url if url and not url.startswith(("/private/", "private/")) else ""
+
+
 def estimate(item_code, qty, required_from, expected_return, customer=None):
 	"""Rental days (at least the item's minimum hire), the rate on the item's default basis and the estimate,
 	with the same formula as hire orders (services/utils.estimate_amount)."""
@@ -227,6 +248,7 @@ def decorate(rows):
 		cat = category_of(r.item_group)
 		r.category = cat.title if cat else r.item_group
 		r.category_slug = cat.slug if cat else "all"
+		r.image = public_file(r.image)
 		r.slug = r.route or slugify(r.item_name)
 		r.url = url("equipment", r.category_slug, r.slug)
 		r.summary = (r.short_description or strip_html(r.description or "")).strip()
@@ -263,10 +285,10 @@ def product(item_code):
 	item = frappe.get_cached_doc("Item", item_code)
 	card = decorate(frappe.db.sql(f"select {CARD_FIELDS} {_product_query(items=[item_code])[0]}", {"items": (item_code,)}, as_dict=True))[0]
 	images = []
-	if item.image:
+	if public_file(item.image):
 		images.append({"src": item.image, "alt": item.item_name})
 	for g in p.gallery or []:
-		if g.image and g.image not in [x["src"] for x in images]:
+		if public_file(g.image) and g.image not in [x["src"] for x in images]:
 			images.append({"src": g.image, "alt": g.caption or item.item_name})
 	specs = [(_("Item code"), item.name), (_("Unit"), item.stock_uom)]
 	if p.category:
@@ -297,6 +319,11 @@ def ensure_route(doc, method=None):
 	"""Rental Item Profile validate: a unique website slug for published items."""
 	if not doc.show_on_website:
 		return
+	private = [r.idx for r in doc.get("gallery") or [] if not public_file(r.image) and r.image]
+	if private or (doc.datasheet and not public_file(doc.datasheet)):
+		frappe.msgprint(_("Private files are not shown on the website: {0}. Attach them again with Public ticked.").format(
+			", ".join([_("photo row {0}").format(i) for i in private] + ([_("datasheet")] if doc.datasheet and not public_file(doc.datasheet) else []))),
+			indicator="orange", alert=True)
 	slug = slugify(doc.route or frappe.db.get_value("Item", doc.item, "item_name") or doc.item)
 	base, n = slug, 2
 	while frappe.db.exists("Rental Item Profile", {"route": slug, "name": ["!=", doc.name]}):

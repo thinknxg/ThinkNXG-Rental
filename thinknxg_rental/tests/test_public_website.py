@@ -20,9 +20,12 @@ USER = "rw.customer@example.com"
 OTHER_USER = "rw.other@example.com"
 
 
-def page(path, user="Guest"):
+def page(path, user="Guest", lang=None):
 	"""(status, html, location) of a website page rendered as `user`."""
 	frappe.set_user(user)
+	previous_lang = frappe.local.lang
+	if lang:
+		frappe.local.lang = lang
 	frappe.local.form_dict = frappe._dict()
 	set_request(method="GET", path=path)
 	try:
@@ -32,6 +35,7 @@ def page(path, user="Guest"):
 		if hasattr(frappe.local, "request"):
 			del frappe.local.request
 		frappe.local.form_dict = frappe._dict()
+		frappe.local.lang = previous_lang
 		frappe.set_user("Administrator")
 
 
@@ -274,6 +278,7 @@ class TestPublicWebsite(IntegrationTestCase):
 			dict(items=[]),
 			dict(email="not-an-email"),
 			dict(full_name=""),
+			dict(full_name="<script></script>"),
 			dict(phone="call me"),
 			dict(required_from=add_days(nowdate(), -1)),
 			dict(expected_return=add_days(nowdate(), 1)),
@@ -429,3 +434,196 @@ class TestPublicWebsite(IntegrationTestCase):
 		status, html, _l = page("/hire")
 		self.assertNotIn("rw-quotes", html)
 		self.assertNotIn("rw-stats", html)
+
+
+class TestPublicWebsiteReview(TestPublicWebsite):
+	"""Production-readiness review: quotation amounts, files, links, payload shapes, 404s, formatting,
+	translations, icons, contrast, RTL and the account page. Inherits the fixtures above; the inherited
+	tests are not run twice (see load_tests)."""
+
+	def test_draft_quotation_amount_is_the_website_estimate(self):
+		frappe.set_user("Guest")
+		r = self.enquiry(items=[{"item_code": self.panel, "qty": 12}], required_from=add_days(nowdate(), 2), expected_return=add_days(nowdate(), 6))
+		frappe.set_user("Administrator")
+		e = frappe.get_doc("Rental Website Enquiry", r["name"])
+		row = frappe.get_doc("Quotation", e.hire_quotation).items[0]
+		# 5 days asked, 14-day minimum hire: the quotation charges what the website estimated
+		self.assertEqual((row.nxg_rate_basis, row.nxg_hire_days), ("Monthly", 14))
+		self.assertAlmostEqual(flt(row.nxg_estimated_amount), flt(e.items[0].estimated_amount), places=2)
+		self.assertGreater(flt(row.nxg_estimated_amount), 0)
+
+	def test_private_files_never_reach_visitors(self):
+		self.assertEqual(cat.public_file("/private/files/secret.pdf"), "")
+		self.assertEqual(cat.public_file("/files/panel.jpg"), "/files/panel.jpg")
+		frappe.db.set_value("Item", self.prop, "image", "/private/files/prop-secret.png")
+		try:
+			rows, _t = cat.products(search="RWT Steel Prop")
+			self.assertEqual(rows[0].image, "")
+			self.assertEqual(cat.product(self.prop).images, [])
+		finally:
+			frappe.db.set_value("Item", self.prop, "image", None)
+
+	def test_settings_refuse_unsafe_links_private_images_and_bad_values(self):
+		bad = [
+			lambda s: s.append("links", {"location": "Header", "label": "x", "link": "javascript:alert(1)"}),
+			lambda s: s.append("links", {"location": "Header", "label": "x", "link": "//evil.example"}),
+			lambda s: s.sections[0].update({"cta_link": "javascript:alert(1)"}),
+			lambda s: s.cards[0].update({"link": "data:text/html,x"}),
+			lambda s: s.update({"map_link": "javascript:x"}),
+			lambda s: s.update({"logo": "/private/files/logo.png"}),
+			lambda s: s.sections[0].update({"image": "/private/files/hero.jpg"}),
+			lambda s: s.update({"primary_color": "#12345z"}),
+			lambda s: s.update({"whatsapp": "call us"}),
+		]
+		for change in bad:
+			s = frappe.get_doc("Rental Website Settings")
+			change(s)
+			with self.assertRaises(frappe.ValidationError):
+				s.validate()
+
+	def test_malformed_payloads_are_refused_cleanly(self):
+		frappe.set_user("Guest")
+		for items in ({"item_code": self.panel}, "not json", [1, 2], [["x"]]):
+			with self.assertRaises(frappe.ValidationError):
+				api.basket(items)
+		self.assertEqual(api.basket([{"item_code": ["x"]}, {"qty": 3}])["lines"], [])
+		with self.assertRaises(frappe.ValidationError):
+			api.submit_enquiry("[1, 2]")
+		with self.assertRaises(frappe.ValidationError):
+			api.contact(["x"])
+		b = api.basket([{"item_code": self.panel, "qty": -4}])
+		self.assertEqual(b["lines"][0]["qty"], 1)
+
+	def test_missing_pages_get_the_website_404(self):
+		status, html, _l = page("/hire/equipment/all/no-such-product")
+		self.assertEqual(status, 404)
+		self.assertIn("rw-notfound", html)
+		self.assertIn('name="robots" content="noindex', html)
+		self.set(enabled=0)
+		try:
+			status, html, _l = page("/hire/nothing")
+			self.assertEqual(status, 404)
+			self.assertNotIn("rw-notfound", html)  # a switched-off website shows nothing of itself
+		finally:
+			self.set(enabled=1)
+
+	def test_amounts_are_formatted_once_on_the_server(self):
+		frappe.set_user("Guest")
+		r = api.estimate(self.panel, 3, add_days(nowdate(), 1), add_days(nowdate(), 30))
+		self.assertEqual(r["amount_display"], cat.money(r["amount"]))
+		self.assertTrue(r["amount_display"].startswith(cat.currency() + " "))
+		precision = cat.currency_precision()
+		self.assertEqual(len(r["rate_display"].rsplit(".", 1)[-1]) if precision else 0, precision)
+		b = api.basket([{"item_code": self.panel, "qty": 3}], add_days(nowdate(), 1), add_days(nowdate(), 30))
+		self.assertEqual(b["total_display"], cat.money(b["total"]))
+		frappe.set_user("Administrator")
+		self.assertIn(cat.money(cat.rates_for(self.panel)["Monthly"]), page(self.url_of(self.panel))[1])
+
+	def test_every_script_text_is_translatable(self):
+		import re
+
+		from thinknxg_rental.www.hire.index import JS_MESSAGES
+
+		with open(frappe.get_app_path("thinknxg_rental", "public", "rental_website", "rw.js"), encoding="utf-8") as f:
+			used = set(re.findall(r'\bt\("((?:[^"\\]|\\.)*)"\)', f.read()))
+		self.assertTrue(used)
+		self.assertEqual(sorted(used - set(JS_MESSAGES)), [])
+
+	def test_icons_are_inlined_not_the_full_sprite(self):
+		from thinknxg_rental.website import icons
+
+		status, html, _l = page("/hire")
+		self.assertNotIn("lucide.svg", html)
+		self.assertIn('id="icon-search"', html)
+		self.assertIn('id="icon-trash-2"', html)  # used by rw.js
+		# every icon a page references is in that page's sprite
+		import re
+
+		for path in ("/hire", "/hire/equipment", self.url_of(self.panel), "/hire/basket", "/hire/contact"):
+			html = page(path)[1]
+			used = set(re.findall(r'href="#icon-([a-z0-9-]+)"', html))
+			defined = set(re.findall(r'id="icon-([a-z0-9-]+)"', html))
+			self.assertEqual(sorted(used - defined), [], path)
+		self.assertLess(len(icons.sprite()), 60000)
+		self.assertTrue(icons.exists("layers"))
+		self.assertFalse(icons.exists("no-such-icon"))
+
+	def test_theme_buttons_and_links_are_readable(self):
+		from thinknxg_rental.website.theme import AA, accent_button, contrast, readable_on_white
+
+		for name, t in TEMPLATES.items():
+			button, ink = accent_button(t["accent"])
+			self.assertGreaterEqual(contrast(button, ink), AA, name)
+			self.assertGreaterEqual(contrast(readable_on_white(t["primary"]), "#ffffff"), AA, name)
+		for colour in ("#ffd400", "#00ff00", "#cccccc", "#0b8f8a"):
+			button, ink = accent_button(colour)
+			self.assertGreaterEqual(contrast(button, ink), AA, colour)
+
+	def test_arabic_pages_are_right_to_left(self):
+		self.assertIn('dir="rtl"', page("/hire", lang="ar")[1])
+		self.assertIn('dir="ltr"', page("/hire", lang="en")[1])
+
+	def test_account_page_links_work(self):
+		frappe.set_user(USER)
+		r = self.enquiry(email=USER)
+		frappe.set_user("Administrator")
+		frappe.db.set_value("Rental Website Enquiry", r["name"], "status", "Spam")
+		status, html, _l = page("/hire/account", user=USER)
+		self.assertNotIn(r["name"], html)
+		self.assertNotIn("/update-profile", html)
+		self.assertNotIn("/api/method/logout", html)
+		self.assertIn("data-rw-logout", html)
+		self.assertIn('href="/rental/profile"', html)
+		ws = frappe.get_single("Website Settings")
+		before = ws.disable_signup
+		frappe.db.set_single_value("Website Settings", "disable_signup", 1)
+		frappe.clear_cache()
+		try:
+			self.assertNotIn("#signup", page("/hire/account")[1])
+		finally:
+			frappe.db.set_single_value("Website Settings", "disable_signup", before)
+			frappe.clear_cache()
+
+	def test_visitor_text_is_escaped_in_staff_notifications(self):
+		frappe.set_user("Guest")
+		r = self.enquiry(full_name="Ann <img src=x onerror=alert(1)>Lee", company_name="")
+		frappe.set_user("Administrator")
+		self.assertEqual(frappe.db.get_value("Rental Website Enquiry", r["name"], "full_name"), "Ann Lee")
+		subjects = frappe.get_all("Notification Log", filters={"document_name": r["name"]}, pluck="subject")
+		self.assertTrue(subjects)
+		self.assertTrue(all("<img" not in x for x in subjects))
+
+	def test_customers_cannot_reach_enquiries_or_staff_actions(self):
+		frappe.set_user(USER)
+		r = self.enquiry(email=USER)
+		self.assertFalse(frappe.has_permission("Rental Website Enquiry", "read", r["name"], user=USER))
+		self.assertFalse(frappe.has_permission("Rental Website Settings", "write", user=USER))
+		with self.assertRaises(frappe.PermissionError):
+			frappe.get_doc("Rental Website Enquiry", r["name"]).make_quotations()
+		frappe.set_user("Guest")
+		with self.assertRaises(frappe.PermissionError):
+			cp.enquiries()
+		frappe.set_user("Administrator")
+
+	def test_existing_sites_lose_the_seeded_admin_hint(self):
+		from thinknxg_rental.patches.v2_4 import clear_section_hints
+
+		s = frappe.get_single("Rental Website Settings")
+		row = s.append("sections", {"section_type": "Text", "enabled": 0, "subtitle": clear_section_hints.HINT})
+		s.save()
+		clear_section_hints.execute()
+		self.assertIsNone(frappe.db.get_value("Rental Website Section", row.name, "subtitle"))
+		s.reload()
+		s.remove(next(r for r in s.sections if r.name == row.name))
+		s.save()
+
+
+def load_tests(loader, tests, pattern):
+	"""Run each test once: the review class only adds its own tests to the inherited fixtures."""
+	import unittest
+
+	suite = unittest.TestSuite()
+	suite.addTests(loader.loadTestsFromTestCase(TestPublicWebsite))
+	own = [n for n in TestPublicWebsiteReview.__dict__ if n.startswith("test_")]
+	suite.addTests(TestPublicWebsiteReview(n) for n in own)
+	return suite

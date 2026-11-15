@@ -2,7 +2,7 @@
     sequence of them. Plain text is escaped with | e; only HTML fields entered in the desk are output as HTML. -#}
 
 {% macro icon(name, cls="") -%}
-<svg class="rw-i {{ cls }}" aria-hidden="true"><use href="/assets/frappe/icons/lucide.svg#icon-{{ name | e }}"></use></svg>
+<svg class="rw-i {{ cls }}" aria-hidden="true"><use href="#icon-{{ name | e }}"></use></svg>
 {%- endmacro %}
 
 {% macro logo() -%}
@@ -15,7 +15,7 @@
 {%- endmacro %}
 
 {% macro money(value, per=None) -%}
-{{ frappe.utils.fmt_money(value, currency=rw_currency) }}{% if per %}<small> / {{ per }}</small>{% endif %}
+{{ rw_money(value) }}{% if per %}<small> / {{ per }}</small>{% endif %}
 {%- endmacro %}
 
 {% macro per(basis) -%}
@@ -60,7 +60,7 @@
 	</div>
 	<div class="rw-card__foot">
 		<div class="rw-card__meta">
-			{% if p.rate %}<span class="rw-price">{{ money(p.rate, per(p.rate_basis)) }}</span>{% endif %}
+			{% if p.rate %}<span class="rw-price">{{ money(p.rate, per(p.rate_basis)) }}</span>{% elif rw_boot.show_prices %}<span class="rw-price rw-price--ask">{{ _("Price on request") }}</span>{% endif %}
 			{{ availability(p.availability) }}
 		</div>
 		<div class="rw-card__actions">
@@ -72,7 +72,7 @@
 {%- endmacro %}
 
 {% macro category_card(c) -%}
-<a class="rw-catcard" href="{{ c.url }}">
+<a class="rw-catcard{% if not c.image %} rw-catcard--plain{% endif %}" href="{{ c.url }}">
 	<span class="rw-catcard__media">{% if c.image %}<img src="{{ c.image | e }}" alt="" loading="lazy" decoding="async" width="400" height="260">{% else %}{{ icon("layers", "rw-i--lg") }}{% endif %}</span>
 	<span class="rw-catcard__body"><b>{{ c.title | e }}</b>
 		{% if c.description %}<span>{{ c.description | e }}</span>{% endif %}
@@ -139,7 +139,7 @@
 {%- for c in cards %}
 	<li class="rw-feature">
 		{% if c.image %}<img class="rw-feature__img" src="{{ c.image | e }}" alt="" loading="lazy" decoding="async" width="400" height="240">{% endif %}
-		{% if numbered %}<span class="rw-feature__n">{{ loop.index }}</span>{% elif c.icon %}<span class="rw-feature__icon">{{ icon(c.icon) }}</span>{% endif %}
+		{% if numbered %}<span class="rw-feature__n">{{ loop.index }}</span>{% elif c.icon and rw_icon_exists(c.icon) %}<span class="rw-feature__icon">{{ icon(c.icon) }}</span>{% endif %}
 		<h3>{% if c.link %}<a href="{{ c.link | e }}">{{ c.title | e }}</a>{% else %}{{ c.title | e }}{% endif %}</h3>
 		{% if c.description %}<p>{{ c.description | e }}</p>{% endif %}
 	</li>
@@ -226,7 +226,7 @@
 	{{ cta_buttons(sec, invert=True) }}
 </div></section>
 {%- elif t == "About" -%}
-<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap rw-split">
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap {{ 'rw-split' if (sec.image or rw.about_image) else 'rw-narrow' }}">
 	<div>{{ section_head(sec) }}<div class="rw-prose">{{ sec.content or rw.about_intro or "" }}</div>{{ cta_buttons(sec) }}</div>
 	{% if sec.image or rw.about_image %}<img class="rw-split__img" src="{{ (sec.image or rw.about_image) | e }}" alt="" loading="lazy" width="640" height="480">{% endif %}
 </div></section>
@@ -245,7 +245,7 @@
 {% macro contact_details() -%}
 <ul class="rw-contact">
 	{% if rw.contact_phone %}<li>{{ icon("phone") }}<div><b>{{ _("Phone") }}</b><a href="tel:{{ rw.contact_phone | replace(' ', '') | e }}">{{ rw.contact_phone | e }}</a></div></li>{% endif %}
-	{% if rw.whatsapp %}<li>{{ icon("message-circle") }}<div><b>{{ _("WhatsApp") }}</b><a href="https://wa.me/{{ rw.whatsapp | replace(' ', '') | replace('+', '') | e }}" rel="noopener" target="_blank">{{ rw.whatsapp | e }}</a></div></li>{% endif %}
+	{% if rw.whatsapp %}<li>{{ icon("message-circle") }}<div><b>{{ _("WhatsApp") }}</b><a href="https://wa.me/{{ rw_whatsapp }}" rel="noopener" target="_blank">{{ rw.whatsapp | e }}</a></div></li>{% endif %}
 	{% if rw.contact_email %}<li>{{ icon("mail") }}<div><b>{{ _("E-mail") }}</b><a href="mailto:{{ rw.contact_email | e }}">{{ rw.contact_email | e }}</a></div></li>{% endif %}
 	{% if rw.address %}<li>{{ icon("map-pin") }}<div><b>{{ _("Address") }}</b><span>{{ rw.address | e | replace("\n", "<br>") }}</span>{% if rw.map_link %}<a href="{{ rw.map_link | e }}" target="_blank" rel="noopener">{{ _("Open map") }}</a>{% endif %}</div></li>{% endif %}
 	{% if rw.opening_hours %}<li>{{ icon("clock") }}<div><b>{{ _("Opening hours") }}</b><span>{{ rw.opening_hours | e | replace("\n", "<br>") }}</span></div></li>{% endif %}

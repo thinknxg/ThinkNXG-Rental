@@ -107,7 +107,7 @@ class RentalWebsiteEnquiry(Document):
 				"transaction_date": nowdate(), "valid_till": add_days(nowdate(), 30), "order_type": "Sales",
 				"deal_type": self.deal_type(purchase), "project_title": (self.project_location or "")[:140] or None,
 				"nxg_website_enquiry": self.name,
-				"items": [{"item_code": d.item_code, "qty": flt(d.qty), "uom": d.uom} for d in rows],
+				"items": [self.quotation_row(d, start, end, purchase) for d in rows],
 			})
 			if not purchase:
 				q.update({"nxg_required_from": start, "nxg_expected_return_date": end})
@@ -119,6 +119,18 @@ class RentalWebsiteEnquiry(Document):
 			self.db_set("status", "In Review", update_modified=False)
 		return made
 
+	def quotation_row(self, d, start, end, purchase):
+		"""A quotation line. Hire lines carry the item's rate basis and the chargeable hire days (at least
+		the minimum hire), so the draft quotation's amount is the estimate the website showed; the rate
+		itself is filled by the quotation's own rate logic."""
+		row = {"item_code": d.item_code, "qty": flt(d.qty), "uom": d.uom}
+		if not purchase:
+			from thinknxg_rental.website.catalogue import estimate
+
+			e = estimate(d.item_code, d.qty, start, end)
+			row.update(nxg_rate_basis=e.rate_basis, nxg_hire_days=e.chargeable_days)
+		return row
+
 	# ------------------------------------------------------------------ messages
 	def notify_team(self):
 		from thinknxg_rental.website.catalogue import settings
@@ -126,7 +138,9 @@ class RentalWebsiteEnquiry(Document):
 		role = settings().enquiry_notify_role or "Rental Manager"
 		users = frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent")
 		users = frappe.get_all("User", filters={"name": ["in", users or [""]], "enabled": 1, "user_type": "System User"}, pluck="name")
-		subject = _("New website enquiry {0}: {1} from {2}").format(self.name, _(self.enquiry_type), self.company_name or self.full_name)
+		# the visitor typed the name: escaped, as the desk shows notification subjects as HTML
+		subject = _("New website enquiry {0}: {1} from {2}").format(self.name, _(self.enquiry_type),
+			frappe.utils.escape_html(self.company_name or self.full_name or ""))
 		for user in users:
 			if user in ("Administrator", "Guest"):
 				continue

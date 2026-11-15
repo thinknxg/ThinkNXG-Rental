@@ -10,9 +10,9 @@
 		</div>
 		<div class="rw-panel">
 			<h2>{{ _("New customer") }}</h2>
-			<p>{{ _("Create a login to follow your enquiries, or ask us to open a business account for your company.") }}</p>
+			<p>{% if rw_signup %}{{ _("Create a login to follow your enquiries, or ask us to open a business account for your company.") }}{% else %}{{ _("Ask us to open a business account for your company: we send you a login for the customer portal.") }}{% endif %}</p>
 			<div class="rw-ctas">
-				<a class="rw-btn rw-btn--lg" href="/login?redirect-to=/hire/account#signup">{{ _("Create a login") }}</a>
+				{% if rw_signup %}<a class="rw-btn rw-btn--lg" href="/login?redirect-to=/hire/account#signup">{{ _("Create a login") }}</a>{% endif %}
 				<a class="rw-btn rw-btn--ghost rw-btn--lg" href="/hire/contact?type=Business%20Account">{{ _("Request a business account") }}</a>
 			</div>
 		</div>
@@ -42,7 +42,8 @@
 			<p>{{ _("Your login is not linked to a customer account yet. Enquiries you send are kept here; once we open an account for you, orders and invoices appear in the customer portal.") }}</p>
 			<div class="rw-ctas"><a class="rw-btn rw-btn--primary" href="/hire/contact?type=Business%20Account">{{ _("Request a business account") }}</a></div>
 			{% endif %}
-			<p class="rw-account__out"><a href="/update-profile?redirect-to=/hire/account">{{ _("Edit profile") }}</a> · <a href="/api/method/logout?redirect-to=/hire">{{ _("Log out") }}</a></p>
+			<p class="rw-account__out"><a href="{{ '/rental/profile' if rw_is_customer else '/me' }}">{{ _("Your profile") }}</a>
+				<button type="button" class="rw-linkbtn" data-rw-logout>{{ icon("log-out", "rw-i--sm") }} {{ _("Log out") }}</button></p>
 		</div>
 		<div class="rw-panel">
 			<h2>{{ _("Your website enquiries") }}</h2>

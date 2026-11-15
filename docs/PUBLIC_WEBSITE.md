@@ -1,4 +1,4 @@
-# Public rental website (v2.4)
+# Public rental website (v2.4.1)
 
 A public, search-engine-readable rental website at **/hire**, built inside the app on the existing
 ERPNext data and rental logic. It can also be the site's home page.
@@ -50,11 +50,13 @@ New:
 thinknxg_rental/website/theme.py            templates (design tokens + layout choices), colour helpers
 thinknxg_rental/website/catalogue.py        categories, product queries, rates, availability bands, estimates
 thinknxg_rental/website/api.py              guest API: estimate, basket, submit_enquiry, contact
+thinknxg_rental/website/icons.py            the small inline icon sprite each page carries
+thinknxg_rental/website/renderer.py         page renderer: the website's own 404 page, answered with HTTP 404
 thinknxg_rental/www/hire/index.py|.html     the page dispatcher (all /hire pages) and SEO
 thinknxg_rental/www/rental_sitemap.py|.xml  sitemap
 thinknxg_rental/templates/rental_website/   base.html, macros.html (sections, cards, forms), pages/*.html
 thinknxg_rental/public/rental_website/      rw.css (design system), rw.js (basket, estimates, forms)
-thinknxg_rental/patches/v2_4/seed_rental_website.py
+thinknxg_rental/patches/v2_4/seed_rental_website.py, clear_section_hints.py
 thinknxg_rental/tests/test_public_website.py
 doctypes: Rental Website Settings, Rental Website Section, Rental Website Card, Rental Website Link,
           Rental Website Category, Rental Website Enquiry, Rental Website Enquiry Item,
@@ -64,7 +66,7 @@ doctypes: Rental Website Settings, Rental Website Section, Rental Website Card, 
 Modified:
 
 ```
-hooks.py                        /hire route rule; cache clearing on Item, Rental Item Profile, Item Group
+hooks.py                        /hire route rule, page renderer; cache clearing on Item, Rental Item Profile, Item Group
 services/setup.py               Quotation fields nxg_website_enquiry, nxg_customer_accepted_on/_by; seed on install
 services/item_rental.py         website fields stay off the Item form's rental panel
 rental_item_profile.json        Website section (show on website, featured, for sale, URL slug, short
@@ -125,7 +127,7 @@ with their items and, once submitted, their quotations.
 
 | Method | Use |
 | --- | --- |
-| `estimate(item_code, qty, required_from, expected_return)` | days, chargeable days, rate and amount (if prices are shown), availability band |
+| `estimate(item_code, qty, required_from, expected_return)` | days, chargeable days, rate and amount with their formatted `rate_display` / `amount_display` (if prices are shown), availability band |
 | `basket(items, required_from, expected_return)` | the basket as the server sees it |
 | `submit_enquiry(data)` POST | creates the enquiry, returns the reference |
 | `contact(data)` POST | contact form |
@@ -180,22 +182,48 @@ bench --site <site> clear-cache
 
 No external services or CDNs are used: fonts and icons are served from the app and Frappe.
 
-## 8. Tests
+## 8. Production-readiness review (2.4.1)
+
+| Area | Finding | Change |
+| --- | --- | --- |
+| Quotation workflow | Draft hire quotations had no hire days, so ERPNext priced one rate period, not the enquired period | Each hire line now carries the item's rate basis and the chargeable hire days (minimum hire included); the quotation's amount equals the website estimate |
+| Broken links | Account page linked to `/update-profile` (no such page in Frappe 16) and logged out with a GET to a POST-only method | Profile goes to `/rental/profile` (customers) or `/me`; Log out is a POST with the CSRF token |
+| Broken links | "Create a login" shown even when sign-up is disabled | Shown only when Website Settings allow sign-up |
+| Placeholder content | The seed put an administrator hint in two section subtitles, visible once those sections were switched on | Removed from the defaults; patch `clear_section_hints` removes it from existing sites |
+| Security | Notification subjects carried the visitor's name unescaped into the desk | Escaped; visitor text is stored as plain text (markup removed) |
+| Security | Malformed basket / enquiry payloads raised server errors | Refused with a clear validation message |
+| Security | Website links in sections, cards and the map link were not checked (`javascript:` possible); private files could be chosen as images | All links checked; private images refused in settings and never shown for items, galleries or datasheets |
+| Security | Estimate and basket endpoints had no request limit | Rate limited per IP (600 and 300 per 10 minutes) |
+| Consistency | Amounts were formatted twice (Jinja with the currency symbol, the browser with Intl) and looked different | One server formatter: ISO code + system number format + currency decimals (e.g. "OMR 95.000"), used by pages and returned by the API |
+| Translation | Script texts could not be translated | Sent translated with the page; a test keeps the list in step with rw.js |
+| RTL / Arabic | No `dir` attribute; layout used left/right | `dir="rtl"` for RTL languages, logical CSS properties, mirrored arrows, figures isolated |
+| Performance | Every page loaded Frappe's 750 KB icon sprite | Each page inlines only the icons it uses (about 13 KB) |
+| Accessibility | White text on the default teal button was 3.9:1 | Button and link colours are computed to reach WCAG AA (4.5:1) for any colour an administrator picks |
+| Design | Tablet hero stacked a full-height drawing; empty photo frames for categories and products; About page half empty without a photo; centred hero chips cut off on phones; "System Fonts" option had no styling | Split hero from 768 px; compact category rows and a drawn grid placeholder; single-column About; chips scroll from the start; system font stack |
+| 404 | Frappe's generic 404 page inside the website | The website's own page (search, categories), still HTTP 404, noindex; a switched-off website still shows nothing of itself |
+| Availability | Batch free-stock logic duplicated the reservation check | Kept for speed, now proven equal to `available_own_qty` by a test before and after a reservation |
+
+## 9. Tests
 
 ```
 bench --site <site> run-tests --module thinknxg_rental.tests.test_public_website
 ```
 
-25 tests: pages and 404s, disabled website, categories from item groups, unpublished items, search /
+39 tests (plus one in `test_reservation_warehouses`): pages and 404s, disabled website, categories from item groups, unpublished items, search /
 filters / sort / paging, product page and canonical 301, rates from the rate logic and minimum hire,
 prices switched off, availability bands, the basket ignoring browser prices, enquiry to Lead and draft
 quotations, validation, purchase switch, honeypot, logged-in customer enquiries and portal isolation,
 contact form, staff quotation creation, quotation acceptance (own, open, unexpired, once), sitemap,
-home page and robots sync, templates changing layout, template section loading, empty sections hidden.
-The pages, basket, estimate, enquiry and contact flows were also driven in Chromium at desktop and
-phone widths.
+home page and robots sync, templates changing layout, template section loading, empty sections hidden,
+and from the review: quotation amount equals the estimate, private files, unsafe links and settings values,
+malformed payloads, the website 404, one money format, translatable script texts, the icon sprite
+covering every icon used, AA contrast for all templates, RTL, account page links, escaped staff
+notifications, customer permissions, the hint-removal patch; website free stock equal to the
+reservation check.
+The pages, basket, estimate, enquiry, contact, account and log-out flows were driven in Chromium at
+1366, 820 and 390 px, in all five templates and in Arabic (RTL), with a crawl of every linked page.
 
-## 9. Limitations
+## 10. Limitations
 
 - **Availability is current free stock**, not stock on the requested dates: future returns and future
   reservations are not projected. The website therefore shows a band and the quotation confirms.
@@ -204,5 +232,11 @@ phone widths.
 - The basket is stored in the visitor's browser; it does not follow them to another device.
 - Accepting a quotation records the acceptance; it does not create the Rental Site or order by itself.
 - Confirmation e-mails need an outgoing e-mail account on the site.
+- The draft quotation's grand total can differ from the estimate by a few fils: the quotation engine
+  rounds Qty x days / basis to the quantity precision before pricing (existing behaviour, unchanged).
+- Search engines and social networks need a PNG or JPG for previews: set *Social image* in the SEO
+  tab (the default is the SVG logo).
+- The app ships no Arabic translations; pages switch to right-to-left, and texts appear translated
+  once translations are added.
 - Self sign-up uses Frappe's login page and follows Website Settings > *Disable Signup*; a new login is
   linked to a customer by the rental team (the Business Account enquiry asks for this).

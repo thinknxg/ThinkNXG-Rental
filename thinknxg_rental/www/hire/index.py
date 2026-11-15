@@ -15,10 +15,36 @@ from frappe import _
 from frappe.utils import cint, get_url, strip_html
 
 from thinknxg_rental.website import catalogue as cat
+from thinknxg_rental.website import icons
 from thinknxg_rental.website.theme import theme
 
+# Every text rw.js shows, so it is translated with the page (tests check this list against rw.js)
+JS_MESSAGES = (
+	"We could not reach the server. Check your connection and try again.",
+	"Too many requests from this connection. Try again in a little while.",
+	"Something went wrong. Try again, or contact us by phone or e-mail.",
+	"day", "week", "month", "Menu", "Added to your enquiry", "View", "View enquiry", "{0} rental days",
+	"charged as the {0}-day minimum", "Estimate", "At {0} per {1}, before tax and delivery. Your quotation confirms the price.",
+	"We quote this item on request.", "Choose your dates to see the rental period.", "Enter a quantity",
+	"Choose a start date from today and a return date after it", "Your enquiry is empty",
+	"Add equipment from the catalogue, or send us a message with what you need.", "Browse equipment", "Send a message",
+	"{0} days, from {1} to {2}", "Choose the dates to see the rental period and estimates.", "Price in the quotation",
+	"{0} days", "Rate on request", "Min. hire {0} days", "Quantity", "Hire or buy", "Hire", "Buy", "Remove", "Estimated rental",
+	"Before tax, delivery and any discount", "Add at least one item to your enquiry.",
+	"Choose a start date from today and a return date after it.", "Thank you. Your enquiry is with the rental team.",
+	"Keep this reference. We check availability for your dates and send you a quotation.",
+	"A confirmation is on its way to your e-mail.", "See it in your account", "Back to the catalogue",
+	"Fill in the highlighted fields.", "Thank you. Your message is with the rental team, reference {0}. We reply by e-mail or phone.",
+	"Thank you. Your message is with the rental team.", "Some items are no longer offered and were taken out of your enquiry.",
+	"Log out",
+)
+
+
+def js_messages():
+	return {m: _(m) for m in JS_MESSAGES}
+
 no_cache = 1
-sitemap = 1
+sitemap = 0  # listed with every product in /rental_sitemap.xml instead
 STATIC = {"services", "industries", "about", "contact", "basket", "account"}
 
 
@@ -31,6 +57,17 @@ def get_context(context):
 		staff_preview = True
 	path = (frappe.form_dict.get("app_path") or "").strip("/")
 	parts = [p for p in path.split("/") if p]
+	try:
+		return _dispatch(context, s, parts, staff_preview)
+	except frappe.PageDoesNotExistError:
+		# a missing product or page inside the website gets the website's own "not found" page, still
+		# answered with HTTP 404 (see website/renderer.py)
+		frappe.local.flags.rw_not_found = True
+		context.rw_status = 404
+		return not_found(context, s)
+
+
+def _dispatch(context, s, parts, staff_preview):
 	t = theme(s)
 	context.update(
 		no_cache=1,
@@ -49,9 +86,14 @@ def get_context(context):
 		rw_cards=_cards(s),
 		rw_json=json.dumps,
 		rw_version=_version(),
+		rw_money=cat.money,
+		rw_icons=icons.sprite(c.icon for c in s.cards or [] if c.enabled),
+		rw_icon_exists=icons.exists,
+		rw_whatsapp="".join(ch for ch in (s.whatsapp or "") if ch.isdigit()),
+		rw_signup=not cint(frappe.get_website_settings("disable_signup")),
 	)
 	context.rw_boot = {"show_prices": cint(s.show_prices), "show_availability": cint(s.show_availability), "currency": cat.currency(),
-		"allow_purchase": cint(s.allow_purchase_enquiries), "logged_in": context.rw_logged_in}
+		"allow_purchase": cint(s.allow_purchase_enquiries), "logged_in": context.rw_logged_in, "messages": js_messages()}
 	if not parts:
 		return home(context, s)
 	if parts[0] == "equipment":
@@ -249,12 +291,17 @@ def page_account(context, s):
 	if frappe.session.user != "Guest":
 		# the user's own enquiries, and those of the customer accounts they belong to
 		or_filters = [["user", "=", frappe.session.user]] + ([["customer", "in", customers]] if customers else [])
-		enquiries = frappe.get_all("Rental Website Enquiry", or_filters=or_filters, fields=["name", "enquiry_type", "status", "enquiry_date"],
+		enquiries = frappe.get_all("Rental Website Enquiry", filters={"status": ["!=", "Spam"]}, or_filters=or_filters, fields=["name", "enquiry_type", "status", "enquiry_date"],
 			order_by="creation desc", limit=10)
 	context.update(rw_page="templates/rental_website/pages/account.html", rw_crumbs=[(_("Home"), "/hire"), (_("Account"), "/hire/account")],
 		rw_customer_names=[frappe.db.get_value("Customer", c, "customer_name") for c in customers], rw_is_customer=bool(customers),
 		rw_is_staff=staff, rw_enquiries=enquiries, rw_prefill=_prefill())
 	seo(context, _("Your account"), noindex=True)
+
+
+def not_found(context, s):
+	context.update(rw_page="templates/rental_website/pages/not_found.html", rw_crumbs=[(_("Home"), "/hire"), (_("Page not found"), context.rw_path)])
+	seo(context, _("Page not found"), noindex=True, canonical=context.rw_path)
 
 
 def _prefill():

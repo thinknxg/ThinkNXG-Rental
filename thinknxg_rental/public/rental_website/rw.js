@@ -9,8 +9,9 @@
 	const $ = (s, r) => (r || document).querySelector(s);
 	const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 	const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-	const icon = (n, c) => `<svg class="rw-i ${c || ""}" aria-hidden="true"><use href="/assets/frappe/icons/lucide.svg#icon-${n}"></use></svg>`;
-	const t = (s) => (window.__ ? window.__(s) : s);
+	const icon = (n, c) => `<svg class="rw-i ${c || ""}" aria-hidden="true"><use href="#icon-${n}"></use></svg>`;
+	const MESSAGES = B.messages || {};
+	const t = (s) => MESSAGES[s] || s; // translated on the server (www/hire/index.py JS_MESSAGES)
 
 	// ------------------------------------------------------------------ server calls
 	async function call(method, args, post) {
@@ -42,12 +43,7 @@
 		return data.exception ? String(data.exception).split(":").slice(1).join(":").trim() : "";
 	}
 
-	// ------------------------------------------------------------------ money, toasts
-	function money(v) {
-		if (v == null) return "";
-		try { return new Intl.NumberFormat(document.documentElement.lang || undefined, { style: "currency", currency: B.currency || "USD" }).format(v); }
-		catch (e) { return (B.currency ? B.currency + " " : "") + Number(v).toFixed(2); }
-	}
+	// ------------------------------------------------------------------ toasts (amounts arrive formatted by the server)
 	const PER = { Daily: t("day"), Weekly: t("week"), Monthly: t("month") };
 	function toast(html, kind) {
 		const box = $(".rw-toasts");
@@ -170,7 +166,7 @@
 					if (r.chargeable_days > r.days) line += " · " + esc(t("charged as the {0}-day minimum").replace("{0}", r.chargeable_days));
 					parts.push(`<span>${line}</span>`);
 				}
-				if (r.amount) parts.push(`<b>${esc(t("Estimate"))} ${esc(money(r.amount))}</b><small>${esc(t("At {0} per {1}, before tax and delivery. Your quotation confirms the price.").replace("{0}", money(r.rate)).replace("{1}", PER[r.rate_basis] || r.rate_basis))}</small>`);
+				if (r.amount) parts.push(`<b>${esc(t("Estimate"))} ${esc(r.amount_display)}</b><small>${esc(t("At {0} per {1}, before tax and delivery. Your quotation confirms the price.").replace("{0}", r.rate_display).replace("{1}", PER[r.rate_basis] || r.rate_basis))}</small>`);
 				else if (r.chargeable_days && B.show_prices) parts.push(`<small>${esc(t("We quote this item on request."))}</small>`);
 				else if (!r.chargeable_days) parts.push(`<small>${esc(t("Choose your dates to see the rental period."))}</small>`);
 				out.innerHTML = parts.join("");
@@ -254,11 +250,14 @@
 			// drop lines the website no longer offers
 			const known = new Set(r.lines.map((l) => l.item_code + "|" + l.line_type));
 			const kept = bk.items.filter((x) => known.has(x.item_code + "|" + (x.line_type || "Hire")) || r.lines.some((l) => l.item_code === x.item_code));
-			if (kept.length !== bk.items.length) { bk.items = kept; save(bk); }
+			if (kept.length !== bk.items.length) {
+				bk.items = kept; save(bk);
+				toast(`${icon("info", "rw-i--sm")}<span>${esc(t("Some items are no longer offered and were taken out of your enquiry."))}</span>`);
+			}
 			daysEl.textContent = r.days ? t("{0} days, from {1} to {2}").replace("{0}", r.days).replace("{1}", fmtDate(start.value)).replace("{2}", fmtDate(end.value)) : t("Choose the dates to see the rental period and estimates.");
 			linesEl.innerHTML = r.lines.map((l, i) => {
 				const amount = l.line_type === "Purchase" ? `<small>${esc(t("Price in the quotation"))}</small>`
-					: l.amount ? `<b>${esc(money(l.amount))}</b><small>${esc(money(l.rate))} / ${esc(PER[l.rate_basis] || "")}${l.chargeable_days ? " · " + esc(t("{0} days").replace("{0}", l.chargeable_days)) : ""}</small>`
+					: l.amount ? `<b>${esc(l.amount_display)}</b><small>${esc(l.rate_display)} / ${esc(PER[l.rate_basis] || "")}${l.chargeable_days ? " · " + esc(t("{0} days").replace("{0}", l.chargeable_days)) : ""}</small>`
 					: r.days && r.show_prices ? `<small>${esc(t("Rate on request"))}</small>` : "";
 				return `<div class="rw-line" data-i="${i}" data-item="${esc(l.item_code)}" data-type="${esc(l.line_type)}">
 					<a class="rw-line__img" href="${esc(l.url)}" tabindex="-1" aria-hidden="true">${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : icon("boxes")}</a>
@@ -273,7 +272,7 @@
 					</div></div>`;
 			}).join("");
 			if (r.total) {
-				totalEl.innerHTML = `<span>${esc(t("Estimated rental"))}<small>${esc(t("Before tax, delivery and any discount"))}</small></span><b>${esc(money(r.total))}</b>`;
+				totalEl.innerHTML = `<span>${esc(t("Estimated rental"))}<small>${esc(t("Before tax, delivery and any discount"))}</small></span><b>${esc(r.total_display)}</b>`;
 				totalEl.hidden = false;
 			} else totalEl.hidden = true;
 		}
@@ -382,7 +381,17 @@
 		}));
 	}
 
+	function logout() {
+		$$("[data-rw-logout]").forEach((b) => b.addEventListener("click", async () => {
+			b.disabled = true;
+			try { await fetch("/api/method/logout", { method: "POST", headers: { "X-Frappe-CSRF-Token": window.csrf_token || "", Accept: "application/json" }, credentials: "same-origin" }); }
+			catch (e) { /* the redirect below shows the state either way */ }
+			location.href = "/hire";
+		}));
+	}
+
 	function init() {
+		logout();
 		badge(); header(); catalogue(); addButtons(); gallery(); hireForm(); basketPage(); contactForms();
 		window.addEventListener("storage", (e) => { if (e.key === KEY) { memory = null; badge(); } });
 	}
