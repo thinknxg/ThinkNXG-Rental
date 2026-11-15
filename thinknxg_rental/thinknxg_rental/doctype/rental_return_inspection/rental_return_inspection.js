@@ -1,6 +1,9 @@
 frappe.ui.form.on("Rental Return Inspection", {
 	setup(frm) {
 		frm.set_query("hire_off_hire_note", () => ({ filters: { docstatus: 1, inspection_status: "Pending" } }));
+		thinknxg_rental.rental_warehouses().then((list) =>
+			frm.set_query("good_warehouse", "items", () => ({ filters: { name: ["in", list.filter((w) => w.category === "Own").map((w) => w.warehouse)] } }))
+		);
 	},
 	refresh(frm) {
 		frm.get_field("items").grid.cannot_add_rows = true;

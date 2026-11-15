@@ -8,6 +8,10 @@
   "cb_1",
   "enforce_reservation_on_dispatch",
   "inspection_required",
+  "sb_wh_own",
+  "own_rental_warehouses",
+  "sb_wh_cross",
+  "cross_hire_warehouses",
   "sb_2",
   "rental_yard_warehouse",
   "cross_hire_yard_warehouse",
@@ -74,14 +78,18 @@
   {
    "fieldname": "rental_yard_warehouse",
    "fieldtype": "Link",
-   "label": "Rental Yard (Available Own Stock)",
-   "options": "Warehouse"
+   "label": "Default Rental Yard",
+   "options": "Warehouse",
+   "read_only": 1,
+   "description": "Follows the default row of the table above."
   },
   {
    "fieldname": "cross_hire_yard_warehouse",
    "fieldtype": "Link",
-   "label": "Cross Hire Yard",
-   "options": "Warehouse"
+   "label": "Default Cross Hire Yard",
+   "options": "Warehouse",
+   "read_only": 1,
+   "description": "Follows the default row of the table above."
   },
   {
    "fieldname": "customer_sites_warehouse",
@@ -255,10 +263,34 @@
    "fieldtype": "Link",
    "label": "Excess Warehouse",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "sb_wh_own",
+   "fieldtype": "Section Break",
+   "label": "Own Rental Warehouses",
+   "description": "Every warehouse that holds the company's own rental stock, at any location. The default is used when a document does not say which one."
+  },
+  {
+   "fieldname": "own_rental_warehouses",
+   "fieldtype": "Table",
+   "label": "Own Rental Warehouses",
+   "options": "Rental Warehouse"
+  },
+  {
+   "fieldname": "sb_wh_cross",
+   "fieldtype": "Section Break",
+   "label": "Cross Hire Warehouses",
+   "description": "Warehouses that receive supplier-owned (cross hire) material. Supplier stock never enters an own rental warehouse."
+  },
+  {
+   "fieldname": "cross_hire_warehouses",
+   "fieldtype": "Table",
+   "label": "Cross Hire Warehouses",
+   "options": "Rental Warehouse"
   }
  ],
  "links": [],
- "modified": "2026-10-22 15:06:42.792591",
+ "modified": "2026-11-15 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Settings",

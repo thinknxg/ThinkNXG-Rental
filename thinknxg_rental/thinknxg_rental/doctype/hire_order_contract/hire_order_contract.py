@@ -1,10 +1,12 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
+from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
 from thinknxg_rental.events.job_type import get_job_type_items
-from thinknxg_rental.services.utils import get_available_qty, get_contract_for_source, get_settings
+from thinknxg_rental.services.utils import get_contract_for_source, get_settings
 
 
 class HireOrderContract(Document):
@@ -61,7 +63,6 @@ class HireOrderContract(Document):
 	def validate_materials(self):
 		if not self.materials:
 			frappe.throw(_("No physical rental items. Add Job Type Rental Items to the job type item, or enter the materials."))
-		yard = get_settings().rental_yard_warehouse
 		totals = {}
 		for m in self.materials:
 			if not frappe.get_cached_value("Item", m.item_code, "is_stock_item"):
@@ -70,7 +71,7 @@ class HireOrderContract(Document):
 				frappe.throw(_("Materials row #{0}: Total Qty must be greater than zero").format(m.idx))
 			totals[m.item_code] = totals.get(m.item_code, 0) + flt(m.qty)
 		if self.docstatus == 0:
-			left = {k: max(get_available_qty(k, yard), 0) if yard else 0 for k in totals}
+			left = {k: available_own_qty(k) for k in totals}
 			for m in self.materials:
 				m.available_qty = left[m.item_code]
 				m.shortfall_qty = max(flt(m.qty) - left[m.item_code], 0)
@@ -162,7 +163,7 @@ def make_reservation(source_name: str, target_doc=None):
 			"source_document": source.name,
 			"reservation_date": source.get("order_date") or nowdate(),
 			"required_from": source.required_from,
-			"source_warehouse": get_settings().rental_yard_warehouse,
+			"source_warehouse": default_own_warehouse(),
 		}
 	)
 	for row in data["items"]:

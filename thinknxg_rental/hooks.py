@@ -58,6 +58,12 @@ doc_events = {
 		# item picked in the form (ERPNext v16 does this on the server): the row's rental charge defaults
 		"process_item_selection": "thinknxg_rental.services.item_rental.quotation_item_selected",
 	},
+	# transfers between rental locations: ownership kept apart, reservations respected, nothing at sites
+	"Stock Entry": {
+		"validate": "thinknxg_rental.events.stock_entry.validate",
+		"on_submit": "thinknxg_rental.events.stock_entry.on_submit",
+		"on_cancel": "thinknxg_rental.events.stock_entry.on_cancel",
+	},
 	"Sales Invoice": {
 		"validate": [
 		    "thinknxg_rental.events.sales_invoice.validate",

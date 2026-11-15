@@ -102,9 +102,15 @@ def pr_validate(doc, method=None):
 
 	ordered = {d.item_code for d in cho.items}
 	recalc = False
+	from thinknxg_rental.services import warehouses as rw
+
 	for row in doc.items:
 		if row.item_code not in ordered:
 			frappe.throw(_("Row #{0}: {1} is not on Cross Hire Order {2}").format(row.idx, row.item_code, cho.name))
+		# supplier-owned material is received into (and returned from) cross hire warehouses only
+		row.warehouse = row.warehouse or cho.receipt_warehouse
+		rw.validate_cross_hire(row.warehouse, _("Row #{0}: ").format(row.idx), allowed=[cho.receipt_warehouse],
+			allow_inactive=bool(doc.is_return), company=doc.company)
 		if flt(row.rate) or not row.allow_zero_valuation_rate:
 			recalc = _zero_line(row, receipt=True) or recalc
 	if recalc:
@@ -155,6 +161,8 @@ def pr_on_submit(doc, method=None):
 			project=cho.project,
 			rental_site=cho.rental_site,
 			warehouse=row.warehouse,
+			source_warehouse=row.warehouse if doc.is_return else None,
+			target_warehouse=None if doc.is_return else row.warehouse,
 			voucher_detail_no=row.name,
 		)
 	ledger.update_cross_hire_progress(doc.nxg_cross_hire_order)

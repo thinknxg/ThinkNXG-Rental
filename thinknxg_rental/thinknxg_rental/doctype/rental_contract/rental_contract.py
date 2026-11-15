@@ -1,11 +1,13 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, flt, getdate, nowdate
 
+from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
 from thinknxg_rental.services import billing, ledger
-from thinknxg_rental.services.utils import check_duplicate_items, get_contract_source, get_rental_rate, get_settings
+from thinknxg_rental.services.utils import check_duplicate_items, get_contract_source, get_rental_rate
 
 SOURCE_TYPES = {"Hire Order": "Item Rental", "Hire Order Contract": "Job Type Contract"}
 
@@ -182,7 +184,7 @@ def make_reservation(source_name: str, target_doc=None):
 		target.reservation_date = source.contract_date or nowdate()
 		target.required_from = source.start_date
 		target.required_to = source.end_date
-		target.source_warehouse = get_settings().rental_yard_warehouse
+		target.source_warehouse = default_own_warehouse()
 		target.source_type, target.source_document = source.source_type, source.source_document
 		target.customer = source.customer
 
@@ -251,7 +253,6 @@ def make_off_hire_note(source_name: str, target_doc=None):
 def make_cross_hire_order(source_name: str, target_doc=None):
 	source = frappe.get_doc("Rental Contract", source_name)
 	_live_contract(source)
-	settings = get_settings()
 	target = frappe.new_doc("Cross Hire Order")
 	target.update(
 		{
@@ -262,14 +263,11 @@ def make_cross_hire_order(source_name: str, target_doc=None):
 			"expected_return_date": max(getdate(source.end_date), getdate(nowdate())),
 		}
 	)
-	yard = settings.rental_yard_warehouse
-	from thinknxg_rental.services.utils import get_available_qty
-
 	for d in source.items:
 		pending = flt(d.pending_qty)
 		if pending <= 0:
 			continue
-		available = max(get_available_qty(d.item_code, yard, source.name, get_contract_source(source.name)), 0) if yard else 0
+		available = available_own_qty(d.item_code, source.name, get_contract_source(source.name))
 		shortfall = pending - available
 		if shortfall > 0:
 			target.append("items", {"item_code": d.item_code, "item_name": d.item_name, "uom": d.uom, "qty": shortfall, "rate_basis": d.rate_basis})

@@ -5,7 +5,13 @@ frappe.ui.form.on("Hire Delivery Order", {
 		frm.set_query("rental_material_reservation", () => ({
 			filters: { docstatus: 1, rental_contract: frm.doc.rental_contract, status: ["in", ["Reserved", "Partially Reserved"]] },
 		}));
-		frm.set_query("source_warehouse", "items", () => ({ filters: { is_group: 0, company: frm.doc.company } }));
+		// own rows: own rental warehouses; cross hire rows: cross hire warehouses (any location)
+		thinknxg_rental.rental_warehouses().then((list) => {
+			frm.set_query("source_warehouse", "items", (doc, cdt, cdn) => {
+				const kind = locals[cdt][cdn].ownership === "Cross Hire" ? "Cross Hire" : "Own";
+				return { filters: { name: ["in", list.filter((w) => w.category === kind).map((w) => w.warehouse)], company: frm.doc.company } };
+			});
+		});
 		frm.set_query("cross_hire_order", "items", () => ({ filters: { docstatus: 1, status: ["!=", "Completed"] } }));
 		frm.set_query("batch_no", "items", (doc, cdt, cdn) => ({ filters: { item: locals[cdt][cdn].item_code } }));
 	},

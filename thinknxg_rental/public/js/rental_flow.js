@@ -155,3 +155,17 @@
     });
 
 })();
+
+// Rental warehouses of Rental Settings (own and cross hire, with their locations), fetched once per page.
+frappe.provide("thinknxg_rental");
+thinknxg_rental.rental_warehouses = function () {
+	if (!thinknxg_rental._rental_warehouses) {
+		thinknxg_rental._rental_warehouses = frappe
+			.xcall("thinknxg_rental.services.warehouses.get_rental_warehouses")
+			.catch(() => {
+				thinknxg_rental._rental_warehouses = null;
+				return [];
+			});
+	}
+	return thinknxg_rental._rental_warehouses;
+};

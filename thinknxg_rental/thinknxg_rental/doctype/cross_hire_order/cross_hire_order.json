@@ -196,15 +196,16 @@
    "label": "Receive At",
    "options": "Cross Hire Yard\nDirect to Site",
    "reqd": 1,
-   "default": "Cross Hire Yard"
+   "default": "Cross Hire Yard",
+   "description": "Cross Hire Yard: received into a cross hire warehouse, then delivered to site. Direct to Site: the supplier delivers to the customer site."
   },
   {
    "fieldname": "receipt_warehouse",
    "fieldtype": "Link",
-   "label": "Receipt Warehouse",
+   "label": "Cross Hire Warehouse",
    "options": "Warehouse",
-   "read_only": 1,
-   "description": "Set automatically from Receive At"
+   "description": "Cross hire warehouse that receives the supplier's material (Rental Settings > Cross Hire Warehouses). For Direct to Site it is the site's cross hire warehouse.",
+   "read_only_depends_on": "eval:doc.receive_at=='Direct to Site'"
   },
   {
    "fieldname": "taxes_and_charges",
@@ -293,7 +294,7 @@
    "link_fieldname": "nxg_cross_hire_order"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-15 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Cross Hire Order",

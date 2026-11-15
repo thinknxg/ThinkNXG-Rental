@@ -9,6 +9,7 @@
   "uom",
   "required_qty",
   "source_warehouse",
+  "location",
   "ownership",
   "cb_44",
   "actual_qty",
@@ -29,7 +30,8 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 2,
+   "search_index": 1
   },
   {
    "fieldname": "item_name",
@@ -145,10 +147,17 @@
    "no_copy": 1,
    "in_list_view": 0,
    "columns": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location",
+   "read_only": 1,
+   "description": "Location / Branch of the source warehouse (Rental Settings)."
   }
  ],
  "links": [],
- "modified": "2026-11-15 08:00:00.000000",
+ "modified": "2026-11-15 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Material Reservation Item",

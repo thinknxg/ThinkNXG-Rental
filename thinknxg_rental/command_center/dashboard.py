@@ -81,8 +81,11 @@ def buckets(start, end):
 
 # ----------------------------------------------------------------------------- stock position over time
 def _own_warehouses():
+	from thinknxg_rental.services import warehouses as rw
+
 	s = frappe.get_cached_doc("Rental Settings")
-	whs = {s.rental_yard_warehouse, s.inspection_warehouse, s.repair_warehouse}
+	# every own rental warehouse, at every location (inactive ones too: their stock is still own stock)
+	whs = set(rw.own_warehouses(active_only=False)) | {s.inspection_warehouse, s.repair_warehouse}
 	whs.update(frappe.get_all("Rental Site", filters={"site_warehouse": ["is", "set"]}, pluck="site_warehouse"))
 	return [w for w in whs if w]
 

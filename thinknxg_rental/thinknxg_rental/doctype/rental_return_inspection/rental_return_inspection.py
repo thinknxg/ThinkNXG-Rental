@@ -4,6 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import flt
 
 from thinknxg_rental.services import stock
+from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import require_setting
 
 
@@ -30,22 +31,30 @@ class RentalReturnInspection(Document):
 						d.idx, total, flt(d.returned_qty)
 					)
 				)
+			if d.ownership == "Own":
+				# good stock goes back to an own rental warehouse: the one chosen on the off-hire, else the default
+				d.good_warehouse = d.good_warehouse or rw.default_own_warehouse()
+				if flt(d.good_qty) > 0:
+					rw.validate_own(d.good_warehouse, _("Row #{0}: Good Stock To: ").format(d.idx), company=self.company)
+			else:
+				# supplier-owned material never becomes company stock, whatever its condition
+				d.good_warehouse = None
 			self.total_good_qty += flt(d.good_qty)
 			self.total_repairable_qty += flt(d.repairable_qty)
 			self.total_damaged_qty += flt(d.damaged_qty)
 
 	def on_submit(self):
-		"""Own material moves Good -> yard, Repairable -> repair, Beyond Repair -> scrap.
+		"""Own material moves Good -> its Good Stock To warehouse, Repairable -> repair, Beyond Repair -> scrap.
 		Cross-hired material stays in the cross hire warehouse (it goes back to the supplier in any
 		condition); its result only feeds the customer's damage settlement."""
 		rows = []
 		for d in self.items:
 			if d.ownership != "Own":
 				continue
-			for qty, setting, serial in (
-				(d.good_qty, "rental_yard_warehouse", d.good_serial_no),
-				(d.repairable_qty, "repair_warehouse", d.repairable_serial_no),
-				(d.damaged_qty, "scrap_warehouse", d.damaged_serial_no),
+			for qty, target, serial in (
+				(d.good_qty, lambda: d.good_warehouse or rw.require_default(rw.OWN), d.good_serial_no),
+				(d.repairable_qty, lambda: require_setting("repair_warehouse"), d.repairable_serial_no),
+				(d.damaged_qty, lambda: require_setting("scrap_warehouse"), d.damaged_serial_no),
 			):
 				if flt(qty) > 0:
 					rows.append(
@@ -53,7 +62,7 @@ class RentalReturnInspection(Document):
 							"item_code": d.item_code,
 							"qty": qty,
 							"s_warehouse": d.warehouse,
-							"t_warehouse": require_setting(setting),
+							"t_warehouse": target(),
 							"batch_no": d.batch_no,
 							"serial_no": serial,
 						}

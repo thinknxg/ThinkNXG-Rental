@@ -1,14 +1,15 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
+from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
 from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import check_request_unused, set_request_reference
 from thinknxg_rental.services.utils import (
 	check_duplicate_items,
 	estimate_amount,
-	get_available_qty,
 	item_rental_details,
 	get_settings,
 )
@@ -26,14 +27,13 @@ class HireOrder(Document):
 		self.set_item_values()
 
 	def set_item_values(self):
-		yard = get_settings().rental_yard_warehouse
 		totals = frappe._dict(qty=0, amount=0, deposit=0, replacement=0, shortfall=0)
 		for d in self.items:
 			if flt(d.qty) <= 0:
 				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 			d.rate_basis = d.rate_basis or self.rate_basis or "Monthly"
 			if not flt(d.rate) or not d.uom:
-				details = item_rental_details(d.item_code, self.customer, d.rate_basis, self.order_date, yard)
+				details = item_rental_details(d.item_code, self.customer, d.rate_basis, self.order_date)
 				d.uom = d.uom or details["uom"]
 				d.rate = flt(d.rate) or details["rate"]
 				d.security_deposit_rate = flt(d.security_deposit_rate) or details["security_deposit_rate"]
@@ -43,7 +43,7 @@ class HireOrder(Document):
 			d.estimated_amount = estimate_amount(d.qty, d.expected_hire_days, d.rate_basis, d.rate)
 			d.security_deposit = flt(d.qty) * flt(d.security_deposit_rate)
 			if self.docstatus == 0:
-				d.available_qty = max(get_available_qty(d.item_code, yard), 0) if yard else 0
+				d.available_qty = available_own_qty(d.item_code)
 				d.shortfall_qty = max(flt(d.qty) - flt(d.available_qty), 0)
 			totals.qty += flt(d.qty)
 			totals.amount += flt(d.estimated_amount)
@@ -99,7 +99,7 @@ def make_reservation(source_name: str, target_doc=None):
 		target.source_type = "Hire Order"
 		target.reservation_date = nowdate()
 		target.required_to = source.expected_return_date
-		target.source_warehouse = get_settings().rental_yard_warehouse
+		target.source_warehouse = default_own_warehouse()
 
 	return get_mapped_doc(
 		"Hire Order",

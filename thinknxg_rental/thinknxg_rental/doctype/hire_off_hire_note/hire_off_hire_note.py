@@ -4,6 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from thinknxg_rental.services import ledger, stock
+from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import get_profile, get_settings
 from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import check_request_unused, set_request_reference
 
@@ -52,51 +53,159 @@ class HireOffHireNote(Document):
 		settings = get_settings()
 		inspect = cint(settings.inspection_required)
 		balance = ledger.get_site_balance(self.rental_contract)
-		seen = set()
+		site = frappe.db.get_value("Rental Site", self.rental_site, ["site_warehouse", "cross_hire_site_warehouse"], as_dict=True) or frappe._dict()
+		for d in self.items:
+			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0 or flt(d.excess_qty) < 0:
+				frappe.throw(_("Row #{0}: quantities cannot be negative").format(d.idx))
+			if d.ownership != "Cross Hire":
+				d.cross_hire_order = None
+		self.set_delivered_from()
+		seen, moved_by_key = set(), {}
 		self.total_returned_qty = self.total_lost_qty = 0
 		excess_total = 0
 		for d in self.items:
 			key = (d.item_code, d.ownership, d.cross_hire_order or "")
-			if key in seen:
-				frappe.throw(_("Row #{0}: {1} ({2}) is entered more than once").format(d.idx, d.item_code, d.ownership))
-			seen.add(key)
-			d.at_site_qty = balance.get(key, 0)
-			moved = flt(d.returned_qty) + flt(d.lost_qty)
-			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0 or flt(d.excess_qty) < 0:
-				frappe.throw(_("Row #{0}: quantities cannot be negative").format(d.idx))
-			if moved > flt(d.at_site_qty) + 1e-6:
-				frappe.throw(
-					_("Row #{0}: {1} - returning {2} and writing off {3} but only {4} is at site").format(
-						d.idx, frappe.bold(d.item_code), flt(d.returned_qty), flt(d.lost_qty), flt(d.at_site_qty)
-					)
-				)
-			d.pending_qty = flt(d.at_site_qty) - moved
+			# one item can come back to several warehouses: one row per delivered-from and return warehouse
+			row_key = key + (d.delivered_from or "", d.target_warehouse or "", d.return_to_warehouse or "")
+			if row_key in seen:
+				frappe.throw(_("Row #{0}: {1} ({2}) is entered more than once for the same warehouses").format(d.idx, d.item_code, d.ownership))
+			seen.add(row_key)
+			moved_by_key[key] = moved_by_key.get(key, 0) + flt(d.returned_qty) + flt(d.lost_qty)
+			prefix = _("Row #{0}: ").format(d.idx)
+			d.site_warehouse = site.cross_hire_site_warehouse if d.ownership == "Cross Hire" else site.site_warehouse
 			if d.ownership == "Cross Hire":
 				cho = frappe.db.get_value("Cross Hire Order", d.cross_hire_order, ["supplier", "receipt_warehouse"], as_dict=True)
+				if not cho:
+					frappe.throw(prefix + _("Cross Hire Order is required for cross-hired material"))
 				d.supplier = cho.supplier
 				d.requires_inspection = inspect
-				# supplier-owned material goes back to the cross hire warehouse, never into own-stock warehouses
-				d.target_warehouse = cho.receipt_warehouse or settings.cross_hire_yard_warehouse
+				d.return_to_warehouse = None
+				# supplier-owned material goes back to a cross hire warehouse, never into own-stock warehouses
+				d.target_warehouse = d.target_warehouse or cho.receipt_warehouse or rw.default_cross_hire_warehouse()
+				if flt(d.returned_qty):
+					rw.validate_cross_hire(d.target_warehouse, prefix, allowed=[cho.receipt_warehouse], company=self.company)
 			else:
-				d.cross_hire_order = None
 				d.supplier = None
 				profile = get_profile(d.item_code)
 				d.requires_inspection = 1 if inspect and cint(profile.get("inspection_required", 1)) else 0
-				if not d.target_warehouse:
-					d.target_warehouse = settings.inspection_warehouse if d.requires_inspection else settings.rental_yard_warehouse
+				self.set_own_return_warehouses(d, settings, prefix)
 			if flt(d.returned_qty) and not d.target_warehouse:
 				frappe.throw(_("Row #{0}: Return Warehouse is required. Check Rental Settings.").format(d.idx))
+			d.location = rw.location_of(d.return_to_warehouse or d.target_warehouse)
+			if d.delivered_from and not d.delivery_order:
+				d.delivery_order = ledger.get_last_delivery(self.rental_contract, d.item_code, d.delivered_from)
 			self.total_returned_qty += flt(d.returned_qty)
 			self.total_lost_qty += flt(d.lost_qty)
 			if flt(d.excess_qty) > 0 and d.ownership == "Cross Hire":
 				frappe.throw(_("Row #{0}: Excess Qty is only for own stock").format(d.idx))
 			excess_total += flt(d.excess_qty)
+		# what comes back (returned + lost) is capped by what is at site, over all rows of the item
+		for d in self.items:
+			key = (d.item_code, d.ownership, d.cross_hire_order or "")
+			d.at_site_qty = balance.get(key, 0)
+			if moved_by_key[key] > flt(d.at_site_qty) + 1e-6:
+				frappe.throw(
+					_("Row #{0}: {1} - returning and writing off {2} over all its rows but only {3} is at site").format(
+						d.idx, frappe.bold(d.item_code), moved_by_key[key], flt(d.at_site_qty)
+					)
+				)
+			d.pending_qty = flt(d.at_site_qty) - moved_by_key[key]
 		if not (self.total_returned_qty or self.total_lost_qty or excess_total):
 			frappe.throw(_("Enter a returned or lost quantity on at least one row"))
 		if excess_total and not settings.get("excess_warehouse"):
 			frappe.throw(_("Set the Excess Warehouse in Rental Settings first"))
 		remaining = sum(balance.values()) - self.total_returned_qty - self.total_lost_qty
 		self.off_hire_type = "Full" if remaining <= 1e-6 else "Partial"
+
+	def set_own_return_warehouses(self, d, settings, prefix):
+		"""Own material: Return Warehouse is where it is moved now - an own rental warehouse, or the
+		inspection warehouse; Good Stock Returns To is the own warehouse it ends up in. Material that
+		needs inspection always goes to the inspection warehouse first: a rental warehouse picked as the
+		Return Warehouse becomes its Good Stock Returns To."""
+		inspection = settings.inspection_warehouse
+		if d.target_warehouse and d.target_warehouse != inspection and cint(d.requires_inspection):
+			d.return_to_warehouse = d.return_to_warehouse or d.target_warehouse
+			d.target_warehouse = inspection
+		if not d.return_to_warehouse:
+			if d.target_warehouse and d.target_warehouse != inspection:
+				d.return_to_warehouse = d.target_warehouse
+			elif d.delivered_from and rw.is_own(d.delivered_from, active_only=True):
+				d.return_to_warehouse = d.delivered_from  # back where it came from
+			else:
+				d.return_to_warehouse = rw.default_own_warehouse()
+		if not d.target_warehouse:
+			d.target_warehouse = inspection if cint(d.requires_inspection) else d.return_to_warehouse
+		if not (flt(d.returned_qty) or flt(d.excess_qty)):
+			return
+		if d.target_warehouse == inspection and inspection:
+			if not cint(d.requires_inspection):
+				d.requires_inspection = 1  # sent to inspection by hand
+		else:
+			rw.validate_own(d.target_warehouse, prefix, company=self.company)
+		if d.return_to_warehouse:
+			rw.validate_own(d.return_to_warehouse, prefix + _("Good Stock Returns To: "), company=self.company)
+		if d.target_warehouse == d.site_warehouse:
+			frappe.throw(prefix + _("own material cannot be returned into the site warehouse"))
+
+	def set_delivered_from(self):
+		"""Fill Delivered From from what is at site, splitting a row over the warehouses its material was
+		dispatched from (largest first). A Delivered From chosen by hand is checked against what is at
+		site from that warehouse."""
+		by_origin = ledger.get_site_balance_by_origin(self.rental_contract)
+		left = dict(by_origin)
+		for d in self.items:
+			if d.delivered_from:
+				key = (d.item_code, d.ownership, d.cross_hire_order or "", d.delivered_from)
+				left[key] = left.get(key, 0) - flt(d.returned_qty) - flt(d.lost_qty)
+				if left[key] < -1e-6:
+					frappe.throw(
+						_("Row #{0}: {1} - only {2} delivered from {3} is at site").format(
+							d.idx, frappe.bold(d.item_code), flt(by_origin.get(key)), d.delivered_from
+						)
+					)
+		if self.docstatus != 0:
+			return
+		order = []
+		for d in list(self.items):
+			if d.delivered_from:
+				order.append(d)
+				continue
+			origins = sorted(
+				[(q, k[3]) for k, q in left.items() if k[:3] == (d.item_code, d.ownership, d.cross_hire_order or "") and q > 1e-9],
+				key=lambda o: (-o[0], o[1]),
+			)
+			returned, lost, first = flt(d.returned_qty), flt(d.lost_qty), True
+			for qty, origin in origins:
+				if returned + lost <= 1e-9:
+					break
+				take_r = min(returned, qty)
+				take_l = min(lost, qty - take_r)
+				if take_r + take_l <= 1e-9:
+					continue
+				row = d if first else self._copy_row(d)
+				row.delivered_from = origin or None
+				row.returned_qty, row.lost_qty = take_r, take_l
+				if not first:
+					row.excess_qty = 0
+				left[(d.item_code, d.ownership, d.cross_hire_order or "", origin)] -= take_r + take_l
+				returned -= take_r
+				lost -= take_l
+				first = False
+				order.append(row)
+			if first:
+				order.append(d)
+			elif returned + lost > 1e-9:  # more than is at site: the at-site check reports it
+				d.returned_qty, d.lost_qty = flt(d.returned_qty) + returned, flt(d.lost_qty) + lost
+		self.items = order
+		for i, d in enumerate(self.items, 1):
+			d.idx = i
+
+	def _copy_row(self, d):
+		fields = ("item_code", "item_name", "uom", "ownership", "cross_hire_order", "supplier", "target_warehouse",
+			"return_to_warehouse", "batch_no", "serial_no", "remarks")
+		row = self.append("items", {k: d.get(k) for k in fields})
+		self.items.remove(row)
+		return row
 
 	def on_submit(self):
 		site = frappe.db.get_value(
@@ -118,7 +227,11 @@ class HireOffHireNote(Document):
 			}
 			for d in self.items
 		]
-		self.db_set("stock_entry", stock.make_stock_entry(self, "Material Transfer", returns, self.return_date))
+		stock_entry = stock.make_stock_entry(self, "Material Transfer", returns, self.return_date)
+		self.db_set("stock_entry", stock_entry)
+		for d in self.items:
+			if flt(d.returned_qty) and source(d) != d.target_warehouse:
+				d.db_set("stock_entry", stock_entry, update_modified=False)
 		# lost material leaves stock here; the customer charge is raised by the Damage Settlement
 		losses = [
 			{"item_code": d.item_code, "qty": d.lost_qty, "s_warehouse": source(d), "zero_value": d.ownership == "Cross Hire"}
@@ -146,14 +259,25 @@ class HireOffHireNote(Document):
 		cross_hire_orders = set()
 		for d in self.items:
 			row = dict(common, item_code=d.item_code, ownership=d.ownership, supplier=d.supplier,
-				cross_hire_order=d.cross_hire_order, warehouse=source(d), voucher_detail_no=d.name)
+				cross_hire_order=d.cross_hire_order, warehouse=source(d), origin_warehouse=d.delivered_from,
+				source_warehouse=source(d), voucher_detail_no=d.name)
 			if flt(d.returned_qty):
-				ledger.add_entry(self, position_type=ledger.AT_SITE, movement_type="Return", qty=-flt(d.returned_qty), **row)
+				ledger.add_entry(self, position_type=ledger.AT_SITE, movement_type="Return", qty=-flt(d.returned_qty),
+					target_warehouse=d.target_warehouse, stock_entry=d.get("stock_entry"), **row)
+			# custody is held per cross hire warehouse: the warehouse the material was dispatched from
+			origin = d.delivered_from or (d.ownership == "Cross Hire" and frappe.db.get_value("Cross Hire Order", d.cross_hire_order, "receipt_warehouse"))
+			if d.ownership == "Cross Hire" and flt(d.returned_qty) and origin and d.target_warehouse != origin:
+				# came back to another cross hire warehouse: custody moves with it, billing does not change
+				move = dict(row, position_type=ledger.CUSTODY, movement_type="Transfer", billing_date=self.return_date,
+					source_warehouse=origin, target_warehouse=d.target_warehouse, stock_entry=d.get("stock_entry"))
+				ledger.add_entry(self, qty=-flt(d.returned_qty), **dict(move, warehouse=origin))
+				ledger.add_entry(self, qty=flt(d.returned_qty), **dict(move, warehouse=d.target_warehouse))
 			if flt(d.lost_qty):
 				ledger.add_entry(self, position_type=ledger.AT_SITE, movement_type="Loss", qty=-flt(d.lost_qty), **row)
 				if d.ownership == "Cross Hire":
 					# lost supplier material also leaves our custody; the supplier's claim is booked by Purchase Invoice
-					ledger.add_entry(self, position_type=ledger.CUSTODY, movement_type="Loss", qty=-flt(d.lost_qty), **row)
+					ledger.add_entry(self, position_type=ledger.CUSTODY, movement_type="Loss", qty=-flt(d.lost_qty),
+						**dict(row, warehouse=origin or row["warehouse"]))
 					cross_hire_orders.add(d.cross_hire_order)
 
 		needs_inspection = any(cint(d.requires_inspection) and flt(d.returned_qty) for d in self.items)
@@ -184,24 +308,29 @@ class HireOffHireNote(Document):
 
 @frappe.whitelist()
 def get_items_at_site(rental_contract: str):
+	"""What is at site, one row per item, ownership, cross hire order and the warehouse it was
+	delivered from; own rows suggest going back to that warehouse."""
 	frappe.has_permission("Rental Contract", "read", rental_contract, throw=True)
 	out = []
-	for (item_code, ownership, cho), qty in sorted(ledger.get_site_balance(rental_contract).items()):
+	for (item_code, ownership, cho, origin), qty in sorted(ledger.get_site_balance_by_origin(rental_contract).items()):
 		if qty <= 0:
 			continue
 		item = frappe.get_cached_value("Item", item_code, ["item_name", "stock_uom"], as_dict=True)
-		out.append(
-			{
-				"item_code": item_code,
-				"item_name": item.item_name,
-				"uom": item.stock_uom,
-				"ownership": ownership,
-				"cross_hire_order": cho or None,
-				"supplier": frappe.db.get_value("Cross Hire Order", cho, "supplier") if cho else None,
-				"at_site_qty": qty,
-				"pending_qty": qty,
-			}
-		)
+		row = {
+			"item_code": item_code,
+			"item_name": item.item_name,
+			"uom": item.stock_uom,
+			"ownership": ownership,
+			"cross_hire_order": cho or None,
+			"supplier": frappe.db.get_value("Cross Hire Order", cho, "supplier") if cho else None,
+			"at_site_qty": qty,
+			"pending_qty": qty,
+			"delivered_from": origin or None,
+			"delivery_order": ledger.get_last_delivery(rental_contract, item_code, origin or None),
+		}
+		if ownership == "Own" and origin and rw.is_own(origin, active_only=True):
+			row["return_to_warehouse"] = origin
+		out.append(row)
 	return out
 
 
@@ -235,6 +364,8 @@ def make_inspection(source_name: str, target_doc=None):
 					"ownership": d.ownership,
 					"cross_hire_order": d.cross_hire_order,
 					"warehouse": d.target_warehouse,
+					"good_warehouse": d.get("return_to_warehouse") if d.ownership != "Cross Hire" else None,
+					"delivered_from": d.get("delivered_from"),
 					"returned_qty": d.returned_qty,
 					"good_qty": d.returned_qty,
 					"batch_no": d.batch_no,
