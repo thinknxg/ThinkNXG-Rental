@@ -55,10 +55,39 @@
 		const q = await cp.api("quotation", { name: ctx.params[0] });
 		if (!ctx.isCurrent()) return;
 		ctx.setTitle(q.name, [[__("Quotations"), "quotations"]]);
-		ctx.main.replaceChildren(cp.pageHead(q.name, q.title, [cp.pdfBtn("Quotation", q.name, __("Download PDF"))]),
-			el("div", { style: { margin: "-10px 0 18px" } }, cp.badge(q.status)),
+		const accept = q.can_accept ? cp.btn(__("Accept quotation"), async () => {
+			if (!(await cp.confirm(__("Accept quotation {0}?", [q.name]), __("The rental team is told straight away and prepares your order. Delivery is arranged with you."), __("Accept quotation")))) return;
+			await cp.api("accept_quotation", { name: q.name }, { post: true });
+			cp.toast(__("Quotation accepted. The rental team will be in touch to confirm the order."));
+			P.quotation(ctx);
+		}, { primary: true, icon: "check" }) : null;
+		ctx.main.replaceChildren(cp.pageHead(q.name, q.title, [accept, cp.pdfBtn("Quotation", q.name, __("Download PDF"))].filter(Boolean)),
+			el("div", { style: { margin: "-10px 0 18px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" } }, cp.badge(q.status),
+				q.accepted_on ? cp.badge(__("Accepted online {0}", [cp.date(q.accepted_on)]), "good") : null),
 			el("div", { class: "cp-stack" }, cp.card(__("Quotation"), cp.facts([[__("Quotation number"), q.name], [__("Date"), cp.date(q.transaction_date)], [__("Valid until"), cp.date(q.valid_till)],
 				[__("Site"), q.rental_site], [__("Grand total"), cp.money(q.grand_total, q.currency)]])), linesCard(q), terms(q)));
+	};
+
+	// ================================================================== website enquiries
+	P.enquiries = async function (ctx) {
+		ctx.setTitle(__("Enquiries"));
+		ctx.main.replaceChildren(cp.pageHead(__("Enquiries"), __("Requests you sent from the website, and the quotations we prepared for them."),
+			[cp.btn(__("New enquiry"), null, { href: "/hire/equipment", external: true, icon: "plus" })]),
+			cp.dataTable({
+				method: "enquiries",
+				search: __("Enquiry reference"),
+				columns: [
+					{ label: __("Enquiry"), render: (r) => el("div", {}, el("b", { text: r.name }), el("span", { class: "cp-sub", text: [__(r.enquiry_type), r.subject].filter(Boolean).join(", ") })) },
+					{ label: __("Sent"), render: (r) => cp.date(r.enquiry_date) },
+					{ label: __("Items"), render: (r) => r.items.length ? el("div", {}, r.items.slice(0, 3).map((i) => el("div", { text: cp.qty(i.qty) + " × " + i.item_name + (i.line_type === "Purchase" ? " (" + __("buy") + ")" : "") })),
+						r.items.length > 3 ? el("span", { class: "cp-sub", text: __("and {0} more", [r.items.length - 3]) }) : null) : el("span", { class: "cp-sub", text: __("Message only") }) },
+					{ label: __("Period"), render: (r) => r.required_from ? cp.date(r.required_from) + " – " + cp.date(r.expected_return) : "" },
+					{ label: __("Quotation"), render: (r) => r.quotations.length ? el("div", {}, r.quotations.map((q) => el("div", {}, cp.link("quotations/" + q, q)))) : el("span", { class: "cp-sub", text: __("Being prepared") }) },
+					{ label: __("Status"), render: (r) => cp.badge(r.status) },
+				],
+				mobile: (r) => ({ title: r.name, badge: cp.badge(r.status), meta: [[__("Sent"), cp.date(r.enquiry_date)], [__("Items"), String(r.items.length)], [__("Quotation"), r.quotations.join(", ") || __("Being prepared")]] }),
+				empty: { title: __("No enquiries yet"), text: __("Choose equipment on the website and send an enquiry; it is listed here."), icon: "inbox" },
+			}));
 	};
 
 	// ================================================================== sales orders

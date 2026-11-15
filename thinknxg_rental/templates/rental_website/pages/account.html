@@ -1,0 +1,58 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero with context -%}
+{{ page_hero(_("Your account"), None, rw_crumbs) }}
+<section class="rw-section"><div class="rw-wrap">
+{% if not rw_logged_in %}
+	<div class="rw-duo">
+		<div class="rw-panel">
+			<h2>{{ _("Log in") }}</h2>
+			<p>{{ _("Customers see their orders, material on site, deliveries, returns, invoices and statements, and can ask for collections and extensions.") }}</p>
+			<a class="rw-btn rw-btn--primary rw-btn--lg" href="/login?redirect-to=/hire/account">{{ icon("log-in", "rw-i--sm") }} {{ _("Log in") }}</a>
+		</div>
+		<div class="rw-panel">
+			<h2>{{ _("New customer") }}</h2>
+			<p>{{ _("Create a login to follow your enquiries, or ask us to open a business account for your company.") }}</p>
+			<div class="rw-ctas">
+				<a class="rw-btn rw-btn--lg" href="/login?redirect-to=/hire/account#signup">{{ _("Create a login") }}</a>
+				<a class="rw-btn rw-btn--ghost rw-btn--lg" href="/hire/contact?type=Business%20Account">{{ _("Request a business account") }}</a>
+			</div>
+		</div>
+	</div>
+{% else %}
+	<div class="rw-account">
+		<div class="rw-panel">
+			<h2>{{ _("Hello {0}").format((rw_user_name or rw_prefill.full_name or "") | e) }}</h2>
+			{% if rw_is_staff %}
+			<p>{{ _("You are signed in as rental staff.") }}</p>
+			<div class="rw-ctas"><a class="rw-btn rw-btn--primary" href="/rental/admin">{{ _("Open the command center") }}</a><a class="rw-btn" href="/app/rental-website-enquiry">{{ _("Website enquiries") }}</a><a class="rw-btn rw-btn--ghost" href="/app/rental-website-settings">{{ _("Website settings") }}</a></div>
+			{% elif rw_is_customer %}
+			<p>{{ _("Signed in for {0}.").format(rw_customer_names | join(", ") | e) }}</p>
+			<div class="rw-ctas">
+				<a class="rw-btn rw-btn--primary rw-btn--lg" href="/rental">{{ icon("layout-dashboard", "rw-i--sm") }} {{ _("Open the customer portal") }}</a>
+			</div>
+			<ul class="rw-quicklinks">
+				<li><a href="/rental/enquiries">{{ icon("inbox", "rw-i--sm") }} {{ _("Enquiries") }}</a></li>
+				<li><a href="/rental/quotations">{{ icon("file-text", "rw-i--sm") }} {{ _("Quotations") }}</a></li>
+				<li><a href="/rental/orders">{{ icon("clipboard-list", "rw-i--sm") }} {{ _("Orders") }}</a></li>
+				<li><a href="/rental/active">{{ icon("hard-hat", "rw-i--sm") }} {{ _("Material on site") }}</a></li>
+				<li><a href="/rental/requests">{{ icon("undo-2", "rw-i--sm") }} {{ _("Requests") }}</a></li>
+				<li><a href="/rental/invoices">{{ icon("receipt", "rw-i--sm") }} {{ _("Invoices") }}</a></li>
+				<li><a href="/rental/documents/rental">{{ icon("folder-open", "rw-i--sm") }} {{ _("Documents") }}</a></li>
+			</ul>
+			{% else %}
+			<p>{{ _("Your login is not linked to a customer account yet. Enquiries you send are kept here; once we open an account for you, orders and invoices appear in the customer portal.") }}</p>
+			<div class="rw-ctas"><a class="rw-btn rw-btn--primary" href="/hire/contact?type=Business%20Account">{{ _("Request a business account") }}</a></div>
+			{% endif %}
+			<p class="rw-account__out"><a href="/update-profile?redirect-to=/hire/account">{{ _("Edit profile") }}</a> · <a href="/api/method/logout?redirect-to=/hire">{{ _("Log out") }}</a></p>
+		</div>
+		<div class="rw-panel">
+			<h2>{{ _("Your website enquiries") }}</h2>
+			{% if rw_enquiries %}
+			<table class="rw-table"><thead><tr><th>{{ _("Reference") }}</th><th>{{ _("Type") }}</th><th>{{ _("Date") }}</th><th>{{ _("Status") }}</th></tr></thead>
+				<tbody>{% for e in rw_enquiries %}<tr><td><b>{{ e.name }}</b></td><td>{{ _(e.enquiry_type) }}</td><td>{{ frappe.utils.formatdate(e.enquiry_date) }}</td><td><span class="rw-status rw-status--{{ e.status | lower | replace(' ', '-') }}">{{ _(e.status) }}</span></td></tr>{% endfor %}</tbody></table>
+			{% else %}
+			<p>{{ _("No enquiries yet.") }} <a href="/hire/equipment">{{ _("Browse equipment") }}</a></p>
+			{% endif %}
+		</div>
+	</div>
+{% endif %}
+</div></section>

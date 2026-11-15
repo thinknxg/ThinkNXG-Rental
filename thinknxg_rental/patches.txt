@@ -10,3 +10,4 @@ thinknxg_rental.patches.v2_0.migrate_multiline_jcr
 thinknxg_rental.patches.v2_0.remove_payment_term_field
 thinknxg_rental.patches.v2_1.remove_rental_classification
 thinknxg_rental.patches.v2_2.seed_rental_warehouses
+thinknxg_rental.patches.v2_4.seed_rental_website

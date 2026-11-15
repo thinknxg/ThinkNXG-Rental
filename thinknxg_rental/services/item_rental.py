@@ -45,6 +45,8 @@ def editable_profile_fields(with_layout=False):
 	meta = frappe.get_meta(PROFILE)
 	out = []
 	for df in meta.fields:
+		if df.fieldname == "sb_website":
+			break  # the public website content is edited on the Rental Item Profile form itself
 		if df.fieldtype in LAYOUT:
 			if with_layout:
 				out.append(df)

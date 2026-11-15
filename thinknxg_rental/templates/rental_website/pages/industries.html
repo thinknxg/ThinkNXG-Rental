@@ -1,0 +1,12 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero, cards_grid with context -%}
+{{ page_hero(_("Industries we serve"), _("Formwork and scaffolding for buildings, infrastructure and industrial works."), rw_crumbs) }}
+<section class="rw-section"><div class="rw-wrap">
+	{% if rw_cards.get("Industry") %}{{ cards_grid(rw_cards["Industry"], cls="rw-cards--industries rw-cards--wide") }}{% endif %}
+</div></section>
+{% if rw_top_categories %}
+<section class="rw-section rw-tone--tinted"><div class="rw-wrap">
+	<div class="rw-shead"><div><h2>{{ _("Equipment for your project") }}</h2></div><a class="rw-link" href="/hire/equipment">{{ _("All equipment") }} {{ icon("arrow-right", "rw-i--sm") }}</a></div>
+	<div class="rw-catgrid">{% from "templates/rental_website/macros.html" import category_card with context %}{% for c in rw_top_categories[:8] %}{{ category_card(c) }}{% endfor %}</div>
+</div></section>
+{% endif %}
+{% include "templates/rental_website/pages/_cta.html" %}

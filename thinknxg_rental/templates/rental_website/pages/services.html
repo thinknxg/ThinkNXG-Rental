@@ -1,0 +1,12 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero, cards_grid with context -%}
+{{ page_hero(_("Rental services"), _("Equipment for every stage of a structure, on the terms your project needs."), rw_crumbs) }}
+<section class="rw-section"><div class="rw-wrap">
+	{% if rw_cards.get("Service") %}{{ cards_grid(rw_cards["Service"], cls="rw-cards--services rw-cards--wide") }}{% else %}<p class="rw-empty">{{ _("Services are being added.") }}</p>{% endif %}
+</div></section>
+{% if rw_cards.get("Process Step") %}
+<section class="rw-section rw-tone--tinted"><div class="rw-wrap">
+	<div class="rw-shead"><div><h2>{{ _("How renting works") }}</h2></div></div>
+	{{ cards_grid(rw_cards["Process Step"], numbered=True) }}
+</div></section>
+{% endif %}
+{% include "templates/rental_website/pages/_cta.html" %}

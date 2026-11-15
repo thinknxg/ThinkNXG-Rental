@@ -1,0 +1,13 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero, contact_form, contact_details with context -%}
+{{ page_hero(_("Contact us"), _("Ask about equipment, long-term contracts or project rental. The rental team replies by e-mail or phone."), rw_crumbs) }}
+<section class="rw-section"><div class="rw-wrap rw-split rw-split--form">
+	<div class="rw-panel">{{ contact_form(rw_enquiry_type, rw_prefill) }}</div>
+	<div>
+		<h2 class="rw-h3">{{ _("Reach us directly") }}</h2>
+		{{ contact_details() }}
+		<div class="rw-aside-links">
+			<a href="/hire/basket">{{ icon("clipboard-list", "rw-i--sm") }} {{ _("Have a list of items? Build an enquiry from the catalogue") }}</a>
+			<a href="/hire/account">{{ icon("user", "rw-i--sm") }} {{ _("Existing customer? Open your account") }}</a>
+		</div>
+	</div>
+</div></section>

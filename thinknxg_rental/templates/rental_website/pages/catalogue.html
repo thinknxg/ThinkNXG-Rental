@@ -1,0 +1,73 @@
+{%- from "templates/rental_website/macros.html" import icon, product_card, breadcrumbs, pagination, page_hero with context -%}
+{%- set c = rw_category -%}
+<section class="rw-pagehead rw-pagehead--catalogue"><div class="rw-wrap">
+	{{ breadcrumbs(rw_crumbs) }}
+	<h1>{% if rw_search %}{{ _("Search results for “{0}”").format(rw_search | e) }}{% elif c %}{{ c.title | e }}{% else %}{{ _("Equipment catalogue") }}{% endif %}</h1>
+	{% if c and c.description %}<p>{{ c.description | e }}</p>{% elif not c and not rw_search %}<p>{{ _("Formwork, scaffolding, props and accessories for hire. Add what you need to your enquiry and we come back with a quotation.") }}</p>{% endif %}
+	{% if rw_children %}<ul class="rw-chips">{% for ch in rw_children %}<li><a href="{{ ch.url }}">{{ ch.title | e }} <small>{{ ch.count }}</small></a></li>{% endfor %}</ul>{% endif %}
+</div></section>
+
+<div class="rw-wrap rw-catalogue">
+	<aside class="rw-filters" id="rw-filters" data-rw-filters aria-label="{{ _('Filters') }}">
+		<div class="rw-filters__head"><h2>{{ _("Filter") }}</h2><button type="button" class="rw-iconbtn" data-rw-filters-close aria-label="{{ _('Close filters') }}">{{ icon("x") }}</button></div>
+		<form method="get" action="{{ rw_base_url }}" data-rw-filter-form>
+			<label class="rw-field"><span>{{ _("Search") }}</span><input type="search" name="q" value="{{ rw_search | e }}" placeholder="{{ _('Name or item code') }}"></label>
+			{% if rw_systems %}
+			<label class="rw-field"><span>{{ _("System") }}</span>
+				<select name="system" data-rw-autosubmit><option value="">{{ _("All systems") }}</option>
+				{% for sy in rw_systems %}<option value="{{ sy | e }}" {% if sy == rw_system %}selected{% endif %}>{{ _(sy) | e }}</option>{% endfor %}</select></label>
+			{% endif %}
+			{% if rw_boot.show_availability %}<label class="rw-check"><input type="checkbox" name="in_stock" value="1" data-rw-autosubmit {% if rw_filters.in_stock %}checked{% endif %}> {{ _("In stock now") }}</label>{% endif %}
+			{% if rw_boot.allow_purchase %}<label class="rw-check"><input type="checkbox" name="purchase" value="1" data-rw-autosubmit {% if rw_filters.purchase %}checked{% endif %}> {{ _("Also for sale") }}</label>{% endif %}
+			{% if rw_sort != "featured" %}<input type="hidden" name="sort" value="{{ rw_sort }}">{% endif %}
+			{% if rw_query.view %}<input type="hidden" name="view" value="{{ rw_view }}">{% endif %}
+			<div class="rw-filters__actions"><button class="rw-btn rw-btn--primary" type="submit">{{ _("Apply") }}</button>
+				{% if rw_query %}<a class="rw-btn rw-btn--ghost" href="{{ rw_base_url }}">{{ _("Clear") }}</a>{% endif %}</div>
+		</form>
+		{% if rw_categories %}
+		<nav class="rw-tree" aria-label="{{ _('Categories') }}">
+			<h3>{{ _("Categories") }}</h3>
+			<ul>
+				<li><a href="/hire/equipment" {% if not c %}aria-current="page"{% endif %}>{{ _("All equipment") }}</a></li>
+				{% for cc in rw_categories %}<li style="--d: {{ cc.depth }}"><a href="{{ cc.url }}" {% if c and cc.name == c.name %}aria-current="page"{% endif %}>{{ cc.title | e }} <small>{{ cc.count }}</small></a></li>{% endfor %}
+			</ul>
+		</nav>
+		{% endif %}
+	</aside>
+
+	<div class="rw-results">
+		<div class="rw-toolbar">
+			<button type="button" class="rw-btn rw-btn--sm rw-toolbar__filters" data-rw-filters-open aria-controls="rw-filters">{{ icon("sliders-horizontal", "rw-i--sm") }} {{ _("Filters") }}</button>
+			<p class="rw-toolbar__count">{{ _("{0} products").format(rw_total) if rw_total != 1 else _("1 product") }}</p>
+			<form method="get" action="{{ rw_base_url }}" class="rw-toolbar__sort">
+				{% for k, v in rw_query.items() if k not in ("sort",) %}<input type="hidden" name="{{ k }}" value="{{ v | e }}">{% endfor %}
+				<label><span class="rw-sr">{{ _("Sort by") }}</span>
+				<select name="sort" data-rw-autosubmit>
+					{% for v, l in [("featured", _("Popular first")), ("name", _("Name A–Z")), ("name_desc", _("Name Z–A")), ("newest", _("Newest"))] %}
+					<option value="{{ v }}" {% if v == rw_sort %}selected{% endif %}>{{ l }}</option>{% endfor %}
+				</select></label>
+			</form>
+			<div class="rw-seg" role="group" aria-label="{{ _('View') }}">
+				{% set q = rw_query.copy() %}
+				{% for v, ic, l in [("grid", "layout-grid", _("Grid")), ("list", "list", _("List"))] %}
+				{% set _x = q.update({"view": v}) %}
+				<a href="{{ rw_base_url }}?{% for k, val in q.items() %}{{ k }}={{ val | urlencode }}{% if not loop.last %}&amp;{% endif %}{% endfor %}" {% if rw_view == v %}aria-current="true"{% endif %} title="{{ l }}">{{ icon(ic, "rw-i--sm") }}<span class="rw-sr">{{ l }}</span></a>
+				{% endfor %}
+			</div>
+		</div>
+		{% if rw_products %}
+		<div class="{{ 'rw-list' if rw_view == 'list' else 'rw-grid rw-grid--3' }}">
+			{% for p in rw_products %}{{ product_card(p, list=(rw_view == "list")) }}{% endfor %}
+		</div>
+		{{ pagination(rw_page_no, rw_pages, rw_base_url, rw_query) }}
+		{% else %}
+		<div class="rw-empty">
+			{{ icon("search-x", "rw-i--lg") }}
+			<h2>{{ _("No equipment matches") }}</h2>
+			<p>{{ _("Try fewer filters or another word. If you cannot find an item, ask us: we may have it in another system.") }}</p>
+			<div class="rw-ctas"><a class="rw-btn" href="/hire/equipment">{{ _("Show all equipment") }}</a><a class="rw-btn rw-btn--primary" href="/hire/contact">{{ _("Ask the rental team") }}</a></div>
+		</div>
+		{% endif %}
+	</div>
+</div>
+<div class="rw-scrim" data-rw-scrim hidden></div>

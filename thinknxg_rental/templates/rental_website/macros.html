@@ -1,0 +1,300 @@
+{#- Reusable parts of the rental website. Every section of the home page is one macro; a page is a
+    sequence of them. Plain text is escaped with | e; only HTML fields entered in the desk are output as HTML. -#}
+
+{% macro icon(name, cls="") -%}
+<svg class="rw-i {{ cls }}" aria-hidden="true"><use href="/assets/frappe/icons/lucide.svg#icon-{{ name | e }}"></use></svg>
+{%- endmacro %}
+
+{% macro logo() -%}
+{%- if rw.logo -%}
+<img src="{{ rw.logo | e }}" alt="{{ (rw.site_name or 'thinkNXG Rental') | e }}" class="rw-brand__img" width="160" height="40">
+{%- else -%}
+<svg class="rw-brand__mark" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="currentColor"/><g stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none"><path d="M18 50V14M46 50V14M18 22h28M18 36h28M18 50h28M18 36l28-14M18 50l28-14"/></g></svg>
+<span class="rw-brand__text">{% set n = (rw.site_name or "thinkNXG Rental") %}{% if n == "thinkNXG Rental" %}thinkNXG <b>Rental</b>{% else %}{{ n | e }}{% endif %}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro money(value, per=None) -%}
+{{ frappe.utils.fmt_money(value, currency=rw_currency) }}{% if per %}<small> / {{ per }}</small>{% endif %}
+{%- endmacro %}
+
+{% macro per(basis) -%}
+{{ {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis or "") }}
+{%- endmacro %}
+
+{% macro availability(a) -%}
+{%- if a -%}<span class="rw-avail rw-avail--{{ a.code }}">{{ a.label | e }}</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro breadcrumbs(crumbs) -%}
+<nav class="rw-crumbs" aria-label="{{ _('Breadcrumb') }}"><ol>
+{%- for name, link in crumbs -%}
+<li>{% if loop.last %}<span aria-current="page">{{ name | e }}</span>{% else %}<a href="{{ link }}">{{ name | e }}</a>{% endif %}</li>
+{%- endfor -%}
+</ol></nav>
+{%- endmacro %}
+
+{% macro add_button(p, label=None, primary=False) -%}
+<button type="button" class="rw-btn {{ 'rw-btn--primary' if primary else 'rw-btn--ghost' }} rw-btn--sm" data-rw-add
+	data-item="{{ p.item_code | e }}" data-name="{{ p.item_name | e }}" data-url="{{ p.url }}" data-image="{{ (p.image or '') | e }}"
+	data-uom="{{ (p.uom or '') | e }}" data-min="{{ p.minimum_hire_days or 0 }}">{{ icon("plus", "rw-i--sm") }}<span>{{ label or _("Add to enquiry") }}</span></button>
+{%- endmacro %}
+
+{% macro product_card(p, list=False) -%}
+<article class="rw-card{% if list %} rw-card--list{% endif %}">
+	<a class="rw-card__media" href="{{ p.url }}" tabindex="-1" aria-hidden="true">
+		{%- if p.image -%}<img src="{{ p.image | e }}" alt="" loading="lazy" decoding="async" width="480" height="360">
+		{%- else -%}<span class="rw-card__placeholder">{{ icon("boxes", "rw-i--lg") }}</span>{%- endif -%}
+		{% if p.featured %}<span class="rw-tag">{{ _("Popular") }}</span>{% endif %}
+	</a>
+	<div class="rw-card__body">
+		<p class="rw-card__cat">{{ p.category | e }}</p>
+		<h3 class="rw-card__title"><a href="{{ p.url }}">{{ p.item_name | e }}</a></h3>
+		<p class="rw-card__code">{{ p.item_code | e }}</p>
+		{% if p.summary %}<p class="rw-card__text">{{ p.summary | e }}</p>{% endif %}
+		<dl class="rw-card__specs">
+			{% if p.dimensions %}<div><dt>{{ _("Size") }}</dt><dd>{{ p.dimensions | e }}</dd></div>{% endif %}
+			{% if p.weight_per_unit %}<div><dt>{{ _("Weight") }}</dt><dd>{{ "%g" | format(p.weight_per_unit) }} kg</dd></div>{% endif %}
+			{% if p.minimum_hire_days %}<div><dt>{{ _("Min. hire") }}</dt><dd>{{ _("{0} days").format(p.minimum_hire_days) }}</dd></div>{% endif %}
+		</dl>
+	</div>
+	<div class="rw-card__foot">
+		<div class="rw-card__meta">
+			{% if p.rate %}<span class="rw-price">{{ money(p.rate, per(p.rate_basis)) }}</span>{% endif %}
+			{{ availability(p.availability) }}
+		</div>
+		<div class="rw-card__actions">
+			<a class="rw-btn rw-btn--sm" href="{{ p.url }}">{{ _("Details") }}</a>
+			{{ add_button(p, _("Add"), primary=True) }}
+		</div>
+	</div>
+</article>
+{%- endmacro %}
+
+{% macro category_card(c) -%}
+<a class="rw-catcard" href="{{ c.url }}">
+	<span class="rw-catcard__media">{% if c.image %}<img src="{{ c.image | e }}" alt="" loading="lazy" decoding="async" width="400" height="260">{% else %}{{ icon("layers", "rw-i--lg") }}{% endif %}</span>
+	<span class="rw-catcard__body"><b>{{ c.title | e }}</b>
+		{% if c.description %}<span>{{ c.description | e }}</span>{% endif %}
+		<small>{{ _("{0} products").format(c.count) if c.count != 1 else _("1 product") }}</small></span>
+	{{ icon("arrow-right", "rw-catcard__go") }}
+</a>
+{%- endmacro %}
+
+{% macro pagination(page, pages, base, query) -%}
+{%- if pages > 1 -%}
+<nav class="rw-pager" aria-label="{{ _('Pages') }}">
+	{%- set q = query.items() | list -%}
+	{%- macro href(n) -%}{{ base }}?{% for k, v in q %}{{ k }}={{ v | urlencode }}&amp;{% endfor %}page={{ n }}{%- endmacro -%}
+	{% if page > 1 %}<a class="rw-btn rw-btn--sm" rel="prev" href="{{ href(page - 1) }}">{{ icon("chevron-left", "rw-i--sm") }} {{ _("Previous") }}</a>{% endif %}
+	<span>{{ _("Page {0} of {1}").format(page, pages) }}</span>
+	{% if page < pages %}<a class="rw-btn rw-btn--sm" rel="next" href="{{ href(page + 1) }}">{{ _("Next") }} {{ icon("chevron-right", "rw-i--sm") }}</a>{% endif %}
+</nav>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro cta_buttons(sec, invert=False) -%}
+{%- if sec.cta_label or sec.cta2_label -%}
+<div class="rw-ctas">
+	{% if sec.cta_label %}<a class="rw-btn rw-btn--primary rw-btn--lg" href="{{ (sec.cta_link or '/hire/equipment') | e }}">{{ sec.cta_label | e }}</a>{% endif %}
+	{% if sec.cta2_label %}<a class="rw-btn {{ 'rw-btn--inverse' if invert else '' }} rw-btn--lg" href="{{ (sec.cta2_link or '/hire/contact') | e }}">{{ sec.cta2_label | e }}</a>{% endif %}
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro section_head(sec, link=None) -%}
+<div class="rw-shead">
+	<div>{% if sec.title %}<h2>{{ sec.title | e }}</h2>{% endif %}{% if sec.subtitle %}<p>{{ sec.subtitle | e }}</p>{% endif %}</div>
+	{% if link %}{{ link }}{% elif sec.cta_label and sec.section_type not in ("Call to Action", "Hero", "Banner") %}<a class="rw-link" href="{{ (sec.cta_link or '#') | e }}">{{ sec.cta_label | e }} {{ icon("arrow-right", "rw-i--sm") }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{#- An original line drawing of a scaffold bay with a formwork panel, drawn once on load. -#}
+{% macro structure_art() -%}
+<svg class="rw-art" viewBox="0 0 520 420" role="img" aria-label="{{ _('Scaffold frame and formwork panel') }}">
+	<g class="rw-art__grid" stroke="currentColor" stroke-opacity=".08">
+		{% for x in range(0, 521, 26) %}<line x1="{{ x }}" y1="0" x2="{{ x }}" y2="420"/>{% endfor %}
+		{% for y in range(0, 421, 26) %}<line x1="0" y1="{{ y }}" x2="520" y2="{{ y }}"/>{% endfor %}
+	</g>
+	<g class="rw-art__frame" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square">
+		<path pathLength="1" d="M70 400V40M200 400V40M330 400V40"/>
+		<path pathLength="1" d="M60 70H340M60 170H340M60 270H340M60 380H340"/>
+		<path pathLength="1" d="M70 380L200 270M200 270L330 170M70 170L200 70"/>
+	</g>
+	<g class="rw-art__panel" fill="none" stroke="var(--rw-accent)" stroke-width="5">
+		<path pathLength="1" d="M372 92h112v288H372z"/>
+		<path pathLength="1" d="M372 164h112M372 236h112M372 308h112M428 92v288"/>
+	</g>
+	<g class="rw-art__props" stroke="currentColor" stroke-width="4" fill="none" stroke-opacity=".55">
+		<path pathLength="1" d="M362 400l-24-110M494 400l20-110"/>
+	</g>
+	<g fill="var(--rw-accent)">
+		{% for x, y in [(70,70),(200,70),(330,70),(70,170),(200,170),(330,170),(70,270),(200,270),(330,270)] %}<rect x="{{ x - 7 }}" y="{{ y - 7 }}" width="14" height="14" class="rw-art__node"/>{% endfor %}
+	</g>
+</svg>
+{%- endmacro %}
+
+{% macro cards_grid(cards, numbered=False, cls="") -%}
+<ol class="rw-cards {{ cls }}{% if numbered %} rw-cards--steps{% endif %}" {% if not numbered %}role="list"{% endif %}>
+{%- for c in cards %}
+	<li class="rw-feature">
+		{% if c.image %}<img class="rw-feature__img" src="{{ c.image | e }}" alt="" loading="lazy" decoding="async" width="400" height="240">{% endif %}
+		{% if numbered %}<span class="rw-feature__n">{{ loop.index }}</span>{% elif c.icon %}<span class="rw-feature__icon">{{ icon(c.icon) }}</span>{% endif %}
+		<h3>{% if c.link %}<a href="{{ c.link | e }}">{{ c.title | e }}</a>{% else %}{{ c.title | e }}{% endif %}</h3>
+		{% if c.description %}<p>{{ c.description | e }}</p>{% endif %}
+	</li>
+{%- endfor %}
+</ol>
+{%- endmacro %}
+
+{# ------------------------------------------------------------------ home page sections #}
+{% macro render_section(sec) -%}
+{%- set t = sec.section_type -%}
+{%- if t == "Hero" -%}
+<section class="rw-hero rw-tone--{{ (sec.tone or 'Dark') | lower }}"{% if sec.image %} style="--rw-hero-img: url('{{ sec.image | e }}')"{% endif %}>
+	<div class="rw-wrap rw-hero__inner">
+		<div class="rw-hero__text">
+			<h1>{{ (sec.title or rw.site_name) | e }}</h1>
+			{% if sec.subtitle %}<p class="rw-hero__lead">{{ sec.subtitle | e }}</p>{% endif %}
+			{{ cta_buttons(sec, invert=True) }}
+			<form class="rw-hero__search" action="/hire/equipment" method="get" role="search">
+				<label class="rw-sr" for="rw-hero-q">{{ _("Search equipment") }}</label>
+				{{ icon("search") }}
+				<input id="rw-hero-q" type="search" name="q" placeholder="{{ _('Search panels, props, couplers…') }}">
+				<button class="rw-btn rw-btn--primary" type="submit">{{ _("Search") }}</button>
+			</form>
+		</div>
+		<div class="rw-hero__visual">
+			{% if sec.image %}<img src="{{ sec.image | e }}" alt="{{ (sec.title or '') | e }}" width="720" height="560" fetchpriority="high">{% else %}{{ structure_art() }}{% endif %}
+		</div>
+	</div>
+	{% if rw_top_categories %}
+	<div class="rw-wrap rw-hero__cats">
+		{% for c in rw_top_categories[:6] %}<a href="{{ c.url }}">{{ c.title | e }}</a>{% endfor %}
+	</div>
+	{% endif %}
+</section>
+{%- elif t == "Search" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Tinted') | lower }}"><div class="rw-wrap rw-narrow">
+	{{ section_head(sec) }}
+	<form class="rw-hero__search rw-hero__search--block" action="/hire/equipment" method="get" role="search">
+		<label class="rw-sr" for="rw-s-q">{{ _("Search equipment") }}</label>{{ icon("search") }}
+		<input id="rw-s-q" type="search" name="q" placeholder="{{ _('What do you need?') }}"><button class="rw-btn rw-btn--primary" type="submit">{{ _("Search") }}</button>
+	</form>
+</div></section>
+{%- elif t == "Categories" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec, '<a class="rw-link" href="/hire/equipment">' ~ _("All equipment") ~ ' ' ~ icon("arrow-right", "rw-i--sm") ~ '</a>') }}
+	<div class="rw-catgrid">{% for c in sec.categories[:8] %}{{ category_card(c) }}{% endfor %}</div>
+</div></section>
+{%- elif t in ("Featured Products", "Category Products") -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec, ('<a class="rw-link" href="' ~ sec.category.url ~ '">' ~ _("All {0}").format(sec.category.title | e) ~ ' ' ~ icon("arrow-right", "rw-i--sm") ~ '</a>') if sec.category else None) }}
+	<div class="rw-grid">{% for p in sec.products %}{{ product_card(p) }}{% endfor %}</div>
+</div></section>
+{%- elif t in ("Services", "Industries", "Advantages") -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec) }}
+	{{ cards_grid(sec.cards, cls="rw-cards--" ~ (t | lower)) }}
+</div></section>
+{%- elif t == "Process" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Tinted') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec) }}
+	{{ cards_grid(sec.cards, numbered=True) }}
+</div></section>
+{%- elif t == "Testimonials" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Tinted') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec) }}
+	<div class="rw-quotes">{% for c in sec.cards %}
+		<figure class="rw-quote"><blockquote>{{ (c.description or c.title) | e }}</blockquote>
+			<figcaption><b>{{ (c.author or c.title) | e }}</b>{% if c.company %}<span>{{ c.company | e }}</span>{% endif %}</figcaption></figure>
+	{% endfor %}</div>
+</div></section>
+{%- elif t == "Statistics" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Dark') | lower }}"><div class="rw-wrap">
+	{{ section_head(sec) }}
+	<dl class="rw-stats">{% for c in sec.cards %}<div><dt>{{ c.title | e }}</dt><dd>{{ (c.value or "") | e }}</dd>{% if c.description %}<span>{{ c.description | e }}</span>{% endif %}</div>{% endfor %}</dl>
+</div></section>
+{%- elif t == "Banner" -%}
+<section class="rw-banner rw-tone--{{ (sec.tone or 'Brand') | lower }}"{% if sec.image %} style="--rw-banner-img: url('{{ sec.image | e }}')"{% endif %}><div class="rw-wrap rw-banner__inner">
+	<div>{% if sec.title %}<h2>{{ sec.title | e }}</h2>{% endif %}{% if sec.subtitle %}<p>{{ sec.subtitle | e }}</p>{% endif %}{% if sec.content %}<div class="rw-prose">{{ sec.content }}</div>{% endif %}</div>
+	{{ cta_buttons(sec, invert=True) }}
+</div></section>
+{%- elif t == "Call to Action" -%}
+<section class="rw-cta rw-tone--{{ (sec.tone or 'Brand') | lower }}"><div class="rw-wrap rw-cta__inner">
+	<div>{% if sec.title %}<h2>{{ sec.title | e }}</h2>{% endif %}{% if sec.subtitle %}<p>{{ sec.subtitle | e }}</p>{% endif %}</div>
+	{{ cta_buttons(sec, invert=True) }}
+</div></section>
+{%- elif t == "About" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap rw-split">
+	<div>{{ section_head(sec) }}<div class="rw-prose">{{ sec.content or rw.about_intro or "" }}</div>{{ cta_buttons(sec) }}</div>
+	{% if sec.image or rw.about_image %}<img class="rw-split__img" src="{{ (sec.image or rw.about_image) | e }}" alt="" loading="lazy" width="640" height="480">{% endif %}
+</div></section>
+{%- elif t == "Contact" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap rw-split">
+	<div>{{ section_head(sec) }}{{ contact_details() }}</div>
+	<div class="rw-panel">{{ contact_form("General Enquiry", {}, compact=True) }}</div>
+</div></section>
+{%- elif t == "Text" -%}
+<section class="rw-section rw-tone--{{ (sec.tone or 'Light') | lower }}"><div class="rw-wrap rw-narrow">
+	{{ section_head(sec) }}<div class="rw-prose">{{ sec.content or "" }}</div>{{ cta_buttons(sec) }}
+</div></section>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro contact_details() -%}
+<ul class="rw-contact">
+	{% if rw.contact_phone %}<li>{{ icon("phone") }}<div><b>{{ _("Phone") }}</b><a href="tel:{{ rw.contact_phone | replace(' ', '') | e }}">{{ rw.contact_phone | e }}</a></div></li>{% endif %}
+	{% if rw.whatsapp %}<li>{{ icon("message-circle") }}<div><b>{{ _("WhatsApp") }}</b><a href="https://wa.me/{{ rw.whatsapp | replace(' ', '') | replace('+', '') | e }}" rel="noopener" target="_blank">{{ rw.whatsapp | e }}</a></div></li>{% endif %}
+	{% if rw.contact_email %}<li>{{ icon("mail") }}<div><b>{{ _("E-mail") }}</b><a href="mailto:{{ rw.contact_email | e }}">{{ rw.contact_email | e }}</a></div></li>{% endif %}
+	{% if rw.address %}<li>{{ icon("map-pin") }}<div><b>{{ _("Address") }}</b><span>{{ rw.address | e | replace("\n", "<br>") }}</span>{% if rw.map_link %}<a href="{{ rw.map_link | e }}" target="_blank" rel="noopener">{{ _("Open map") }}</a>{% endif %}</div></li>{% endif %}
+	{% if rw.opening_hours %}<li>{{ icon("clock") }}<div><b>{{ _("Opening hours") }}</b><span>{{ rw.opening_hours | e | replace("\n", "<br>") }}</span></div></li>{% endif %}
+</ul>
+{%- endmacro %}
+
+{% macro field(name, label, type="text", required=False, value="", wide=False, attrs="", hint=None) -%}
+<label class="rw-field{% if wide %} rw-field--wide{% endif %}"><span>{{ label }}{% if required %} <i aria-hidden="true">*</i>{% endif %}</span>
+	{%- if type == "textarea" %}<textarea name="{{ name }}" rows="4" {% if required %}required{% endif %} {{ attrs }}>{{ value | e }}</textarea>
+	{%- else %}<input type="{{ type }}" name="{{ name }}" value="{{ value | e }}" {% if required %}required{% endif %} {{ attrs }}>{% endif %}
+	{% if hint %}<small>{{ hint }}</small>{% endif %}
+</label>
+{%- endmacro %}
+
+{% macro honeypot() -%}
+<label class="rw-hp" aria-hidden="true">{{ _("Leave this empty") }}<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+{%- endmacro %}
+
+{% macro contact_form(enquiry_type, prefill, compact=False) -%}
+<form class="rw-form" data-rw-contact novalidate>
+	<div class="rw-form__grid">
+		{{ field("full_name", _("Name"), required=True, value=prefill.get("full_name", ""), attrs='autocomplete="name"') }}
+		{{ field("company_name", _("Company"), attrs='autocomplete="organization"') }}
+		{{ field("email", _("E-mail"), "email", required=True, value=prefill.get("email", ""), attrs='autocomplete="email"') }}
+		{{ field("phone", _("Phone"), "tel", value=prefill.get("phone", ""), attrs='autocomplete="tel"') }}
+		{% if not compact %}
+		<label class="rw-field"><span>{{ _("Enquiry type") }}</span>
+			<select name="enquiry_type">
+				{% for v, l in [("General Enquiry", _("General enquiry")), ("Long-term Contract", _("Long-term rental contract")), ("Project Rental", _("Project-based rental")), ("Purchase", _("Buying equipment")), ("Business Account", _("Open a business account"))] %}
+				<option value="{{ v }}" {% if v == enquiry_type %}selected{% endif %}>{{ l }}</option>{% endfor %}
+			</select></label>
+		{{ field("subject", _("Subject")) }}
+		{{ field("project_location", _("Project location"), wide=True) }}
+		{% else %}<input type="hidden" name="enquiry_type" value="{{ enquiry_type }}">{% endif %}
+		{{ field("message", _("Message"), "textarea", required=True, wide=True) }}
+		{{ honeypot() }}
+	</div>
+	<div class="rw-form__foot">
+		<button class="rw-btn rw-btn--primary rw-btn--lg" type="submit">{{ icon("send", "rw-i--sm") }} {{ _("Send enquiry") }}</button>
+		<small>{{ _("We use your details only to answer this enquiry.") }}</small>
+	</div>
+	<div class="rw-form__status" role="alert"></div>
+</form>
+{%- endmacro %}
+
+{% macro page_hero(title, lead=None, crumbs=None) -%}
+<section class="rw-pagehead"><div class="rw-wrap">
+	{% if crumbs %}{{ breadcrumbs(crumbs) }}{% endif %}
+	<h1>{{ title | e }}</h1>
+	{% if lead %}<p>{{ lead | e }}</p>{% endif %}
+</div></section>
+{%- endmacro %}

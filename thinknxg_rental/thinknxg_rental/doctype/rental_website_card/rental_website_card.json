@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "creation": "2026-11-15 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "card_group",
+  "title",
+  "description",
+  "icon",
+  "cb_1",
+  "image",
+  "link",
+  "value",
+  "author",
+  "company",
+  "enabled"
+ ],
+ "fields": [
+  {
+   "fieldname": "card_group",
+   "fieldtype": "Select",
+   "label": "Group",
+   "options": "Service\nIndustry\nProcess Step\nAdvantage\nTestimonial\nStatistic",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "in_list_view": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "A Lucide icon name, e.g. layers, building-2, truck."
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "link",
+   "fieldtype": "Data",
+   "label": "Link"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Data",
+   "label": "Figure",
+   "description": "Statistic: the figure shown large (enter only verified figures)."
+  },
+  {
+   "fieldname": "author",
+   "fieldtype": "Data",
+   "label": "Person",
+   "description": "Testimonial: who said it (only real, approved testimonials)."
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company / Role"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Show",
+   "default": "1"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-15 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Website Card",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

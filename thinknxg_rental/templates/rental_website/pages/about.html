@@ -1,0 +1,24 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero, cards_grid with context -%}
+{{ page_hero(_("About {0}").format(rw.organization_name or rw.site_name or "thinkNXG Rental"), rw.tagline, rw_crumbs) }}
+<section class="rw-section"><div class="rw-wrap rw-split">
+	<div class="rw-prose rw-prose--lead">{{ rw.about_intro or "" }}</div>
+	{% if rw.about_image %}<img class="rw-split__img" src="{{ rw.about_image | e }}" alt="" loading="lazy" width="640" height="480">{% endif %}
+</div></section>
+{% if rw.mission or rw.vision %}
+<section class="rw-section rw-tone--tinted"><div class="rw-wrap rw-duo">
+	{% if rw.mission %}<div class="rw-panel"><h2>{{ _("Our mission") }}</h2><div class="rw-prose">{{ rw.mission }}</div></div>{% endif %}
+	{% if rw.vision %}<div class="rw-panel"><h2>{{ _("Our vision") }}</h2><div class="rw-prose">{{ rw.vision }}</div></div>{% endif %}
+</div></section>
+{% endif %}
+{% if rw_cards.get("Advantage") %}
+<section class="rw-section"><div class="rw-wrap">
+	<div class="rw-shead"><div><h2>{{ _("Why customers rent with us") }}</h2></div></div>
+	{{ cards_grid(rw_cards["Advantage"]) }}
+</div></section>
+{% endif %}
+{% if rw_cards.get("Statistic") %}
+<section class="rw-section rw-tone--dark"><div class="rw-wrap">
+	<dl class="rw-stats">{% for c in rw_cards["Statistic"] %}<div><dt>{{ c.title | e }}</dt><dd>{{ (c.value or "") | e }}</dd></div>{% endfor %}</dl>
+</div></section>
+{% endif %}
+{% include "templates/rental_website/pages/_cta.html" %}

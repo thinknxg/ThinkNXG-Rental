@@ -65,6 +65,23 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.4 - public rental website
+
+- **A public website at /hire** (optionally the site's home page): home page, catalogue with categories
+  from ERPNext Item Groups, search, filters, sort, grid and list views, product pages with photos,
+  specifications, datasheets, rates and availability, services, industries, about, contact, an enquiry
+  basket and an account page linking to the customer portal.
+- **Rates and availability come from the existing logic** (rate cards and Rental Item Profile; free own
+  stock net of reservations, shown as a band). Prices and availability can each be switched off.
+- **Enquiries join the sales flow**: a Rental Website Enquiry, a Lead (or the logged-in customer) and
+  draft Material Hire / Material Sale quotations for the team to price and send.
+- **Website builder in the desk** (Rental Website Settings): five templates, colours, typography, header,
+  hero, card and catalogue layouts, home page sections with order and visibility, cards, links, contact
+  and SEO fields. SEO: canonical URLs, Open Graph, JSON-LD (Organization, Product, BreadcrumbList),
+  /rental_sitemap.xml and robots.txt.
+- **Customer portal**: an Enquiries page and online acceptance of open quotations.
+- Details, configuration and limits: [docs/PUBLIC_WEBSITE.md](docs/PUBLIC_WEBSITE.md).
+
 ### Changes in 2.3 - customer Command Center
 
 - **/rental is now a full customer application**: dashboard, rental orders, active rentals, deliveries,

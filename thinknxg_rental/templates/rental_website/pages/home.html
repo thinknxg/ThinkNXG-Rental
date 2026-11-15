@@ -1,0 +1,3 @@
+{%- from "templates/rental_website/macros.html" import render_section with context -%}
+{% for sec in rw_sections %}{{ render_section(sec) }}
+{% endfor %}
