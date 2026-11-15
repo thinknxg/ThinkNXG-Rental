@@ -55,21 +55,35 @@ class RentalMaterialReservation(Document):
 
 	def set_availability(self):
 		totals = frappe._dict(required=0, reserved=0, shortfall=0)
+		contract = self.get_contract() if (self.rental_contract or self.source_document) else None
+		cross_hire_warehouses = get_cross_hire_warehouses()
 		for d in self.items:
 			if flt(d.required_qty) <= 0:
 				frappe.throw(_("Row #{0}: Required Qty must be greater than zero").format(d.idx))
-			# every row is reserved in its own warehouse; the header only supplies the default
-			d.source_warehouse = d.source_warehouse or suggest_source_warehouse(
-				d.item_code, self.company, self.source_warehouse, flt(d.required_qty)
-			)
+			# every row has its own warehouse: own stock where it is free, else where cross hire arrives.
+			# The header only supplies the default for own stock.
+			if self.needs_plan(d, cross_hire_warehouses):
+				d.source_warehouse, d.ownership = plan_row(
+					d.item_code, self.company, self.source_warehouse, flt(d.required_qty), self.name, contract
+				)
+			elif d.source_warehouse:
+				d.ownership = "Cross Hire" if d.source_warehouse in cross_hire_warehouses else "Own"
+			if not d.source_warehouse:
+				frappe.throw(_("Row #{0}: set a Source Warehouse for {1}").format(d.idx, frappe.bold(d.item_code)))
 			wh = frappe.get_cached_value("Warehouse", d.source_warehouse, ["is_group", "company"], as_dict=True)
 			if wh.is_group:
 				frappe.throw(_("Row #{0}: {1} is a group warehouse. Pick the warehouse that holds the stock.").format(d.idx, d.source_warehouse))
 			if wh.company != self.company:
 				frappe.throw(_("Row #{0}: warehouse {1} belongs to company {2}").format(d.idx, d.source_warehouse, wh.company))
 			d.actual_qty = get_bin_qty(d.item_code, d.source_warehouse)
-			d.other_reserved_qty = get_reserved_for_others(d.item_code, d.source_warehouse, reservation=self.name)
-			d.available_qty = max(flt(d.actual_qty) - flt(d.other_reserved_qty), 0)
+			if d.ownership == "Cross Hire":
+				# cross-hired stock belongs to its Cross Hire Order, never to an own-stock reservation:
+				# the whole row is shortfall, to be covered by the Cross Hire Order
+				d.other_reserved_qty = 0
+				d.available_qty = 0
+			else:
+				d.other_reserved_qty = get_reserved_for_others(d.item_code, d.source_warehouse, reservation=self.name)
+				d.available_qty = max(flt(d.actual_qty) - flt(d.other_reserved_qty), 0)
 			d.reserved_qty = min(flt(d.required_qty), flt(d.available_qty))
 			d.shortfall_qty = flt(d.required_qty) - flt(d.reserved_qty)
 			d.dispatched_qty = 0
@@ -80,6 +94,16 @@ class RentalMaterialReservation(Document):
 		self.total_required_qty = totals.required
 		self.total_reserved_qty = totals.reserved
 		self.total_shortfall_qty = totals.shortfall
+
+	def needs_plan(self, d, cross_hire_warehouses):
+		"""Rows the system places: no warehouse yet; a cross hire row (own stock may have come free since);
+		or a row left on the header default where that warehouse has no free stock of the item (it would
+		reserve nothing there). A warehouse picked by hand that holds stock is kept."""
+		if self.docstatus != 0:
+			return False
+		if not d.source_warehouse or d.source_warehouse in cross_hire_warehouses:
+			return True
+		return d.source_warehouse == self.source_warehouse and free_qty(d.item_code, d.source_warehouse, self.name) <= 0
 
 	def before_submit(self):
 		# availability may have moved since the draft was saved
@@ -144,11 +168,57 @@ def get_rentable_warehouses(company):
 	return [n for n in names if n not in excluded]
 
 
-def suggest_source_warehouse(item_code, company, default=None, required_qty=0):
+def free_qty(item_code, warehouse, reservation=None):
+	"""Own stock in a warehouse not held by other reservations."""
+	return get_bin_qty(item_code, warehouse) - get_reserved_for_others(item_code, warehouse, reservation=reservation)
+
+
+def get_cross_hire_warehouses():
+	"""Warehouses that hold cross-hired (supplier) stock: the Cross Hire Yard and each site's cross hire
+	warehouse (where Direct to Site cross hire is received)."""
+	from thinknxg_rental.services.utils import get_settings
+
+	out = {get_settings().cross_hire_yard_warehouse}
+	out.update(frappe.get_all("Rental Site", filters={"cross_hire_site_warehouse": ["is", "set"]}, pluck="cross_hire_site_warehouse"))
+	return {w for w in out if w}
+
+
+def cross_hire_warehouse(item_code, rental_contract=None, reservation=None):
+	"""Where cross-hired units of this item arrive: the receipt warehouse of an open Cross Hire Order for
+	this contract or reservation that has the item, else the Cross Hire Yard."""
+	from thinknxg_rental.services.utils import get_settings
+
+	or_filters = []
+	if rental_contract:
+		or_filters.append(["rental_contract", "=", rental_contract])
+	if reservation:
+		or_filters.append(["material_reservation", "=", reservation])
+	if or_filters:
+		chos = frappe.get_all("Cross Hire Order", filters={"docstatus": 1, "status": ["not in", ["Completed", "Cancelled"]]},
+			or_filters=or_filters, fields=["name", "receipt_warehouse"], order_by="creation asc")
+		for cho in chos:
+			if cho.receipt_warehouse and frappe.db.exists("Cross Hire Order Item", {"parent": cho.name, "item_code": item_code}):
+				return cho.receipt_warehouse
+	return get_settings().cross_hire_yard_warehouse
+
+
+def plan_row(item_code, company, default=None, required_qty=0, reservation=None, rental_contract=None):
+	"""(source warehouse, supply) for a reservation row: own stock where it is free, or, when no own stock
+	of the item is free anywhere, cross hire with the warehouse it is received in."""
+	own = suggest_source_warehouse(item_code, company, default, required_qty, reservation)
+	if own and free_qty(item_code, own, reservation) > 0:
+		return own, "Own"
+	cross = cross_hire_warehouse(item_code, rental_contract, reservation)
+	if cross:
+		return cross, "Cross Hire"
+	return own or default, "Own"  # no cross hire warehouse set up: the default, all shortfall
+
+
+def suggest_source_warehouse(item_code, company, default=None, required_qty=0, reservation=None):
 	"""The default warehouse when it can cover the row; otherwise the rentable warehouse with the
 	most free stock of this item; the default again when nothing has any."""
 	def free(warehouse):
-		return get_bin_qty(item_code, warehouse) - get_reserved_for_others(item_code, warehouse)
+		return free_qty(item_code, warehouse, reservation)
 
 	if default and free(default) >= max(flt(required_qty), 1e-6):
 		return default
@@ -164,12 +234,17 @@ def suggest_source_warehouse(item_code, company, default=None, required_qty=0):
 
 @frappe.whitelist()
 def get_row_availability(item_code: str, company: str, warehouse: str | None = None, default_warehouse: str | None = None,
-		required_qty: float = 0, reservation: str | None = None):
-	"""Live figures for one reservation row, and the warehouse to use when none is chosen yet."""
+		required_qty: float = 0, reservation: str | None = None, rental_contract: str | None = None):
+	"""Live figures for one reservation row, and its warehouse and supply (Own / Cross Hire) when none
+	is chosen yet. The same placement as on save (plan_row)."""
 	frappe.has_permission("Rental Material Reservation", "read", throw=True)
-	warehouse = warehouse or suggest_source_warehouse(item_code, company, default_warehouse, flt(required_qty))
+	cross_hire_warehouses = get_cross_hire_warehouses()
+	if warehouse:
+		ownership = "Cross Hire" if warehouse in cross_hire_warehouses else "Own"
+	else:
+		warehouse, ownership = plan_row(item_code, company, default_warehouse, flt(required_qty), reservation, rental_contract)
 	actual = get_bin_qty(item_code, warehouse)
-	others = get_reserved_for_others(item_code, warehouse, reservation=reservation)
+	others = 0 if ownership == "Cross Hire" else get_reserved_for_others(item_code, warehouse, reservation=reservation)
 	elsewhere = []
 	for w in get_rentable_warehouses(company):
 		if w != warehouse:
@@ -178,19 +253,21 @@ def get_row_availability(item_code: str, company: str, warehouse: str | None = N
 				elsewhere.append({"warehouse": w, "available_qty": qty})
 	return {
 		"source_warehouse": warehouse,
+		"ownership": ownership,
 		"actual_qty": actual,
 		"other_reserved_qty": others,
-		"available_qty": max(actual - others, 0),
+		"available_qty": 0 if ownership == "Cross Hire" else max(actual - others, 0),
 		"elsewhere": sorted(elsewhere, key=lambda r: -r["available_qty"]),
 	}
 
 
 def get_reservation_warehouses(reservation):
-	"""{item_code: source warehouse} for one reservation."""
+	"""{item_code: source warehouse} of the own-stock rows of one reservation. Cross hire rows are left
+	out: their material leaves from its Cross Hire Order's warehouse, not as reserved own stock."""
 	default = frappe.db.get_value("Rental Material Reservation", reservation, "source_warehouse")
 	rows = frappe.get_all(
 		"Rental Material Reservation Item",
-		filters={"parent": reservation, "parenttype": "Rental Material Reservation"},
+		filters={"parent": reservation, "parenttype": "Rental Material Reservation", "ownership": ["!=", "Cross Hire"]},
 		fields=["item_code", "source_warehouse"],
 	)
 	return {r.item_code: r.source_warehouse or default for r in rows}

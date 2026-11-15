@@ -9,6 +9,7 @@
   "uom",
   "required_qty",
   "source_warehouse",
+  "ownership",
   "cb_44",
   "actual_qty",
   "other_reserved_qty",
@@ -28,7 +29,7 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 3
+   "columns": 2
   },
   {
    "fieldname": "item_name",
@@ -61,6 +62,17 @@
    "in_list_view": 1,
    "columns": 2,
    "description": "Where this item is reserved and dispatched from. Left blank it takes the Default Source Warehouse."
+  },
+  {
+   "fieldname": "ownership",
+   "label": "Supply",
+   "fieldtype": "Select",
+   "options": "Own\nCross Hire",
+   "default": "Own",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Own: reserved from own stock in the Source Warehouse. Cross Hire: no own stock is free, so the whole quantity is shortfall to cross hire, received in the Source Warehouse."
   },
   {
    "fieldname": "cb_44",
@@ -131,12 +143,12 @@
    "label": "Released Qty",
    "read_only": 1,
    "no_copy": 1,
-   "in_list_view": 1,
+   "in_list_view": 0,
    "columns": 1
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-15 08:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Material Reservation Item",

@@ -22,6 +22,8 @@ frappe.ui.form.on("Rental Material Reservation", {
 				frm.clear_table("items");
 				m.items.forEach((row) => frm.add_child("items", row));
 				frm.refresh_field("items");
+				// place each row now: own stock where it is free, else cross hire
+				(frm.doc.items || []).forEach((d) => refresh_row(frm, d.doctype, d.name, false));
 			},
 		});
 	},
@@ -61,6 +63,7 @@ function refresh_row(frm, cdt, cdn, keep_warehouse) {
 			default_warehouse: frm.doc.source_warehouse,
 			required_qty: d.required_qty || 0,
 			reservation: frm.is_new() ? null : frm.doc.name,
+			rental_contract: frm.doc.rental_contract || null,
 		},
 		callback(r) {
 			if (!r.message) return;
@@ -68,6 +71,7 @@ function refresh_row(frm, cdt, cdn, keep_warehouse) {
 			const reserved = Math.min(flt(d.required_qty), flt(m.available_qty));
 			Object.assign(d, {
 				source_warehouse: m.source_warehouse,
+				ownership: m.ownership,
 				actual_qty: m.actual_qty,
 				other_reserved_qty: m.other_reserved_qty,
 				available_qty: m.available_qty,
@@ -75,7 +79,9 @@ function refresh_row(frm, cdt, cdn, keep_warehouse) {
 				shortfall_qty: flt(d.required_qty) - reserved,
 			});
 			frm.refresh_field("items");
-			if (flt(d.required_qty) > flt(m.available_qty) && m.elsewhere.length) {
+			if (m.ownership === "Cross Hire") {
+				frappe.show_alert({ message: __("{0}: no own stock is free, so it is to cross hire (received in {1}).", [d.item_code, m.source_warehouse]), indicator: "orange" }, 7);
+			} else if (flt(d.required_qty) > flt(m.available_qty) && m.elsewhere.length) {
 				frappe.show_alert({
 					message: __("{0}: also free in {1}", [d.item_code, m.elsewhere.slice(0, 3).map((e) => `${e.warehouse} (${e.available_qty})`).join(", ")]),
 					indicator: "blue",
