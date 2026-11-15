@@ -119,6 +119,38 @@
 		});
 		window.addEventListener("resize", () => bar.querySelectorAll(".nxg-fbar-group.open").forEach(place));
 		document.body.append(bar, show);
+		watch_scroll();
+	}
+
+	// The bar floats over the page, so it steps aside while the user scrolls down through a form or
+	// list (fields and grid rows under it stay readable) and comes back on scrolling up, at the end
+	// of the page, or when the pointer or keyboard focus reaches the bottom of the screen. The desk
+	// scrolls the window or, in v16, its main section; both are watched.
+	function watch_scroll() {
+		const last = new WeakMap();
+		const AWAY = "nxg-fbar-away";
+		const set_away = (away) => {
+			if (bar.classList.contains("sheet") || bar.querySelector(".nxg-fbar-group.open")) away = false;
+			bar.classList.toggle(AWAY, away);
+		};
+		const on_scroll = (e) => {
+			const el = e.target === document ? document.scrollingElement : e.target;
+			if (!el || !el.scrollHeight) return;
+			const top = el.scrollTop;
+			const prev = last.has(el) ? last.get(el) : top;
+			last.set(el, top);
+			const at_end = top + el.clientHeight >= el.scrollHeight - 80;
+			if (at_end || top < 40) return set_away(false);
+			if (Math.abs(top - prev) < 6) return;
+			set_away(top > prev);
+		};
+		// capture: scroll events do not bubble from inner scrolling elements
+		document.addEventListener("scroll", on_scroll, { capture: true, passive: true });
+		document.addEventListener("mousemove", (e) => {
+			if (bar.classList.contains(AWAY) && e.clientY > window.innerHeight - 70) set_away(false);
+		}, { passive: true });
+		bar.addEventListener("focusin", () => set_away(false));
+		frappe.router.on("change", () => set_away(false));
 	}
 
 	function on_click(e) {
@@ -184,6 +216,8 @@
 		const route = frappe.get_route() || [];
 		const on = in_rental();
 		const min = read("localStorage", MIN_KEY) === "1";
+		// thinkNXG Rental forms get the full width on mid-size screens (css/rental_menu.css)
+		document.body.classList.toggle("nxg-rental-form", route[0] === "Form" && rental_doctypes.has(route[1]));
 		document.body.classList.toggle("nxg-fbar-on", on && !min);
 		document.body.classList.toggle("nxg-fbar-min-on", on && min);
 		if (!on) {

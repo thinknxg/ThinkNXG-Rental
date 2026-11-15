@@ -22,18 +22,18 @@
   "target_warehouse",
   "return_to_warehouse",
   "location",
-  "sb_wh_trace",
-  "delivered_from",
-  "delivery_order",
-  "cb_wh_trace",
-  "site_warehouse",
-  "stock_entry",
   "sb_68",
   "batch_no",
   "cb_69",
   "serial_no",
   "sb_70",
-  "remarks"
+  "remarks",
+  "sb_wh_trace",
+  "delivered_from",
+  "delivery_order",
+  "cb_wh_trace",
+  "site_warehouse",
+  "stock_entry"
  ],
  "fields": [
   {
@@ -43,7 +43,7 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 4
   },
   {
    "fieldname": "item_name",
@@ -70,9 +70,7 @@
    "label": "Ownership",
    "options": "Own\nCross Hire",
    "reqd": 1,
-   "default": "Own",
-   "in_list_view": 1,
-   "columns": 1
+   "default": "Own"
   },
   {
    "fieldname": "cross_hire_order",
@@ -97,7 +95,7 @@
   {
    "fieldname": "at_site_qty",
    "fieldtype": "Float",
-   "label": "At Site Qty",
+   "label": "At Site",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 1,
@@ -106,7 +104,7 @@
   {
    "fieldname": "returned_qty",
    "fieldtype": "Float",
-   "label": "Returned Qty",
+   "label": "Returned",
    "in_list_view": 1,
    "columns": 1,
    "bold": 1
@@ -114,7 +112,15 @@
   {
    "fieldname": "lost_qty",
    "fieldtype": "Float",
-   "label": "Lost / Missing Qty",
+   "label": "Lost",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Lost or missing on site: charged to the customer"
+  },
+  {
+   "fieldname": "excess_qty",
+   "fieldtype": "Float",
+   "label": "Excess",
    "in_list_view": 1,
    "columns": 1
   },
@@ -123,9 +129,7 @@
    "fieldtype": "Float",
    "label": "Remaining at Site",
    "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1
+   "no_copy": 1
   },
   {
    "fieldname": "cb_67",
@@ -140,11 +144,24 @@
   {
    "fieldname": "target_warehouse",
    "fieldtype": "Link",
-   "label": "Return Warehouse",
+   "label": "Return To",
    "options": "Warehouse",
    "in_list_view": 1,
    "columns": 2,
-   "description": "Where the returned material is moved: an own rental warehouse, the inspection warehouse, or for cross hire a cross hire warehouse."
+   "description": "Warehouse the returned material goes to"
+  },
+  {
+   "fieldname": "return_to_warehouse",
+   "fieldtype": "Link",
+   "label": "Good Stock Returns To",
+   "options": "Warehouse",
+   "description": "Own rental warehouse the material goes back to: straight away, or after inspection when it goes to the inspection warehouse first."
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Return Location",
+   "read_only": 1
   },
   {
    "fieldname": "sb_68",
@@ -175,26 +192,6 @@
    "fieldname": "remarks",
    "fieldtype": "Data",
    "label": "Remarks"
-  },
-  {
-   "fieldname": "excess_qty",
-   "fieldtype": "Float",
-   "label": "Excess Qty",
-   "in_list_view": 1,
-   "columns": 1
-  },
-  {
-   "fieldname": "return_to_warehouse",
-   "fieldtype": "Link",
-   "label": "Good Stock Returns To",
-   "options": "Warehouse",
-   "description": "Own rental warehouse the material goes back to: straight away, or after inspection when it goes to the inspection warehouse first."
-  },
-  {
-   "fieldname": "location",
-   "fieldtype": "Data",
-   "label": "Return Location",
-   "read_only": 1
   },
   {
    "fieldname": "sb_wh_trace",
@@ -238,7 +235,7 @@
   }
  ],
  "links": [],
- "modified": "2026-11-15 10:00:00.000000",
+ "modified": "2026-11-15 20:10:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Off-Hire Item",

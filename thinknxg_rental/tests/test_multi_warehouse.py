@@ -659,3 +659,28 @@ class TestMultiWarehouse(IntegrationTestCase):
 				s.set(t, [{k: r[k] for k in ("warehouse", "location", "is_default", "is_active")} for r in rows])
 			s.save(ignore_permissions=True)
 			frappe.clear_cache(doctype="Rental Settings")
+
+	def test_k_transport_details_can_be_added_after_submit(self):
+		"""Vehicle, driver, transporter, gate pass and remarks stay editable on submitted delivery and
+		off-hire notes (and remarks on reservations); quantities and warehouses stay locked."""
+		item = self.item({self.kochi: 40})
+		rc, _site = self.contract([(item, 10)])
+		res = self.reserve(rc, default=self.kochi)
+		do = self.deliver(rc, get_dispatch_items(rc, res), res)
+		do.reload()
+		do.update({"vehicle_no": "KL-07-AB-1234", "driver_name": "Ravi", "driver_phone": "+91 98470 11111",
+			"dispatch_reference": "GP-778", "remarks": "Delivered at gate 2"})
+		do.save()
+		self.assertEqual(frappe.db.get_value("Hire Delivery Order", do.name, ["vehicle_no", "dispatch_reference"]), ("KL-07-AB-1234", "GP-778"))
+		do.reload()
+		do.items[0].qty = do.items[0].qty + 1
+		self.assertRaises(frappe.UpdateAfterSubmitError, do.save)
+		oh = self.off_hire(rc, [{"item_code": item, "returned_qty": 10, "ownership": "Own", "target_warehouse": self.kochi}], days_ago=2)
+		oh.reload()
+		oh.update({"vehicle_no": "KL-07-CD-9", "driver_name": "Anil", "remarks": "Collected"})
+		oh.save()
+		self.assertEqual(frappe.db.get_value("Hire Off-Hire Note", oh.name, "driver_name"), "Anil")
+		reservation = frappe.get_doc("Rental Material Reservation", res if isinstance(res, str) else res.name)
+		reservation.remarks = "Customer asked to hold the balance"
+		reservation.save()
+		self.assertEqual(frappe.db.get_value("Rental Material Reservation", reservation.name, "remarks"), "Customer asked to hold the balance")

@@ -190,7 +190,8 @@
   {
    "fieldname": "vehicle_no",
    "fieldtype": "Data",
-   "label": "Vehicle No"
+   "label": "Vehicle No",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "cb_75",
@@ -199,7 +200,8 @@
   {
    "fieldname": "driver_name",
    "fieldtype": "Data",
-   "label": "Driver Name"
+   "label": "Driver Name",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "sb_76",
@@ -253,7 +255,8 @@
   {
    "fieldname": "remarks",
    "fieldtype": "Small Text",
-   "label": "Remarks"
+   "label": "Remarks",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "amended_from",
@@ -275,7 +278,7 @@
    "link_fieldname": "hire_off_hire_note"
   }
  ],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-15 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Off-Hire Note",
