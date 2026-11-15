@@ -33,7 +33,7 @@ class RentalMaterialReservation(Document):
 					)
 				)
 			if flt(d.required_qty) <= 0:
-				frappe.throw(_("Row #{0}: Required Qty must be greater than zero").format(d.idx))
+				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 		if self.source_warehouse and self.docstatus == 0:
 			rw.validate_own(self.source_warehouse, _("Default Source Warehouse: "), company=self.company)
 		self.place_rows()

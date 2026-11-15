@@ -65,6 +65,18 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.4.2 - desk forms: reservation, delivery order, off-hire note
+
+- Item tables on Rental Material Reservation, Hire Delivery Order and Hire Off-Hire Note fit the form:
+  at most 10 grid units with short headings (Qty, Available, Reserved, Shortfall; At Site, Returned,
+  Lost, Excess, Return To). Further figures stay in the row editor and can be added with the grid's
+  column settings. Cross Hire Order appears only on cross hire rows.
+- On laptop screens (992-1365 px) thinkNXG Rental forms use the full width: the form's sidebar (assign,
+  attachments, tags, share) moves below the form instead of squeezing it to about 450-700 px.
+- Hire Off-Hire Item keeps its quantities together (Excess next to Lost) and its warehouses together.
+- Vehicle, driver, transporter, gate pass and remarks stay visible and editable after submit.
+- The floating thinkNXG Rental menu steps aside while scrolling down, so it never covers fields.
+
 ### Changes in 2.4.1 - website review
 
 - Draft hire quotations from the website now carry the hire days and rate basis, so they price the

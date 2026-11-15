@@ -191,3 +191,39 @@ body.nxg-fbar-on .layout-main {
 		padding: 0 0 4px 12px;
 	}
 }
+
+/* stepped aside while the user scrolls down (rental_menu.js watch_scroll) */
+.nxg-fbar {
+	transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.nxg-fbar.nxg-fbar-away {
+	transform: translate(-50%, calc(100% + 24px));
+	opacity: 0;
+	pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+	.nxg-fbar {
+		transition: none;
+	}
+}
+
+/* thinkNXG Rental forms on laptop and mid-size screens (992-1365 px): the desk keeps the form's right sidebar
+   (assign, attachments, tags, share) beside the form, which leaves about 450 px for the form and its
+   item tables. Here the sidebar moves below the form, as the desk itself does on smaller screens. */
+@media (min-width: 992px) and (max-width: 1365.98px) {
+	body.nxg-rental-form .layout-main.layout-two-column {
+		flex-wrap: wrap;
+	}
+	body.nxg-rental-form .layout-main.layout-two-column > .layout-main-section-wrapper {
+		flex: 1 1 100%;
+		max-width: 100%;
+	}
+	body.nxg-rental-form .layout-main.layout-two-column > .layout-side-section.right {
+		order: 2;
+		flex: 1 1 100%;
+		width: 100%;
+		max-width: 100%;
+		border-left: 0;
+		border-top: 1px solid var(--border-color, #e2e2e2);
+	}
+}

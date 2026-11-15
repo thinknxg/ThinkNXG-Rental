@@ -139,17 +139,20 @@
   {
    "fieldname": "vehicle_no",
    "fieldtype": "Data",
-   "label": "Vehicle No"
+   "label": "Vehicle No",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "driver_name",
    "fieldtype": "Data",
-   "label": "Driver Name"
+   "label": "Driver Name",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "driver_phone",
    "fieldtype": "Data",
-   "label": "Driver Phone"
+   "label": "Driver Phone",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "cb_61",
@@ -159,12 +162,14 @@
    "fieldname": "transporter",
    "fieldtype": "Link",
    "label": "Transporter",
-   "options": "Supplier"
+   "options": "Supplier",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "dispatch_reference",
    "fieldtype": "Data",
-   "label": "LR / Gate Pass No"
+   "label": "LR / Gate Pass No",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "sb_62",
@@ -211,7 +216,8 @@
   {
    "fieldname": "remarks",
    "fieldtype": "Small Text",
-   "label": "Remarks"
+   "label": "Remarks",
+   "allow_on_submit": 1
   },
   {
    "fieldname": "amended_from",
@@ -224,7 +230,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-15 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Hire Delivery Order",

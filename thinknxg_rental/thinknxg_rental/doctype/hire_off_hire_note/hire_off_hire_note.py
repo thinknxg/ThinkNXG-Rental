@@ -90,7 +90,7 @@ class HireOffHireNote(Document):
 				d.requires_inspection = 1 if inspect and cint(profile.get("inspection_required", 1)) else 0
 				self.set_own_return_warehouses(d, settings, prefix)
 			if flt(d.returned_qty) and not d.target_warehouse:
-				frappe.throw(_("Row #{0}: Return Warehouse is required. Check Rental Settings.").format(d.idx))
+				frappe.throw(_("Row #{0}: Return To (warehouse) is required. Check Rental Settings.").format(d.idx))
 			d.location = rw.location_of(d.return_to_warehouse or d.target_warehouse)
 			if d.delivered_from and not d.delivery_order:
 				d.delivery_order = ledger.get_last_delivery(self.rental_contract, d.item_code, d.delivered_from)
@@ -118,10 +118,10 @@ class HireOffHireNote(Document):
 		self.off_hire_type = "Full" if remaining <= 1e-6 else "Partial"
 
 	def set_own_return_warehouses(self, d, settings, prefix):
-		"""Own material: Return Warehouse is where it is moved now - an own rental warehouse, or the
+		"""Own material: Return To is the warehouse where it is moved now - an own rental warehouse, or the
 		inspection warehouse; Good Stock Returns To is the own warehouse it ends up in. Material that
 		needs inspection always goes to the inspection warehouse first: a rental warehouse picked as the
-		Return Warehouse becomes its Good Stock Returns To."""
+		Return To becomes its Good Stock Returns To."""
 		inspection = settings.inspection_warehouse
 		if d.target_warehouse and d.target_warehouse != inspection and cint(d.requires_inspection):
 			d.return_to_warehouse = d.return_to_warehouse or d.target_warehouse

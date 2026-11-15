@@ -9,7 +9,6 @@
   "uom",
   "required_qty",
   "source_warehouse",
-  "location",
   "ownership",
   "cb_44",
   "actual_qty",
@@ -20,7 +19,8 @@
   "shortfall_qty",
   "cb_46",
   "dispatched_qty",
-  "released_qty"
+  "released_qty",
+  "location"
  ],
  "fields": [
   {
@@ -30,7 +30,7 @@
    "options": "Item",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 2,
+   "columns": 4,
    "search_index": 1
   },
   {
@@ -51,19 +51,20 @@
   {
    "fieldname": "required_qty",
    "fieldtype": "Float",
-   "label": "Required Qty",
+   "label": "Qty",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 1
+   "columns": 1,
+   "description": "Quantity required on site"
   },
   {
    "fieldname": "source_warehouse",
    "fieldtype": "Link",
-   "label": "Source Warehouse",
+   "label": "Warehouse",
    "options": "Warehouse",
    "in_list_view": 1,
    "columns": 2,
-   "description": "Where this item is reserved and dispatched from. Left blank it takes the Default Source Warehouse."
+   "description": "Own rental warehouse that holds the stock, or the cross hire warehouse that receives it"
   },
   {
    "fieldname": "ownership",
@@ -72,9 +73,8 @@
    "options": "Own\nCross Hire",
    "default": "Own",
    "read_only": 1,
-   "in_list_view": 1,
-   "columns": 1,
-   "description": "Own: reserved from own stock in the Source Warehouse. Cross Hire: no own stock is free, so the whole quantity is shortfall to cross hire, received in the Source Warehouse."
+   "description": "Own: reserved from own stock in the Source Warehouse. Cross Hire: no own stock is free, so the whole quantity is shortfall to cross hire, received in the Source Warehouse.",
+   "in_standard_filter": 0
   },
   {
    "fieldname": "cb_44",
@@ -83,7 +83,7 @@
   {
    "fieldname": "actual_qty",
    "fieldtype": "Float",
-   "label": "Stock in Warehouse",
+   "label": "In Warehouse",
    "read_only": 1,
    "no_copy": 1
   },
@@ -97,7 +97,7 @@
   {
    "fieldname": "available_qty",
    "fieldtype": "Float",
-   "label": "Available Qty",
+   "label": "Available",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 1,
@@ -105,12 +105,13 @@
   },
   {
    "fieldname": "sb_45",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Reservation"
   },
   {
    "fieldname": "reserved_qty",
    "fieldtype": "Float",
-   "label": "Reserved Qty",
+   "label": "Reserved",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 1,
@@ -120,7 +121,7 @@
   {
    "fieldname": "shortfall_qty",
    "fieldtype": "Float",
-   "label": "Shortfall Qty",
+   "label": "Shortfall",
    "read_only": 1,
    "no_copy": 1,
    "in_list_view": 1,
@@ -133,20 +134,16 @@
   {
    "fieldname": "dispatched_qty",
    "fieldtype": "Float",
-   "label": "Dispatched Qty",
+   "label": "Dispatched",
    "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 1,
-   "columns": 1
+   "no_copy": 1
   },
   {
    "fieldname": "released_qty",
    "fieldtype": "Float",
-   "label": "Released Qty",
+   "label": "Released",
    "read_only": 1,
-   "no_copy": 1,
-   "in_list_view": 0,
-   "columns": 1
+   "no_copy": 1
   },
   {
    "fieldname": "location",
@@ -157,7 +154,7 @@
   }
  ],
  "links": [],
- "modified": "2026-11-15 10:00:00.000000",
+ "modified": "2026-11-15 20:10:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Material Reservation Item",
