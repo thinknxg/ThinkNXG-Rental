@@ -65,6 +65,15 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.4.1 - website review
+
+- Draft hire quotations from the website now carry the hire days and rate basis, so they price the
+  enquired period. Fixed account-page links (profile, log out, sign-up), escaped visitor text in staff
+  notifications, refused malformed requests, unsafe links and private images, rate-limited the guest API.
+- One money format on pages and in the API; translatable script texts; right-to-left pages; inline icon
+  sprite instead of the 750 KB one; AA-contrast buttons for any colour; a website 404 page; tablet and
+  placeholder layout fixes. See the review table in [docs/PUBLIC_WEBSITE.md](docs/PUBLIC_WEBSITE.md).
+
 ### Changes in 2.4 - public rental website
 
 - **A public website at /hire** (optionally the site's home page): home page, catalogue with categories

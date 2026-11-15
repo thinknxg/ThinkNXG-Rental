@@ -107,6 +107,8 @@ doctype_js = {
 
 # Command Center: one single-page application answers every path under /rental/admin
 # (www/rental/admin/index.html).
+page_renderer = ["thinknxg_rental.website.renderer.RentalWebsitePage"]
+
 website_route_rules = [
 	{"from_route": "/rental/admin", "to_route": "rental/admin"},
 	{"from_route": "/rental/admin/<path:app_path>", "to_route": "rental/admin"},

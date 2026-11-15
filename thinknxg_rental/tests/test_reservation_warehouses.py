@@ -168,3 +168,19 @@ class TestReservationWarehouses(IntegrationTestCase):
 		boot = form("material-reservation")
 		cols = [c["fieldname"] for c in boot["tables"][0]["columns"]]
 		self.assertIn("ownership", cols)
+
+	def test_website_availability_matches_reservable_stock(self):
+		"""The public website's free stock (computed for many items at once) is the same figure the
+		reservation and dispatch checks use, before and after a reservation takes stock."""
+		from thinknxg_rental.services.warehouses import available_own_qty
+		from thinknxg_rental.website.catalogue import free_stock
+
+		items = [self.tube, self.prop, self.genset]
+		frappe.set_user("Administrator")
+		self.assertEqual({i: flt(free_stock(items)[i]) for i in items}, {i: flt(available_own_qty(i)) for i in items})
+		frappe.set_user(STAFF)
+		rc, _site = self.contract([(self.tube, 6), (self.prop, 9)])
+		self.reservation(rc, submit=True)
+		frappe.set_user("Administrator")
+		after = free_stock(items)
+		self.assertEqual({i: flt(after[i]) for i in items}, {i: flt(available_own_qty(i)) for i in items})

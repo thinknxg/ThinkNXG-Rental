@@ -42,7 +42,34 @@ def _dates(required_from, expected_return, required=False):
 	return start, end
 
 
+def _json(value):
+	if not isinstance(value, str):
+		return value
+	try:
+		return frappe.parse_json(value)
+	except ValueError:
+		frappe.throw(_("The request is not in the expected form"))
+
+
+def _lines(items):
+	"""The basket lines as a list of dicts, whatever the browser sent."""
+	items = _json(items)
+	if items in (None, ""):
+		return []
+	if not isinstance(items, list) or not all(isinstance(line, dict) for line in items):
+		frappe.throw(_("The enquiry items are not in the expected form"))
+	return [line for line in items if isinstance(line.get("item_code"), str) and line["item_code"].strip()][:MAX_LINES]
+
+
+def _payload(data):
+	d = _json(data)
+	if not isinstance(d, dict):
+		frappe.throw(_("The form was not sent in the expected form"))
+	return frappe._dict(d)
+
+
 @frappe.whitelist(allow_guest=True)
+@rate_limit(limit=600, seconds=600)
 def estimate(item_code: str, qty: float = 1, required_from: str | None = None, expected_return: str | None = None):
 	"""Rental days, rate and estimate (when rates are shown) and the availability band for one product."""
 	_enabled()
@@ -57,19 +84,21 @@ def estimate(item_code: str, qty: float = 1, required_from: str | None = None, e
 		e = cat.estimate(item_code, qty, start, end, cat.rate_customer())
 		out.update(days=e.days, chargeable_days=e.chargeable_days, minimum_hire_days=e.minimum_hire_days)
 		if cint(s.show_prices):
-			out.update(rate_basis=e.rate_basis, rate=e.rate, amount=e.amount)
+			out.update(rate_basis=e.rate_basis, rate=e.rate, amount=e.amount, rate_display=cat.money(e.rate) if e.rate else None,
+				amount_display=cat.money(e.amount) if e.amount else None)
 	if cint(s.show_availability):
 		out["availability"] = cat.availability_band(cat.free_stock([item_code]).get(item_code, 0), qty)
 	return out
 
 
 @frappe.whitelist(allow_guest=True)
+@rate_limit(limit=300, seconds=600)
 def basket(items: str | list, required_from: str | None = None, expected_return: str | None = None):
 	"""The basket as the server sees it: each line's current name, image, link, availability and estimate."""
 	_enabled()
-	items = frappe.parse_json(items) if isinstance(items, str) else items or []
+	items = _lines(items)
 	codes = []
-	for line in items[:MAX_LINES]:
+	for line in items:
 		code = (line or {}).get("item_code")
 		if code and code not in codes:
 			codes.append(code)
@@ -80,11 +109,12 @@ def basket(items: str | list, required_from: str | None = None, expected_return:
 	free = cat.free_stock(list(cards)) if cint(s.show_availability) else {}
 	customer = cat.rate_customer()
 	lines, total = [], 0
-	for line in items[:MAX_LINES]:
+	for line in items:
 		c = cards.get((line or {}).get("item_code"))
 		if not c:
 			continue
-		qty = min(max(flt(line.get("qty")) or 1, 0), MAX_QTY)
+		qty = flt(line.get("qty"))
+		qty = min(qty, MAX_QTY) if qty > 0 else 1
 		kind = "Purchase" if line.get("line_type") == "Purchase" and c.available_for_purchase and cint(s.allow_purchase_enquiries) else "Hire"
 		row = {"item_code": c.item_code, "item_name": c.item_name, "image": c.image, "url": c.url, "uom": c.uom, "qty": qty, "line_type": kind,
 			"category": c.category, "minimum_hire_days": cint(c.minimum_hire_days), "purchasable": bool(c.available_for_purchase and cint(s.allow_purchase_enquiries))}
@@ -94,16 +124,20 @@ def basket(items: str | list, required_from: str | None = None, expected_return:
 			e = cat.estimate(c.item_code, qty, start, end, customer)
 			row.update(chargeable_days=e.chargeable_days)
 			if cint(s.show_prices):
-				row.update(rate=e.rate, rate_basis=e.rate_basis, amount=e.amount)
+				row.update(rate=e.rate, rate_basis=e.rate_basis, amount=e.amount, rate_display=cat.money(e.rate) if e.rate else None,
+					amount_display=cat.money(e.amount) if e.amount else None)
 				total += flt(e.amount)
 		lines.append(row)
-	return {"lines": lines, "total": total if cint(s.show_prices) and start else None, "currency": cat.currency(),
+	shown_total = total if cint(s.show_prices) and start else None
+	return {"lines": lines, "total": shown_total, "total_display": cat.money(shown_total) if shown_total else None, "currency": cat.currency(),
 		"days": (end - start).days + 1 if start else None, "show_prices": cint(s.show_prices)}
 
 
 def _clean(value, length):
-	value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(value or "")).strip()
-	return value[:length]
+	"""Plain text: control characters and markup removed (nothing a visitor types is kept as HTML)."""
+	value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(value or ""))
+	value = re.sub(r"<[^>]*>", "", value).replace("<", "").replace(">", "")
+	return value.strip()[:length]
 
 
 def _contact(d):
@@ -141,16 +175,16 @@ def _logged_in_customer():
 def submit_enquiry(data: str | dict):
 	"""The basket (or a single product) sent as an enquiry. Returns the enquiry reference."""
 	_enabled()
-	d = frappe._dict(frappe.parse_json(data) if isinstance(data, str) else data or {})
+	d = _payload(data)
 	if _spam(d):
 		return {"name": None, "ok": 1}
 	s = cat.settings()
 	enquiry_type = d.get("enquiry_type") if d.get("enquiry_type") in ENQUIRY_TYPES else "Rental Hire"
 	lines = []
 	seen = set()
-	for line in (d.get("items") or [])[:MAX_LINES]:
-		code = (line or {}).get("item_code")
-		qty = flt((line or {}).get("qty"))
+	for line in _lines(d.get("items")):
+		code = line.get("item_code")
+		qty = flt(line.get("qty"))
 		if not code:
 			continue
 		if qty <= 0 or qty > MAX_QTY:
@@ -186,7 +220,7 @@ def submit_enquiry(data: str | dict):
 def contact(data: str | dict):
 	"""The contact / enquiry form: general questions, long-term contracts, project rentals, account requests."""
 	_enabled()
-	d = frappe._dict(frappe.parse_json(data) if isinstance(data, str) else data or {})
+	d = _payload(data)
 	if _spam(d):
 		return {"name": None, "ok": 1}
 	message = _clean(d.get("message"), 4000)

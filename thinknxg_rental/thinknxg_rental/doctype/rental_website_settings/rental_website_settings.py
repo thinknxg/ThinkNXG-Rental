@@ -1,3 +1,5 @@
+import re
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -7,16 +9,48 @@ from thinknxg_rental.website.theme import TEMPLATES
 HOME_ROUTE = "hire"
 
 
+LINK_PREFIXES = ("/", "https://", "http://", "mailto:", "tel:")
+
+
+def check_link(value, where):
+	"""Website links must be site paths or ordinary web, mail or phone links (never javascript: and the like)."""
+	value = (value or "").strip()
+	if value and (not value.startswith(LINK_PREFIXES) or value.startswith("//")):
+		frappe.throw(_("{0}: start the link with /, https://, mailto: or tel:").format(where), title=_("Invalid link"))
+
+
+def check_public_image(value, where):
+	if (value or "").startswith(("/private/", "private/")):
+		frappe.throw(_("{0}: this file is private, so visitors cannot see it. Upload it again with Public ticked.").format(where),
+			title=_("Private file"))
+
+
 class RentalWebsiteSettings(Document):
 	def validate(self):
+		from thinknxg_rental.website.theme import safe_color
+
 		for field in ("primary_color", "accent_color", "dark_color"):
 			value = (self.get(field) or "").strip()
-			if value and not (value.startswith("#") and len(value) in (4, 7)):
+			if value and safe_color(value) != value:
 				frappe.throw(_("{0} must be a colour such as #1f4e79").format(self.meta.get_label(field)))
 		for row in self.links or []:
-			if row.link and not (row.link.startswith("/") or row.link.startswith("https://") or row.link.startswith("http://")
-					or row.link.startswith("mailto:") or row.link.startswith("tel:")):
-				frappe.throw(_("Link row #{0}: start the link with /, https://, mailto: or tel:").format(row.idx))
+			check_link(row.link, _("Link row #{0}").format(row.idx))
+		for row in self.sections or []:
+			where = _("Home section #{0} ({1})").format(row.idx, _(row.section_type))
+			check_link(row.cta_link, where)
+			check_link(row.cta2_link, where)
+			check_public_image(row.image, where)
+		for row in self.cards or []:
+			where = _("Card #{0} ({1})").format(row.idx, row.title or _(row.card_group))
+			check_link(row.link, where)
+			check_public_image(row.image, where)
+		for row in self.categories or []:
+			check_public_image(row.image, _("Category row #{0}").format(row.idx))
+		check_link(self.map_link, self.meta.get_label("map_link"))
+		for field in ("logo", "og_image", "about_image"):
+			check_public_image(self.get(field), self.meta.get_label(field))
+		if self.whatsapp and not re.fullmatch(r"\+?[0-9 ()-]{6,24}", self.whatsapp.strip()):
+			frappe.throw(_("WhatsApp: enter the number with its country code, such as +968 9123 4567"))
 
 	def on_update(self):
 		from thinknxg_rental.website.catalogue import clear_cache

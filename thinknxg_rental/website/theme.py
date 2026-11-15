@@ -60,10 +60,53 @@ def theme(settings=None):
 		"data-corners": slugify(base["corner_style"]),
 		"data-type": slugify(base["typography"]),
 	}
-	base["css"] = ":root{--rw-primary:%s;--rw-accent:%s;--rw-dark:%s;--rw-primary-ink:%s;--rw-on-accent:%s;}" % (
-		safe_color(base["primary"]), safe_color(base["accent"]), safe_color(base["dark"]), shade(base["primary"], -0.18),
-		"#111" if luminance(base["accent"]) > 0.55 else "#fff")
+	button, on_button = accent_button(base["accent"])
+	base["css"] = ":root{--rw-primary:%s;--rw-accent:%s;--rw-dark:%s;--rw-primary-ink:%s;--rw-link:%s;--rw-accent-btn:%s;--rw-on-accent:%s;}" % (
+		safe_color(base["primary"]), safe_color(base["accent"]), safe_color(base["dark"]), shade(readable_on_white(base["primary"]), -0.18),
+		readable_on_white(base["primary"]), button, on_button)
 	return base
+
+
+WHITE, INK = "#ffffff", "#111111"
+AA = 4.5  # WCAG AA for body-size text
+
+
+def contrast(a, b):
+	"""WCAG contrast ratio of two colours."""
+	la, lb = sorted((_relative_luminance(a), _relative_luminance(b)), reverse=True)
+	return (la + 0.05) / (lb + 0.05)
+
+
+def _relative_luminance(hexcolor):
+	def channel(c):
+		c = c / 255
+		return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+	r, g, b = (channel(c) for c in _rgb(hexcolor))
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def accent_button(accent):
+	"""(button colour, text colour) for accent buttons, readable at AA. White text is kept when a slightly
+	deeper accent reaches AA (the accent stays recognisable); otherwise dark text on the accent itself."""
+	accent = safe_color(accent)
+	for step in range(0, 9):
+		c = shade(accent, -0.03 * step) if step else accent
+		if contrast(c, WHITE) >= AA:
+			return c, WHITE
+	if contrast(accent, INK) >= AA:
+		return accent, INK
+	return shade(accent, -0.45), WHITE
+
+
+def readable_on_white(color):
+	"""The colour, deepened until text in it reads at AA on white (links, prices)."""
+	c = safe_color(color)
+	for _i in range(20):
+		if contrast(c, WHITE) >= AA:
+			return c
+		c = shade(c, -0.08)
+	return c
 
 
 def safe_color(value):

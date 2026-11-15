@@ -1,6 +1,6 @@
 {%- from "templates/rental_website/macros.html" import icon, logo with context -%}
 <!doctype html>
-<html lang="{{ lang or 'en' }}" {% for k, v in rw_theme.attrs.items() %}{{ k }}="{{ v }}" {% endfor %}>
+<html lang="{{ lang or 'en' }}" dir="{{ 'rtl' if is_rtl() else 'ltr' }}" {% for k, v in rw_theme.attrs.items() %}{{ k }}="{{ v }}" {% endfor %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -17,7 +17,11 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="{{ rw_theme.dark }}">
 <link rel="icon" href="{{ (rw.logo or '/assets/thinknxg_rental/images/logo.svg') | e }}">
+{%- if rw_theme.attrs["data-type"] != "system-fonts" %}
 <link rel="preload" href="/assets/thinknxg_rental/command_center/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+{%- if rw_theme.attrs["data-type"] == "condensed-headings" %}
+<link rel="preload" href="/assets/thinknxg_rental/command_center/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+{%- endif %}{% endif %}
 <link rel="stylesheet" href="/assets/thinknxg_rental/rental_website/rw.css?v={{ rw_version }}">
 <style>{{ rw_theme.css }}</style>
 {%- for ld in rw_json_ld %}
@@ -25,6 +29,7 @@
 {%- endfor %}
 </head>
 <body>
+{{ rw_icons }}
 <a class="rw-skip" href="#rw-main">{{ _("Skip to content") }}</a>
 {% if rw_staff_preview %}<div class="rw-preview">{{ icon("eye") }} {{ _("The website is switched off. Only website managers can see this preview.") }} <a href="/app/rental-website-settings">{{ _("Website settings") }}</a></div>{% endif %}
 <header class="rw-header" data-rw-header>
