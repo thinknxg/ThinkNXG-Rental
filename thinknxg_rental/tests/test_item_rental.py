@@ -316,6 +316,94 @@ class TestItemRental(IntegrationTestCase):
 		q.run_method("process_item_selection", item_idx=1, reset_item_details=False, parentfield="items")
 		self.assertEqual(row.nxg_repair_charge, 99)
 
+	# ------------------------------------------------------------------ rates and rate basis
+	def rated_item(self, daily, weekly, monthly, basis="Monthly"):
+		return self.item(profile={"enabled": 1, "values": {"daily_rate": daily, "weekly_rate": weekly, "monthly_rate": monthly,
+			"default_rate_basis": basis}}).name
+
+	def rows(self, quotation):
+		return [(r.nxg_rate_basis, flt(r.rate), flt(r.nxg_daily_rate), flt(r.nxg_weekly_rate), flt(r.nxg_monthly_rate))
+			for r in frappe.get_doc("Quotation", quotation).items]
+
+	def test_rates_api_uses_profile_rates_and_default_basis(self):
+		item = self.rated_item(10, 60, 200, "Weekly")
+		got = item_rental.get_item_rental_defaults(item, self.company)
+		self.assertEqual((got["nxg_daily_rate"], got["nxg_weekly_rate"], got["nxg_monthly_rate"]), (10, 60, 200))
+		self.assertEqual((got["nxg_rate_basis"], got["rate"]), ("Weekly", 60))
+		# no profile: zero rates, the quotation's basis kept, no Rate proposed
+		plain = item_rental.get_item_rental_defaults(self.item().name, self.company, rate_basis="Daily")
+		self.assertEqual((plain["nxg_daily_rate"], plain["nxg_rate_basis"], plain.get("rate")), (0, "Daily", None))
+		# other deals get the charges only
+		self.assertNotIn("nxg_daily_rate", item_rental.get_item_rental_defaults(item, self.company, deal_type="Material Sale"))
+
+	def test_rate_card_comes_before_the_profile(self):
+		item = self.rated_item(10, 60, 200)
+		customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
+		frappe.get_doc({"doctype": "Rental Rate Card", "title": code("Card"), "customer": customer,
+			"items": [{"item_code": item, "daily_rate": 8, "weekly_rate": 50, "monthly_rate": 170}]}).insert()
+		got = item_rental.get_item_rental_defaults(item, self.company, customer=customer, quotation_to="Customer")
+		self.assertEqual((got["nxg_daily_rate"], got["nxg_monthly_rate"], got["rate"]), (8, 170, 170))
+		# a quotation to a Lead or Prospect has no customer card: the profile's rates
+		got = item_rental.get_item_rental_defaults(item, self.company, customer=customer, quotation_to="Prospect")
+		self.assertEqual(got["rate"], 200)
+
+	def test_picked_item_fills_rates_basis_and_rate(self):
+		item = self.rated_item(10, 60, 200, "Daily")
+		customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
+		frappe.db.delete("Rental Rate Card Item", {"item_code": item})
+		q = frappe.get_doc({"doctype": "Quotation", "quotation_to": "Customer", "party_name": customer, "company": self.company,
+			"deal_type": "Material Hire", "nxg_default_rate_basis": "Monthly", "items": [{"item_code": item, "qty": 2}]})
+		q.set_missing_values()
+		q.run_method("process_item_selection", item_idx=1, reset_item_details=True, parentfield="items")
+		row = q.items[0]
+		self.assertEqual((row.nxg_rate_basis, row.rate, row.nxg_daily_rate, row.nxg_weekly_rate, row.nxg_monthly_rate), ("Daily", 10, 10, 60, 200))
+		self.assertEqual(flt(row.amount), 20)
+
+	def test_rates_and_basis_stay_editable(self):
+		item = self.rated_item(10, 60, 200, "Monthly")
+		quotation = self.quotation([self.row(item, rate=0, nxg_rate_basis="Monthly")])
+		self.assertEqual(self.rows(quotation), [("Monthly", 200, 10, 60, 200)])
+		frappe.set_user(STAFF)
+		# switch the basis: Rate takes that basis's rate
+		boot = form("quotation", quotation)
+		boot["doc"]["items"][0]["nxg_rate_basis"] = "Weekly"
+		save("quotation", boot["doc"])
+		self.assertEqual(self.rows(quotation), [("Weekly", 60, 10, 60, 200)])
+		# edit the rate of the row's basis: Rate follows
+		boot = form("quotation", quotation)
+		boot["doc"]["items"][0]["nxg_weekly_rate"] = 55
+		save("quotation", boot["doc"])
+		self.assertEqual(self.rows(quotation), [("Weekly", 55, 10, 55, 200)])
+		# type a Rate: it becomes this basis's rate; the other rates stay
+		boot = form("quotation", quotation)
+		boot["doc"]["items"][0]["rate"] = 52
+		save("quotation", boot["doc"])
+		self.assertEqual(self.rows(quotation), [("Weekly", 52, 10, 52, 200)])
+		# editing another basis's rate leaves Rate alone
+		boot = form("quotation", quotation)
+		boot["doc"]["items"][0]["nxg_monthly_rate"] = 190
+		save("quotation", boot["doc"])
+		self.assertEqual(self.rows(quotation), [("Weekly", 52, 10, 52, 190)])
+		# the hire amounts follow Rate, and the profile keeps its rates
+		row = frappe.get_doc("Quotation", quotation).items[0]
+		self.assertEqual(flt(row.nxg_rate_basis_amount), flt(row.qty) * 52)
+		self.assertEqual(frappe.db.get_value(PROFILE, item, ["daily_rate", "weekly_rate", "monthly_rate", "default_rate_basis"]), (10, 60, 200, "Monthly"))
+
+	def test_rate_given_with_the_row_is_kept(self):
+		item = self.rated_item(10, 60, 200, "Monthly")
+		quotation = self.quotation([self.row(item, rate=180, nxg_rate_basis="Monthly")])
+		self.assertEqual(self.rows(quotation), [("Monthly", 180, 10, 60, 180)])
+
+	def test_item_without_profile_keeps_a_typed_rate(self):
+		plain = self.item().name
+		quotation = self.quotation([self.row(plain, rate=33, nxg_rate_basis="Daily")])
+		self.assertEqual(self.rows(quotation), [("Daily", 33, 33, 0, 0)])
+
+	def test_negative_rate_is_refused(self):
+		item = self.rated_item(10, 60, 200)
+		with self.assertRaises(frappe.ValidationError):
+			self.quotation([self.row(item, nxg_daily_rate=-1, nxg_charges_set=1)])
+
 	def test_values_from_the_form_are_kept(self):
 		# the form fetched the defaults and the user changed them before the first save
 		a = self.charged_item(500, 4000, 2500)
@@ -346,7 +434,10 @@ class TestItemRental(IntegrationTestCase):
 		for field in item_rental.CHARGES:
 			self.assertIn(field, cols)
 			self.assertEqual(cols[field]["marks"], "nxg_charges_set")
-		self.assertEqual(cols["item_code"]["defaults"]["method"], "thinknxg_rental.services.item_rental.get_item_rental_charges")
+		self.assertEqual(cols["item_code"]["defaults"]["method"], "thinknxg_rental.services.item_rental.get_item_rental_defaults")
+		for field in item_rental.RATES.values():
+			self.assertIn(field, cols)
+		self.assertEqual(cols["nxg_rate_basis"]["copies"]["from"], item_rental.RATES)
 
 	def test_custom_fields_once(self):
 		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields

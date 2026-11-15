@@ -81,7 +81,20 @@ def get_custom_fields():
 			dict(fieldname="nxg_estimated_amount", label="Estimated Amount", fieldtype="Currency", options="currency", read_only=1, insert_after="nxg_rate_basis_amount", in_list_view=1, columns=1, depends_on=MH_DEPENDS_ON),
 			# Damage and loss charges agreed on this quotation: the Rental Item Profile's values when the
 			# item is picked (services/item_rental.py), then this row's own, never written back.
-			dict(fieldname="nxg_charges_section", label="Rental Charges", fieldtype="Section Break", insert_after="nxg_estimated_amount",
+			# The item's rates when it is picked (rate card or Rental Item Profile); editable, the row's Rate
+			# follows its Rate Basis (services/item_rental.py quotation_rates)
+			dict(fieldname="nxg_rates_section", label="Rental Rates", fieldtype="Section Break", insert_after="nxg_estimated_amount",
+				depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_daily_rate", label="Daily Rate", fieldtype="Currency", options="currency", non_negative=1,
+				insert_after="nxg_rates_section", depends_on=MH_DEPENDS_ON,
+				description="From the rate card or the item's Rental Item Profile. Change it for this quotation only."),
+			dict(fieldname="nxg_rates_cb", fieldtype="Column Break", insert_after="nxg_daily_rate"),
+			dict(fieldname="nxg_weekly_rate", label="Weekly Rate", fieldtype="Currency", options="currency", non_negative=1,
+				insert_after="nxg_rates_cb", depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_rates_cb2", fieldtype="Column Break", insert_after="nxg_weekly_rate"),
+			dict(fieldname="nxg_monthly_rate", label="Monthly Rate", fieldtype="Currency", options="currency", non_negative=1,
+				insert_after="nxg_rates_cb2", depends_on=MH_DEPENDS_ON),
+			dict(fieldname="nxg_charges_section", label="Rental Charges", fieldtype="Section Break", insert_after="nxg_monthly_rate",
 				depends_on=MH_DEPENDS_ON, collapsible=0),
 			dict(fieldname="nxg_repair_charge", label="Standard Repair Charge per Unit", fieldtype="Currency", options="currency",
 				insert_after="nxg_charges_section", non_negative=1, depends_on=MH_DEPENDS_ON,

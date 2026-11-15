@@ -50,6 +50,8 @@ doc_events = {
 	},
 	"Quotation": {
 		"validate": [
+		    # rates and rate basis first: the hire amounts below are worked out from Rate
+		    "thinknxg_rental.services.item_rental.quotation_rates",
 		    "thinknxg_rental.events.quotation.validate",
 		    "thinknxg_rental.events.default_terms.apply",
 		    "thinknxg_rental.services.item_rental.quotation_charges",

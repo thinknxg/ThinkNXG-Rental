@@ -633,6 +633,8 @@ frappe.ui.form.on("Quotation", {
 // quotation shows what was saved; nothing is fetched again. The server fills rows added without the
 // form (services/item_rental.py quotation_charges).
 const NXG_CHARGE_FIELDS = ["nxg_repair_charge", "nxg_lost_charge", "nxg_beyond_repair_charge"];
+// Material Hire rows: one rate per basis; the row's Rate is the rate of its Rate Basis
+const NXG_RATE_FIELDS = { Daily: "nxg_daily_rate", Weekly: "nxg_weekly_rate", Monthly: "nxg_monthly_rate" };
 
 function nxg_fetch_charges(frm, cdt, cdn) {
 	// ERPNext v16 picks the item on the server (process_item_selection) and sends the whole row back;
@@ -648,14 +650,24 @@ function nxg_apply_charges(frm, cdt, cdn) {
 		frappe.model.set_value(cdt, cdn, Object.fromEntries(NXG_CHARGE_FIELDS.map((f) => [f, 0])));
 		return;
 	}
+	const hire = nxg_is_material_hire(frm);
 	frappe.call({
-		method: "thinknxg_rental.services.item_rental.get_item_rental_charges",
-		args: { item_code: row.item_code, company: frm.doc.company, currency: frm.doc.currency, conversion_rate: frm.doc.conversion_rate },
+		method: hire ? "thinknxg_rental.services.item_rental.get_item_rental_defaults" : "thinknxg_rental.services.item_rental.get_item_rental_charges",
+		args: {
+			item_code: row.item_code, company: frm.doc.company, currency: frm.doc.currency, conversion_rate: frm.doc.conversion_rate,
+			customer: frm.doc.quotation_to === "Customer" ? frm.doc.party_name : null, transaction_date: frm.doc.transaction_date,
+			rate_basis: row.nxg_rate_basis || frm.doc.nxg_default_rate_basis,
+		},
 	}).then((r) => {
 		const v = r.message || {};
 		if (locals[cdt][cdn] && locals[cdt][cdn].item_code === row.item_code) {
 			const values = Object.fromEntries(NXG_CHARGE_FIELDS.map((f) => [f, flt(v[f])]));
 			values.nxg_charges_set = 1;
+			if (hire) {
+				Object.values(NXG_RATE_FIELDS).forEach((f) => (values[f] = flt(v[f])));
+				values.nxg_rate_basis = v.nxg_rate_basis;
+				if (flt(v.rate)) values.rate = flt(v.rate);
+			}
 			frappe.model.set_value(cdt, cdn, values);
 		}
 	});
@@ -670,4 +682,34 @@ frappe.ui.form.on("Quotation Item", {
 	nxg_repair_charge: nxg_charge_typed,
 	nxg_lost_charge: nxg_charge_typed,
 	nxg_beyond_repair_charge: nxg_charge_typed,
+});
+
+// Rate follows the row's Rate Basis; the basis rates and Rate stay editable and never leave the quotation
+function nxg_basis_field(row) {
+	return NXG_RATE_FIELDS[row.nxg_rate_basis || "Monthly"];
+}
+
+frappe.ui.form.on("Quotation Item", {
+	nxg_rate_basis(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		const field = nxg_basis_field(row);
+		if (nxg_is_material_hire(frm) && field && flt(row[field]) && flt(row.rate) !== flt(row[field])) {
+			frappe.model.set_value(cdt, cdn, "rate", flt(row[field]));
+		}
+	},
+	rate(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		const field = nxg_basis_field(row);
+		if (nxg_is_material_hire(frm) && field && flt(row.rate) && flt(row[field]) !== flt(row.rate)) {
+			frappe.model.set_value(cdt, cdn, field, flt(row.rate));
+		}
+	},
+});
+Object.entries(NXG_RATE_FIELDS).forEach(([basis, field]) => {
+	frappe.ui.form.on("Quotation Item", field, (frm, cdt, cdn) => {
+		const row = locals[cdt][cdn];
+		if (nxg_is_material_hire(frm) && (row.nxg_rate_basis || "Monthly") === basis && flt(row[field]) && flt(row.rate) !== flt(row[field])) {
+			frappe.model.set_value(cdt, cdn, "rate", flt(row[field]));
+		}
+	});
 });

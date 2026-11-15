@@ -26,6 +26,9 @@ CHARGES = {
 	"nxg_lost_charge": "lost_charge",
 	"nxg_beyond_repair_charge": "beyond_repair_charge",
 }
+# Quotation Item rate field -> rate basis (Material Hire rows)
+RATES = {"Daily": "nxg_daily_rate", "Weekly": "nxg_weekly_rate", "Monthly": "nxg_monthly_rate"}
+BASES = ("Monthly", "Weekly", "Daily")
 # Profile fields the Item form may set (everything a user enters; never the link or fetched names)
 SKIP = {"item", "item_name", "item_group", "stock_uom", "naming_series", "amended_from"}
 
@@ -182,6 +185,46 @@ def get_item_rental_charges(item_code: str, company: str | None = None, currency
 	return out
 
 
+@frappe.whitelist()
+def get_item_rental_defaults(item_code: str, company: str | None = None, currency: str | None = None,
+		conversion_rate: float | None = None, customer: str | None = None, transaction_date: str | None = None,
+		rate_basis: str | None = None, quotation_to: str | None = None, deal_type: str | None = None):
+	"""Everything a Material Hire quotation row takes from the item when it is picked: the damage and
+	loss charges, the daily, weekly and monthly rates (customer rate card, then general rate card, then
+	the Rental Item Profile, as for hire orders), the profile's default rate basis and the Rate for it.
+	All in the quotation's currency. An item without a profile gets zero rates and keeps rate_basis."""
+	from thinknxg_rental.services.utils import get_profile, get_rental_rate
+
+	out = get_item_rental_charges(item_code, company, currency, conversion_rate)
+	if deal_type and deal_type != "Material Hire":
+		return out  # rates per basis are for material hire; other deals keep their own pricing
+	if quotation_to and quotation_to != "Customer":
+		customer = None  # a Lead or Prospect has no customer rate card yet
+	to_doc = _rate_to_document(company, currency, conversion_rate)
+	for basis, field in RATES.items():
+		out[field] = flt(get_rental_rate(item_code, basis, customer, transaction_date) / to_doc,
+			frappe.get_precision("Quotation Item", field) or 2)
+	profile_basis = get_profile(item_code).get("default_rate_basis") if out["has_profile"] else None
+	basis = profile_basis if profile_basis in RATES else (rate_basis if rate_basis in RATES else "Monthly")
+	out["nxg_rate_basis"] = basis
+	if out[RATES[basis]]:
+		out["rate"] = out[RATES[basis]]
+	return out
+
+
+def quotation_customer(doc):
+	"""The customer whose rate card applies: the party when the quotation is to a Customer."""
+	return doc.party_name if doc.get("quotation_to") == "Customer" else None
+
+
+def _apply_rates(doc, row, defaults):
+	for field in RATES.values():
+		row.set(field, defaults[field])
+	row.nxg_rate_basis = defaults["nxg_rate_basis"]
+	if defaults.get("rate"):
+		row.rate = defaults["rate"]
+
+
 def _rate_to_document(company, currency, conversion_rate):
 	"""Profile charges are in company currency; a quotation in another currency gets them divided by its
 	exchange rate (company currency per unit of the quotation's currency)."""
@@ -199,10 +242,54 @@ def quotation_item_selected(doc, method=None, item_idx=None, reset_item_details=
 	row = doc.get_selected_item_row(parentfield, item_idx)
 	if not row or not row.item_code or not row.meta.has_field("nxg_repair_charge"):
 		return
-	defaults = get_item_rental_charges(row.item_code, doc.company, doc.currency, doc.conversion_rate)
+	hire = doc.get("deal_type") == "Material Hire" and row.meta.has_field("nxg_daily_rate")
+	defaults = (get_item_rental_defaults(row.item_code, doc.company, doc.currency, doc.conversion_rate, quotation_customer(doc),
+		doc.transaction_date, row.get("nxg_rate_basis") or doc.get("nxg_default_rate_basis")) if hire
+		else get_item_rental_charges(row.item_code, doc.company, doc.currency, doc.conversion_rate))
 	for field in CHARGES:
 		row.set(field, defaults[field])
 	row.nxg_charges_set = 1
+	if hire:
+		_apply_rates(doc, row, defaults)
+		doc.calculate_taxes_and_totals()
+
+
+def quotation_rates(doc, method=None):
+	"""Quotation (validate, before the hire amounts are worked out), Material Hire rows:
+
+	* a row added without the form gets the item's rates and rate basis once (as when picked);
+	* the row's Rate follows its rate basis: changing the basis takes that basis's rate, changing a
+	  basis rate moves Rate when it is the row's basis, and a Rate typed by hand is kept as that
+	  basis's rate. All of them stay editable; nothing is written back to the profile or rate card."""
+	if doc.get("deal_type") != "Material Hire" or not frappe.get_meta("Quotation Item").has_field("nxg_daily_rate"):
+		return
+	before = doc.get_doc_before_save()
+	previous = {r.name: r for r in (before.get("items") or [])} if before else {}
+	for row in doc.get("items"):
+		if not row.item_code:
+			continue
+		for field in RATES.values():
+			if flt(row.get(field)) < 0:
+				frappe.throw(_("Row #{0}: {1} cannot be negative").format(row.idx, _(row.meta.get_label(field))), title=_("Invalid amount"))
+		old = previous.get(row.name)
+		if old is None and not cint(row.get("nxg_charges_set")) and not any(flt(row.get(f)) for f in RATES.values()):
+			defaults = get_item_rental_defaults(row.item_code, doc.company, doc.currency, doc.conversion_rate, quotation_customer(doc),
+				doc.transaction_date, row.get("nxg_rate_basis") or doc.get("nxg_default_rate_basis"))
+			if not flt(row.rate):
+				_apply_rates(doc, row, defaults)
+			else:  # a Rate given with the row stays; the basis rates are filled around it
+				for field in RATES.values():
+					row.set(field, defaults[field])
+				row.set(RATES.get(row.nxg_rate_basis or "Monthly", "nxg_monthly_rate"), row.rate)
+			continue
+		basis_field = RATES.get(row.get("nxg_rate_basis") or "Monthly")
+		if old is not None and old.get("nxg_rate_basis") != row.get("nxg_rate_basis"):
+			if flt(row.get(basis_field)):
+				row.rate = row.get(basis_field)  # basis switched: its rate
+		elif old is not None and flt(old.get(basis_field)) != flt(row.get(basis_field)) and flt(old.rate) == flt(row.rate):
+			row.rate = row.get(basis_field)  # the basis rate was edited
+		elif flt(row.rate) and flt(row.rate) != flt(row.get(basis_field)):
+			row.set(basis_field, row.rate)  # Rate typed: it is this basis's rate
 
 
 def quotation_charges(doc, method=None):

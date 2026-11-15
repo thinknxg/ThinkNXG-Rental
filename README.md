@@ -193,6 +193,13 @@ correctly). It loads the Barlow typefaces from Google Fonts and falls back to sy
   In the Command Center yard, a Stock + Asset item lists its units, where each is, and each unit's
   movements and return inspections.
 
+**Rates** in Material Hire quotations: when an item is picked, its row gets the Daily, Weekly and
+Monthly Rate (customer rate card, then general rate card, then the Rental Item Profile, as for hire
+orders), the profile's Default Rate Basis, and the Rate of that basis. All of them can be changed on the
+row: switching the Rate Basis takes that basis's rate, changing the rate of the row's basis moves Rate,
+and a Rate typed by hand becomes that basis's rate. Nothing is written back to the profile or rate card.
+Changing the quotation's Default Rate Basis still sets every row's basis (and so its Rate).
+
 **Damage charges** on Rental Item Profile: Standard Repair Charge per Unit (existing), **Lost Charge per
 Unit** and **Beyond Repair / Damage Charge per Unit** (new; never negative). Each Quotation row takes
 them as defaults when the item is picked (desk and Command Center), converted into the quotation's
