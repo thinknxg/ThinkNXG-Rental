@@ -1,4 +1,4 @@
-"""Item + Rental Item Profile, Stock / Stock + Asset, and quotation rental charges
+"""Item + Rental Item Profile, and quotation rental rates and charges
 (services/item_rental.py).
 
     bench --site <site> run-tests --module thinknxg_rental.tests.test_item_rental
@@ -25,9 +25,6 @@ class TestItemRental(IntegrationTestCase):
 		super().setUpClass()
 		prepare(cls)
 		cls.item_group = _leaf("Item Group")
-		# ERPNext only allows serial numbers with this Stock Settings switch on (Stock + Asset needs it)
-		frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
-		frappe.db.commit()
 
 	def setUp(self):
 		frappe.set_user("Administrator")
@@ -36,13 +33,11 @@ class TestItemRental(IntegrationTestCase):
 		frappe.set_user("Administrator")
 
 	# ------------------------------------------------------------------ helpers
-	def item(self, stock=1, profile=None, classification=None, **extra):
+	def item(self, stock=1, profile=None, **extra):
 		"""An Item saved the way the desk form saves it: the Rental panel's values ride along as
 		nxg_rental_profile (a JSON string, as the browser sends it)."""
 		doc = frappe.get_doc(dict({"doctype": "Item", "item_code": code(), "item_group": self.item_group, "stock_uom": "Nos",
 			"is_stock_item": stock}, **extra))
-		if classification:
-			doc.nxg_rental_classification = classification
 		if profile is not None:
 			doc.nxg_rental_profile = json.dumps(profile)
 		doc.insert()
@@ -56,21 +51,10 @@ class TestItemRental(IntegrationTestCase):
 		doc.save()
 		return doc
 
-	def receive(self, item_code, qty, serials=None):
-		row = {"item_code": item_code, "t_warehouse": self.yard, "qty": qty, "basic_rate": 100}
-		if serials:
-			row.update(use_serial_batch_fields=1, serial_no="\n".join(serials))
-		se = frappe.get_doc({"doctype": "Stock Entry", "stock_entry_type": "Material Receipt", "company": self.company,
-			"set_posting_time": 1, "posting_date": add_days(nowdate(), -60), "items": [row]})
-		se.insert()
-		se.submit()
-		return se
-
 	# ------------------------------------------------------------------ Item creation
 	def test_stock_item_without_profile(self):
 		doc = self.item()
 		self.assertFalse(frappe.db.exists(PROFILE, doc.name))
-		self.assertEqual(doc.nxg_rental_classification, "Stock")
 
 	def test_stock_item_with_profile_saved_together(self):
 		doc = self.item(profile={"enabled": 1, "values": {"category": "Scaffolding", "monthly_rate": 30, "replacement_value": 900,
@@ -146,100 +130,6 @@ class TestItemRental(IntegrationTestCase):
 			self.assertIn(field, names)
 		self.assertNotIn("item", names)
 		self.assertFalse(data["exists"])
-
-	# ------------------------------------------------------------------ Stock and Stock + Asset
-	def test_stock_only_item_counts_quantities(self):
-		doc = self.item()
-		self.receive(doc.name, 40)
-		self.assertEqual(flt(frappe.db.get_value("Bin", {"item_code": doc.name, "warehouse": self.yard}, "actual_qty")), 40)
-		self.assertEqual(frappe.db.count("Serial No", {"item_code": doc.name}), 0)
-		self.assertEqual((doc.has_serial_no, doc.nxg_rental_classification), (0, "Stock"))
-
-	def test_stock_plus_asset_identifies_every_unit(self):
-		doc = self.item(classification="Stock + Asset", profile={"enabled": 1, "values": {"monthly_rate": 900, "lost_charge": 50000}})
-		self.assertEqual(doc.has_serial_no, 1)
-		serials = [f"GEN-{doc.name}-{i}" for i in (1, 2, 3)]
-		self.receive(doc.name, 3, serials)
-		# one Item, its stock and its units agree
-		self.assertEqual(flt(frappe.db.get_value("Bin", {"item_code": doc.name, "warehouse": self.yard}, "actual_qty")), 3)
-		units = item_rental.units(doc.name)
-		self.assertEqual(sorted(u.name for u in units), sorted(serials))
-		self.assertTrue(all(u.warehouse == self.yard and u.place == "Yard" for u in units))
-		history = item_rental.unit_history(doc.name, serials[0])
-		self.assertEqual([(m.warehouse, flt(m.qty)) for m in history["moves"]], [(self.yard, 1)])
-		# and no ERPNext Fixed Asset is made from a stock item
-		self.assertEqual(frappe.db.get_value("Item", doc.name, "is_fixed_asset"), 0)
-
-	def test_serial_numbers_and_classification_follow_each_other(self):
-		doc = self.item()
-		doc = self.save_item(doc.name, has_serial_no=1)
-		self.assertEqual(doc.nxg_rental_classification, "Stock + Asset")
-		doc = self.save_item(doc.name, nxg_rental_classification="Stock")
-		self.assertEqual(doc.has_serial_no, 0)
-		# once units exist, ERPNext itself refuses to drop serial numbers
-		doc = self.save_item(doc.name, nxg_rental_classification="Stock + Asset")
-		self.receive(doc.name, 1, [f"U-{doc.name}"])
-		with self.assertRaises(frappe.ValidationError):
-			self.save_item(doc.name, nxg_rental_classification="Stock")
-
-	def test_stock_plus_asset_needs_serial_numbers_switched_on(self):
-		frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 0)
-		try:
-			with self.assertRaises(frappe.ValidationError) as caught:
-				self.item(classification="Stock + Asset")
-			self.assertIn("Stock Settings", str(caught.exception))
-		finally:
-			frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
-
-	def test_asset_only_item_is_erpnext_fixed_asset(self):
-		category = frappe.db.get_value("Asset Category Account", {"company_name": self.company}, "parent")
-		if not category:
-			account = frappe.db.get_value("Account", {"company": self.company, "account_type": "Fixed Asset", "is_group": 0})
-			if not account:
-				self.skipTest("this company has no Fixed Asset account")
-			category = frappe.get_doc({"doctype": "Asset Category", "asset_category_name": code("Equipment"),
-				"accounts": [{"company_name": self.company, "fixed_asset_account": account}]}).insert().name
-		doc = self.item(stock=0, is_fixed_asset=1, asset_category=category)
-		self.assertEqual((doc.is_stock_item, doc.is_fixed_asset, doc.nxg_rental_classification), (0, 1, "Stock"))
-		self.assertFalse(frappe.db.exists(PROFILE, doc.name))
-
-	def test_stock_plus_asset_unit_through_the_rental_flow(self):
-		"""A serialised unit goes out on a delivery order exactly like counted stock, and is then shown
-		at the customer's site."""
-		doc = self.item(classification="Stock + Asset", profile={"enabled": 1, "values": {"monthly_rate": 900, "daily_rate": 40}})
-		serial = f"GEN-{doc.name}-A"
-		self.receive(doc.name, 2, [serial, f"GEN-{doc.name}-B"])
-		frappe.set_user(STAFF)
-		boot = form("lead")
-		boot["doc"].update(first_name="Unit", company_name=code("Unit Co"), deal_type="Material Hire", company=self.company)
-		lead = save("lead", boot["doc"])
-		key, q = create(form("lead", lead), "Create Quotation")
-		q["doc"].update(items=[{"item_code": doc.name, "qty": 1, "rate": 900, "uom": "Nos", "nxg_rate_basis": "Monthly"}],
-			valid_till=add_days(nowdate(), 30), nxg_required_from=nowdate(), nxg_expected_return_date=add_days(nowdate(), 30))
-		quotation = save("quotation", q["doc"], submit=True)
-		key, site = create(form("quotation", quotation), "Create Rental Site")
-		site["doc"]["site_name"] = code("Unit Site")
-		site_name = save("rental-site", site["doc"])
-		key, ho = create(form("rental-site", site_name), "Create Hire Order")
-		ho["doc"]["order_date"] = add_days(nowdate(), -30)
-		ho_name = save("hire-order", ho["doc"], submit=True)
-		key, rc = create(form("hire-order", ho_name), "Create Rental Contract")
-		rc["doc"]["start_date"] = add_days(nowdate(), -30)
-		rc_name = save("rental-contract", rc["doc"], submit=True)
-		do = form("delivery-order", rental_contract=rc_name)
-		from thinknxg_rental.tests.test_admin_portal import fill
-
-		do["doc"]["items"] = fill(do)
-		for r in do["doc"]["items"]:
-			r.update(qty=1, serial_no=serial)
-		do["doc"].update(vehicle_no="OM 1234", posting_date=add_days(nowdate(), -29))
-		save("delivery-order", do["doc"], submit=True)
-		frappe.set_user("Administrator")
-		unit = next(u for u in item_rental.units(doc.name) if u.name == serial)
-		self.assertEqual((unit.place, unit.site), ("At site", site_name))
-		self.assertEqual(flt(frappe.db.get_value("Bin", {"item_code": doc.name, "warehouse": self.yard}, "actual_qty")), 1)
-		self.assertEqual(frappe.db.count("Serial No", {"item_code": doc.name, "warehouse": self.yard}), 1)
-		self.assertEqual(len(item_rental.unit_history(doc.name, serial)["moves"]), 3)  # received, out of the yard, into the site
 
 	# ------------------------------------------------------------------ Quotation rental charges
 	def charged_item(self, repair, lost, beyond):
@@ -446,7 +336,8 @@ class TestItemRental(IntegrationTestCase):
 
 		create_custom_fields(get_custom_fields(), ignore_validate=True)
 		create_custom_fields(get_custom_fields(), ignore_validate=True)
-		for doctype, fields in (("Item", ["nxg_rental_classification", "nxg_rental_profile_html"]),
+		self.assertFalse(frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "nxg_rental_classification"}))
+		for doctype, fields in (("Item", ["nxg_rental_profile_html"]),
 				("Quotation Item", list(item_rental.CHARGES) + ["nxg_charges_set"])):
 			for field in fields:
 				self.assertEqual(frappe.db.count("Custom Field", {"dt": doctype, "fieldname": field}), 1, f"{doctype}.{field}")

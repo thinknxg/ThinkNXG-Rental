@@ -1,5 +1,4 @@
 // Item form: the Rental section (only with Maintain Stock).
-// * Rental Classification: Stock, or Stock + Asset (every unit identified by its serial number).
 // * Rental Item Profile panel: the profile's own fields, drawn from the Rental Item Profile DocType.
 //   Values are sent with the Item save (nxg_rental_profile, not an Item field) and saved into the
 //   profile in the same transaction (services/item_rental.py). The profile stays the only place they live.
@@ -87,24 +86,9 @@ frappe.ui.form.on("Item", {
 				state.touched = true;
 				frappe.show_alert({ message: __("Rental Item Profile switched off: it needs Maintain Stock."), indicator: "orange" });
 			}
-			if (frm.doc.nxg_rental_classification !== "Stock") frm.set_value("nxg_rental_classification", "Stock");
 		} else if (!state) {
 			thinknxg_rental.item.render(frm);
 		}
-	},
-	nxg_rental_classification(frm) {
-		const asset = frm.doc.nxg_rental_classification === "Stock + Asset";
-		if (asset && !frm.doc.has_serial_no) {
-			frm.set_value("has_serial_no", 1);
-			frappe.show_alert({ message: __("Has Serial No switched on: each unit gets a serial number when it is received."), indicator: "blue" });
-		} else if (!asset && frm.doc.has_serial_no) {
-			frm.set_value("has_serial_no", 0);
-		}
-	},
-	has_serial_no(frm) {
-		if (!frm.doc.is_stock_item) return;
-		const want = frm.doc.has_serial_no ? "Stock + Asset" : "Stock";
-		if (frm.doc.nxg_rental_classification !== want) frm.set_value("nxg_rental_classification", want);
 	},
 	validate(frm) {
 		const payload = thinknxg_rental.item.payload(frm);

@@ -25,9 +25,8 @@ after_migrate = ["thinknxg_rental.services.job_type_migration.run",
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
 doc_events = {
-	# Rental section of the Item form: Rental Item Profile saved with the Item, Stock / Stock + Asset
+	# Rental section of the Item form: Rental Item Profile saved with the Item
 	"Item": {
-		"before_validate": "thinknxg_rental.services.item_rental.item_before_validate",
 		"validate": "thinknxg_rental.services.item_rental.item_validate",
 		"on_update": "thinknxg_rental.services.item_rental.item_on_update",
 	},

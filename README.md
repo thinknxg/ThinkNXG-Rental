@@ -176,7 +176,7 @@ catalogue, and set the help phone / email shown in the footer. The stylesheet is
 `public/css/rental_portal.css` (scoped under `.rp`, logical properties so Arabic / RTL lays out
 correctly). It loads the Barlow typefaces from Google Fonts and falls back to system fonts if blocked.
 
-## Items, rental profiles, units and damage charges
+## Items, rental profiles, rates and damage charges
 
 **Rental section on the Item form** (shown only with Maintain Stock):
 
@@ -184,14 +184,6 @@ correctly). It loads the Barlow typefaces from Google Fonts and falls back to sy
   rates, deposit, replacement value and the three damage charges). Saving the Item saves the profile in
   the same transaction; switching it off later disables the profile (it is kept for its history). The
   values live only in Rental Item Profile, which can still be edited on its own form.
-* **Rental Classification**: **Stock** (counted units) or **Stock + Asset** (counted, and every unit
-  identified by its serial number). Stock + Asset switches on ERPNext's Has Serial No, so each unit is a
-  Serial No of the Item and the Stock Ledger keeps quantities and units in step; the rental documents
-  already carry serial numbers. It needs **Stock Settings > Activate Serial / Batch No for Item**.
-  It does not make the item an ERPNext Fixed Asset: ERPNext refuses an item that is both, and the same
-  unit would be valued twice. Asset-only items stay ERPNext Fixed Asset items (not rentable here).
-  In the Command Center yard, a Stock + Asset item lists its units, where each is, and each unit's
-  movements and return inspections.
 
 **Rates** in Material Hire quotations: when an item is picked, its row gets the Daily, Weekly and
 Monthly Rate (customer rate card, then general rate card, then the Rental Item Profile, as for hire

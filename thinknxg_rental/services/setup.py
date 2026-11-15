@@ -17,17 +17,13 @@ MH_DEPENDS_ON = 'eval:parent.deal_type=="Material Hire"'
 
 def get_custom_fields():
 	return {
-		# Rental section of the Item form (services/item_rental.py, public/js/item_rental.js). Only the
-		# classification is stored on the Item; the profile values live in Rental Item Profile.
+		# Rental section of the Item form (services/item_rental.py, public/js/item_rental.js). Nothing is
+		# stored on the Item; the profile values live in Rental Item Profile.
 		"Item": [
 			dict(fieldname="nxg_rental_section", label="Rental", fieldtype="Section Break", insert_after="asset_naming_series",
 				depends_on="eval:doc.is_stock_item", collapsible=0),
-			dict(fieldname="nxg_rental_classification", label="Rental Classification", fieldtype="Select",
-				options="Stock\nStock + Asset", default="Stock", insert_after="nxg_rental_section", depends_on="eval:doc.is_stock_item",
-				description="Stock: counted units. Stock + Asset: counted and every unit identified by its serial number "
-					"(switches on Has Serial No), with its own movements and inspection history."),
 			dict(fieldname="nxg_rental_profile_html", label="Rental Item Profile", fieldtype="HTML",
-				insert_after="nxg_rental_classification", depends_on="eval:doc.is_stock_item"),
+				insert_after="nxg_rental_section", depends_on="eval:doc.is_stock_item"),
 		],
 		"Lead": [
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
