@@ -744,7 +744,71 @@ def quotation(name: str, customer: str | None = None):
 	return dict(name=doc.name, title=doc.title, transaction_date=doc.transaction_date, valid_till=doc.valid_till, status=doc.status,
 		currency=doc.currency, net_total=flt(doc.net_total), total_taxes=flt(doc.total_taxes_and_charges), grand_total=flt(doc.grand_total),
 		items=_doc_lines(doc, ("nxg_rate_basis",)), taxes=_taxes(doc), terms=doc.terms,
-		rental_site=frappe.db.get_value("Rental Site", {"nxg_quotation": doc.name}, "name"))
+		rental_site=frappe.db.get_value("Rental Site", {"nxg_quotation": doc.name}, "name"),
+		accepted_on=doc.get("nxg_customer_accepted_on"), can_accept=_can_accept(doc, c))
+
+
+def _can_accept(doc, c):
+	return bool(not c.preview and doc.docstatus == 1 and doc.status == "Open" and not doc.get("nxg_customer_accepted_on")
+		and (not doc.valid_till or getdate(doc.valid_till) >= getdate(nowdate())))
+
+
+@frappe.whitelist(methods=["POST"])
+def accept_quotation(name: str, customer: str | None = None):
+	"""The customer accepts a submitted, open, unexpired quotation. Recorded on the quotation (who and when),
+	with a comment and a notification to the rental team, who then raise the order in the usual way."""
+	c = ctx(customer)
+	if c.preview:
+		frappe.throw(_("Staff previews are read-only."))
+	doc = own_document("Quotation", name, c)
+	if doc.get("nxg_customer_accepted_on"):
+		frappe.throw(_("This quotation is already accepted."))
+	if not _can_accept(doc, c):
+		frappe.throw(_("This quotation can no longer be accepted online. Please contact the rental team."))
+	when = frappe.utils.now_datetime()
+	doc.db_set({"nxg_customer_accepted_on": when, "nxg_customer_accepted_by": frappe.session.user}, notify=True)
+	doc.add_comment("Info", _("Accepted online by {0}").format(frappe.session.user))
+	_notify_staff(doc, _("Quotation {0} accepted online by the customer").format(doc.name))
+	return {"name": doc.name, "accepted_on": when}
+
+
+def _notify_staff(doc, subject):
+	from thinknxg_rental.website.catalogue import settings as website_settings
+
+	role = website_settings().enquiry_notify_role or "Rental Manager"
+	users = set(frappe.get_all("Has Role", filters={"role": role, "parenttype": "User"}, pluck="parent"))
+	if doc.owner and doc.owner not in ("Guest", "Administrator"):
+		users.add(doc.owner)
+	users = [u for u in users if u not in ("Guest", "Administrator") and frappe.db.get_value("User", u, "enabled")]
+	for user in users:
+		frappe.get_doc({"doctype": "Notification Log", "for_user": user, "type": "Alert", "document_type": doc.doctype,
+			"document_name": doc.name, "subject": subject, "from_user": frappe.session.user}).insert(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def enquiries(customer: str | None = None, page: int = 1, page_length: int = 20, search: str | None = None):
+	"""Website enquiries sent by this login or for the session's customers, with the quotations made from them."""
+	c = ctx(customer)
+	page, length, start = _paging(page, page_length)
+	or_filters = [["customer", "in", list(c.customers)]]
+	if not c.preview:
+		or_filters.append(["user", "=", frappe.session.user])
+	filters = [["status", "!=", "Spam"]]
+	if search:
+		filters.append(["name", "like", _like(search)])
+	total = len(frappe.get_all("Rental Website Enquiry", filters=filters, or_filters=or_filters, pluck="name"))
+	rows = frappe.get_all("Rental Website Enquiry", filters=filters, or_filters=or_filters, order_by="creation desc", start=start, limit=length,
+		fields=["name", "enquiry_type", "status", "enquiry_date", "subject", "required_from", "expected_return", "project_location",
+			"hire_quotation", "purchase_quotation", "estimated_total"])
+	parties = set(_quotation_parties(c))
+	for r in rows:
+		r.items = frappe.get_all("Rental Website Enquiry Item", filters={"parent": r.name, "parenttype": "Rental Website Enquiry"},
+			fields=["item_code", "item_name", "qty", "uom", "line_type"], order_by="idx")
+		# a quotation shows only once it is sent (submitted) and addressed to the customer
+		r.quotations = [q for q in (r.hire_quotation, r.purchase_quotation) if q and frappe.db.get_value("Quotation", q, "docstatus") == 1
+			and frappe.db.get_value("Quotation", q, "party_name") in parties]
+		r.pop("hire_quotation"); r.pop("purchase_quotation")
+	return _paged(rows, total, page, length)
 
 
 @frappe.whitelist()

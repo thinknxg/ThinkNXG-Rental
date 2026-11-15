@@ -51,6 +51,10 @@ def get_custom_fields():
 			dict(fieldname="nxg_hire_period_cb", label="", fieldtype="Column Break", insert_after="nxg_expected_return_date"),
 			dict(fieldname="nxg_default_rate_basis", label="Default Rate Basis", fieldtype="Select", options="Monthly\nWeekly\nDaily", default="Monthly", insert_after="nxg_hire_period_cb", depends_on="eval:doc.deal_type=='Material Hire'"),
 			dict(fieldname="nxg_billing_cycle", label="Billing Cycle", fieldtype="Select", options="Monthly\nWeekly\nDaily\nCustom", default="Monthly", insert_after="nxg_default_rate_basis", depends_on="eval:doc.deal_type=='Material Hire'"),
+			# public website: the enquiry it came from, and the customer's acceptance in the customer portal
+			dict(fieldname="nxg_website_enquiry", label="Website Enquiry", fieldtype="Link", options="Rental Website Enquiry", insert_after="nxg_billing_cycle", read_only=1, no_copy=1),
+			dict(fieldname="nxg_customer_accepted_on", label="Accepted by Customer On", fieldtype="Datetime", insert_after="nxg_website_enquiry", read_only=1, allow_on_submit=1, no_copy=1),
+			dict(fieldname="nxg_customer_accepted_by", label="Accepted by", fieldtype="Link", options="User", insert_after="nxg_customer_accepted_on", read_only=1, allow_on_submit=1, no_copy=1),
 		],
 		# Dimensions and duration for hire quotations. Shown only for the hire deal types; the amount is
 		# Qty x Unit Price x Duration (see events/quotation.py and public/js/quotation_deal.js).
@@ -215,6 +219,12 @@ def get_custom_fields():
 
 def after_install():
 	after_migrate()
+	try:
+		from thinknxg_rental.thinknxg_rental.doctype.rental_website_settings.rental_website_settings import seed_defaults
+
+		seed_defaults()
+	except Exception:
+		frappe.log_error(title="thinkNXG Rental: website defaults not created", message=frappe.get_traceback())
 	company = frappe.defaults.get_global_default("company") or frappe.db.get_value("Company", {}, "name")
 	if company:
 		try:

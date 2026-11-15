@@ -196,9 +196,9 @@
 
 	// ------------------------------------------------------------------ status badges
 	const TONES = {
-		blue: ["Active", "Open", "Scheduled", "Submitted", "To Deliver and Bill", "To Bill", "To Deliver", "Awaiting Contract", "Ordered", "Pickup requested"],
-		teal: ["On Hire", "In Progress", "Delivered", "Received", "Pickup being arranged", "Partly Delivered"],
-		good: ["Completed", "Paid", "Returned", "Closed", "Approved"],
+		blue: ["Active", "Open", "Scheduled", "Submitted", "To Deliver and Bill", "To Bill", "To Deliver", "Awaiting Contract", "Ordered", "Pickup requested", "New"],
+		teal: ["On Hire", "In Progress", "Delivered", "Received", "Pickup being arranged", "Partly Delivered", "In Review"],
+		good: ["Completed", "Paid", "Returned", "Closed", "Approved", "Quoted"],
 		warn: ["Off Hired", "Unpaid", "Partly Paid", "Inspection Pending", "Returned, inspection pending", "Ending soon", "Partially Returned", "Pending"],
 		bad: ["Overdue", "Rejected", "Cancelled", "Expired", "Lost"],
 		violet: ["Credit note", "Refund", "Return"],

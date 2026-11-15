@@ -1,0 +1,390 @@
+{
+ "actions": [],
+ "creation": "2026-11-15 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "tab_general",
+  "enabled",
+  "use_as_home_page",
+  "site_name",
+  "tagline",
+  "logo",
+  "cb_g1",
+  "show_prices",
+  "show_availability",
+  "limited_threshold",
+  "allow_purchase_enquiries",
+  "enquiry_notify_role",
+  "tab_design",
+  "template",
+  "primary_color",
+  "accent_color",
+  "dark_color",
+  "cb_d1",
+  "typography",
+  "header_style",
+  "hero_layout",
+  "card_style",
+  "catalogue_view",
+  "corner_style",
+  "tab_home",
+  "sections",
+  "tab_content",
+  "cards",
+  "categories",
+  "sb_about",
+  "about_intro",
+  "mission",
+  "vision",
+  "about_image",
+  "tab_nav",
+  "links",
+  "footer_text",
+  "sb_contact",
+  "contact_email",
+  "contact_phone",
+  "whatsapp",
+  "cb_c1",
+  "address",
+  "opening_hours",
+  "map_link",
+  "tab_seo",
+  "meta_title",
+  "meta_description",
+  "og_image",
+  "organization_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "tab_general",
+   "fieldtype": "Tab Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Website Enabled",
+   "default": "1",
+   "description": "Publishes the public rental website at /hire."
+  },
+  {
+   "fieldname": "use_as_home_page",
+   "fieldtype": "Check",
+   "label": "Use as the Site's Home Page",
+   "description": "Sets Website Settings > Home Page to the rental website, so it opens at the site's address."
+  },
+  {
+   "fieldname": "site_name",
+   "fieldtype": "Data",
+   "label": "Website Name",
+   "default": "thinkNXG Rental"
+  },
+  {
+   "fieldname": "tagline",
+   "fieldtype": "Data",
+   "label": "Tagline",
+   "default": "Intelligent Rental Operations Platform"
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo",
+   "description": "Left empty, the thinkNXG Rental mark is used."
+  },
+  {
+   "fieldname": "cb_g1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "show_prices",
+   "fieldtype": "Check",
+   "label": "Show Rental Rates and Estimates",
+   "description": "Standard rates (rate card or Rental Item Profile) and an estimate for the dates entered. Customers' own rate cards apply when they are logged in."
+  },
+  {
+   "fieldname": "show_availability",
+   "fieldtype": "Check",
+   "label": "Show Availability",
+   "default": "1",
+   "description": "In stock / Limited / On request, from free own stock in the active rental warehouses after reservations. Quantities are never shown."
+  },
+  {
+   "fieldname": "limited_threshold",
+   "fieldtype": "Int",
+   "label": "Limited Below",
+   "default": "20",
+   "depends_on": "show_availability",
+   "description": "Free stock below this number shows as Limited."
+  },
+  {
+   "fieldname": "allow_purchase_enquiries",
+   "fieldtype": "Check",
+   "label": "Allow Purchase Enquiries",
+   "default": "1",
+   "description": "Items marked Available for Purchase can be added to the basket to buy."
+  },
+  {
+   "fieldname": "enquiry_notify_role",
+   "fieldtype": "Link",
+   "label": "Notify Role of New Enquiries",
+   "options": "Role",
+   "default": "Rental Manager"
+  },
+  {
+   "fieldname": "tab_design",
+   "fieldtype": "Tab Break",
+   "label": "Design"
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Select",
+   "label": "Template",
+   "options": "Industrial Corporate\nModern Minimal\nPremium Construction\nEnterprise Rental\nEquipment Catalogue Focus",
+   "default": "Industrial Corporate",
+   "reqd": 1,
+   "description": "Sets the colours, typography and layouts below. Anything you change below overrides the template."
+  },
+  {
+   "fieldname": "primary_color",
+   "fieldtype": "Color",
+   "label": "Primary Colour"
+  },
+  {
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Colour"
+  },
+  {
+   "fieldname": "dark_color",
+   "fieldtype": "Color",
+   "label": "Dark Colour",
+   "description": "Header, footer and dark sections."
+  },
+  {
+   "fieldname": "cb_d1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "typography",
+   "fieldtype": "Select",
+   "label": "Typography",
+   "options": "\nCondensed Headings\nBarlow Throughout\nSystem Fonts"
+  },
+  {
+   "fieldname": "header_style",
+   "fieldtype": "Select",
+   "label": "Header Style",
+   "options": "\nSolid Dark\nLight\nTransparent over Hero"
+  },
+  {
+   "fieldname": "hero_layout",
+   "fieldtype": "Select",
+   "label": "Hero Layout",
+   "options": "\nSplit\nCentred\nFull Image\nCompact Search"
+  },
+  {
+   "fieldname": "card_style",
+   "fieldtype": "Select",
+   "label": "Product Card Style",
+   "options": "\nBordered\nElevated\nFlat\nSpecification"
+  },
+  {
+   "fieldname": "catalogue_view",
+   "fieldtype": "Select",
+   "label": "Catalogue Default View",
+   "options": "\nGrid\nList"
+  },
+  {
+   "fieldname": "corner_style",
+   "fieldtype": "Select",
+   "label": "Corners",
+   "options": "\nSoft\nSquare\nRounded"
+  },
+  {
+   "fieldname": "tab_home",
+   "fieldtype": "Tab Break",
+   "label": "Home Page"
+  },
+  {
+   "fieldname": "sections",
+   "fieldtype": "Table",
+   "label": "Home Page Sections",
+   "options": "Rental Website Section",
+   "description": "Shown in this order. Untick Show to hide a section; drag rows to reorder."
+  },
+  {
+   "fieldname": "tab_content",
+   "fieldtype": "Tab Break",
+   "label": "Content"
+  },
+  {
+   "fieldname": "cards",
+   "fieldtype": "Table",
+   "label": "Cards",
+   "options": "Rental Website Card",
+   "description": "Services, industries, process steps, advantages, testimonials and statistics used by the home page and the Services and Industries pages."
+  },
+  {
+   "fieldname": "categories",
+   "fieldtype": "Table",
+   "label": "Category Descriptions",
+   "options": "Rental Website Category",
+   "description": "Item groups of published items become catalogue categories automatically. Add a row to describe or hide one."
+  },
+  {
+   "fieldname": "sb_about",
+   "fieldtype": "Section Break",
+   "label": "About Page"
+  },
+  {
+   "fieldname": "about_intro",
+   "fieldtype": "Text Editor",
+   "label": "Introduction"
+  },
+  {
+   "fieldname": "mission",
+   "fieldtype": "Small Text",
+   "label": "Mission"
+  },
+  {
+   "fieldname": "vision",
+   "fieldtype": "Small Text",
+   "label": "Vision"
+  },
+  {
+   "fieldname": "about_image",
+   "fieldtype": "Attach Image",
+   "label": "About Image"
+  },
+  {
+   "fieldname": "tab_nav",
+   "fieldtype": "Tab Break",
+   "label": "Navigation & Contact"
+  },
+  {
+   "fieldname": "links",
+   "fieldtype": "Table",
+   "label": "Header and Footer Links",
+   "options": "Rental Website Link"
+  },
+  {
+   "fieldname": "footer_text",
+   "fieldtype": "Small Text",
+   "label": "Footer Text"
+  },
+  {
+   "fieldname": "sb_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact Details"
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "label": "E-mail",
+   "options": "Email"
+  },
+  {
+   "fieldname": "contact_phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "whatsapp",
+   "fieldtype": "Data",
+   "label": "WhatsApp Number"
+  },
+  {
+   "fieldname": "cb_c1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "opening_hours",
+   "fieldtype": "Small Text",
+   "label": "Opening Hours"
+  },
+  {
+   "fieldname": "map_link",
+   "fieldtype": "Data",
+   "label": "Map Link",
+   "description": "A link to your location on a map service."
+  },
+  {
+   "fieldname": "tab_seo",
+   "fieldtype": "Tab Break",
+   "label": "SEO"
+  },
+  {
+   "fieldname": "meta_title",
+   "fieldtype": "Data",
+   "label": "Home Page Title"
+  },
+  {
+   "fieldname": "meta_description",
+   "fieldtype": "Small Text",
+   "label": "Home Page Description"
+  },
+  {
+   "fieldname": "og_image",
+   "fieldtype": "Attach Image",
+   "label": "Sharing Image",
+   "description": "Shown when a page of the site is shared."
+  },
+  {
+   "fieldname": "organization_name",
+   "fieldtype": "Data",
+   "label": "Organisation Name (structured data)"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-15 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Website Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Website Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "issingle": 1
+}

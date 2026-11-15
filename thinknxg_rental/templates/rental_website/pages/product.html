@@ -1,0 +1,96 @@
+{%- from "templates/rental_website/macros.html" import icon, product_card, breadcrumbs, availability, money, per, honeypot with context -%}
+{%- set p = rw_product -%}
+<div class="rw-wrap rw-product">
+	{{ breadcrumbs(rw_crumbs) }}
+	<div class="rw-product__top">
+		<div class="rw-gallery" data-rw-gallery>
+			<div class="rw-gallery__main">
+				{% if p.images %}<img src="{{ p.images[0].src | e }}" alt="{{ p.images[0].alt | e }}" width="800" height="600" data-rw-gallery-main fetchpriority="high">
+				{% else %}<span class="rw-gallery__placeholder">{{ icon("boxes", "rw-i--xl") }}<small>{{ _("Photo coming soon") }}</small></span>{% endif %}
+			</div>
+			{% if p.images | length > 1 %}
+			<ul class="rw-gallery__thumbs">
+				{% for img in p.images %}<li><button type="button" data-src="{{ img.src | e }}" data-alt="{{ img.alt | e }}" {% if loop.first %}aria-current="true"{% endif %} aria-label="{{ _('Show photo {0}').format(loop.index) }}"><img src="{{ img.src | e }}" alt="" loading="lazy" width="96" height="72"></button></li>{% endfor %}
+			</ul>
+			{% endif %}
+		</div>
+
+		<div class="rw-product__info">
+			<p class="rw-card__cat"><a href="{{ '/hire/equipment/' ~ p.category_slug if p.category_slug != 'all' else '/hire/equipment' }}">{{ p.category | e }}</a>{% if p.system %} <span class="rw-dot">{{ _(p.system) | e }}</span>{% endif %}</p>
+			<h1>{{ p.item_name | e }}</h1>
+			<p class="rw-product__code">{{ _("Item code") }} <b>{{ p.item_code | e }}</b></p>
+			{% if p.summary %}<p class="rw-product__lead">{{ p.summary | e }}</p>{% endif %}
+			<div class="rw-product__status">
+				{{ availability(p.availability) }}
+				{% if p.minimum_hire_days %}<span class="rw-pill">{{ icon("calendar-clock", "rw-i--sm") }} {{ _("Minimum hire {0} days").format(p.minimum_hire_days) }}</span>{% endif %}
+				{% if p.purchasable %}<span class="rw-pill">{{ icon("package-check", "rw-i--sm") }} {{ _("Also for sale") }}</span>{% endif %}
+			</div>
+			{% if p.rates and (p.rates.Daily or p.rates.Weekly or p.rates.Monthly) %}
+			<div class="rw-rates">
+				<h2 class="rw-sr">{{ _("Rental rates") }}</h2>
+				<dl>
+				{% for b in ["Daily", "Weekly", "Monthly"] if p.rates[b] %}
+					<div {% if b == p.rate_basis %}class="is-default"{% endif %}><dt>{{ {"Daily": _("Per day"), "Weekly": _("Per week"), "Monthly": _("Per month")}[b] }}</dt><dd>{{ money(p.rates[b]) }}</dd></div>
+				{% endfor %}
+				</dl>
+				<small>{{ _("Your account rates, per {0}.").format(p.uom | e) if p.own_rates else _("Rates per {0}, before tax. Your quotation confirms the final price.").format(p.uom | e) }}</small>
+			</div>
+			{% elif not rw_boot.show_prices %}
+			<p class="rw-note">{{ icon("info", "rw-i--sm") }} {{ _("Rates depend on quantity and period. Send an enquiry for a quotation.") }}</p>
+			{% endif %}
+
+			<form class="rw-panel rw-hire" data-rw-hire data-item="{{ p.item_code | e }}" data-name="{{ p.item_name | e }}" data-url="{{ p.url }}"
+				data-image="{{ (p.images[0].src if p.images else '') | e }}" data-uom="{{ p.uom | e }}" data-min="{{ p.minimum_hire_days or 0 }}" novalidate>
+				<h2>{{ _("Hire this item") }}</h2>
+				<div class="rw-form__grid">
+					<label class="rw-field"><span>{{ _("Quantity") }} <small>({{ p.uom | e }})</small></span><input type="number" name="qty" min="1" step="1" value="1" inputmode="numeric" required></label>
+					{% if p.purchasable %}
+					<label class="rw-field"><span>{{ _("I want to") }}</span><select name="line_type"><option value="Hire">{{ _("Hire") }}</option><option value="Purchase">{{ _("Buy") }}</option></select></label>
+					{% else %}<input type="hidden" name="line_type" value="Hire">{% endif %}
+					<label class="rw-field" data-hire-only><span>{{ _("Start date") }}</span><input type="date" name="required_from"></label>
+					<label class="rw-field" data-hire-only><span>{{ _("Return date") }}</span><input type="date" name="expected_return"></label>
+				</div>
+				<div class="rw-estimate" data-rw-estimate aria-live="polite" hidden></div>
+				<details class="rw-more">
+					<summary>{{ _("Project details (optional)") }}</summary>
+					<div class="rw-form__grid">
+						<label class="rw-field rw-field--wide"><span>{{ _("Project location") }}</span><input type="text" name="project_location" maxlength="140"></label>
+						<label class="rw-field rw-field--wide"><span>{{ _("Delivery requirements") }}</span><textarea name="delivery_requirements" rows="2" maxlength="1000"></textarea></label>
+						<label class="rw-field rw-field--wide"><span>{{ _("Remarks") }}</span><textarea name="message" rows="2" maxlength="4000"></textarea></label>
+					</div>
+				</details>
+				<div class="rw-hire__actions">
+					<button type="submit" class="rw-btn rw-btn--primary rw-btn--lg" data-action="hire">{{ icon("calendar-check", "rw-i--sm") }} {{ _("Hire now") }}</button>
+					<button type="button" class="rw-btn rw-btn--lg" data-action="add">{{ icon("plus", "rw-i--sm") }} {{ _("Add to enquiry") }}</button>
+				</div>
+				<p class="rw-hire__hint"><a href="/hire/basket" data-action="quote">{{ _("Request a rental quote") }}</a> {{ _("for this and other items: your enquiry keeps every item you add.") }}</p>
+			</form>
+		</div>
+	</div>
+
+	<div class="rw-product__body">
+		<div class="rw-product__main">
+			{% if p.description and p.description | striptags | trim != p.item_name %}
+			<section class="rw-block"><h2>{{ _("Description") }}</h2><div class="rw-prose">{{ p.description }}</div></section>
+			{% endif %}
+			{% if p.usage %}
+			<section class="rw-block"><h2>{{ _("Usage and applications") }}</h2><div class="rw-prose">{{ p.usage }}</div></section>
+			{% endif %}
+		</div>
+		<aside class="rw-product__side">
+			<section class="rw-block"><h2>{{ _("Technical specifications") }}</h2>
+				<table class="rw-specs"><tbody>{% for label, value in p.specs %}<tr><th scope="row">{{ label | e }}</th><td>{{ value | e }}</td></tr>{% endfor %}</tbody></table>
+			</section>
+			{% if p.datasheet %}
+			<a class="rw-download" href="{{ p.datasheet | e }}" target="_blank" rel="noopener">{{ icon("file-down") }}<span><b>{{ _("Technical datasheet") }}</b><small>{{ p.datasheet.rsplit('/', 1)[-1] | e }}</small></span></a>
+			{% endif %}
+		</aside>
+	</div>
+
+	{% if p.related %}
+	<section class="rw-block rw-related">
+		<div class="rw-shead"><div><h2>{{ _("Related equipment") }}</h2></div></div>
+		<div class="rw-grid">{% for r in p.related %}{{ product_card(r) }}{% endfor %}</div>
+	</section>
+	{% endif %}
+</div>

@@ -1,0 +1,296 @@
+{
+ "actions": [],
+ "creation": "2026-11-15 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "enquiry_type",
+  "status",
+  "subject",
+  "cb_1",
+  "enquiry_date",
+  "customer",
+  "lead",
+  "user",
+  "sb_contact",
+  "full_name",
+  "company_name",
+  "cb_2",
+  "email",
+  "phone",
+  "sb_project",
+  "project_location",
+  "required_from",
+  "expected_return",
+  "cb_3",
+  "rental_days",
+  "delivery_requirements",
+  "sb_items",
+  "items",
+  "estimated_total",
+  "sb_msg",
+  "message",
+  "sb_follow",
+  "hire_quotation",
+  "purchase_quotation",
+  "cb_4",
+  "staff_notes",
+  "source_page"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "RWE-.YYYY.-.#####",
+   "default": "RWE-.YYYY.-.#####",
+   "hidden": 1
+  },
+  {
+   "fieldname": "enquiry_type",
+   "fieldtype": "Select",
+   "label": "Enquiry Type",
+   "options": "Rental Hire\nLong-term Contract\nProject Rental\nPurchase\nGeneral Enquiry\nBusiness Account",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "New\nIn Review\nQuoted\nClosed\nSpam",
+   "default": "New",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "enquiry_date",
+   "fieldtype": "Datetime",
+   "label": "Received",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "lead",
+   "fieldtype": "Link",
+   "label": "Lead",
+   "options": "Lead",
+   "read_only": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Website User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company"
+  },
+  {
+   "fieldname": "cb_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "E-mail",
+   "options": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "sb_project",
+   "fieldtype": "Section Break",
+   "label": "Project and Dates"
+  },
+  {
+   "fieldname": "project_location",
+   "fieldtype": "Data",
+   "label": "Project Location"
+  },
+  {
+   "fieldname": "required_from",
+   "fieldtype": "Date",
+   "label": "Rental Start"
+  },
+  {
+   "fieldname": "expected_return",
+   "fieldtype": "Date",
+   "label": "Expected Return"
+  },
+  {
+   "fieldname": "cb_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rental_days",
+   "fieldtype": "Int",
+   "label": "Rental Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delivery_requirements",
+   "fieldtype": "Small Text",
+   "label": "Delivery Requirements"
+  },
+  {
+   "fieldname": "sb_items",
+   "fieldtype": "Section Break",
+   "label": "Equipment"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Rental Website Enquiry Item"
+  },
+  {
+   "fieldname": "estimated_total",
+   "fieldtype": "Currency",
+   "label": "Estimate Shown to the Customer",
+   "read_only": 1,
+   "description": "What the website showed, before tax. The quotation decides the price."
+  },
+  {
+   "fieldname": "sb_msg",
+   "fieldtype": "Section Break",
+   "label": "Message"
+  },
+  {
+   "fieldname": "message",
+   "fieldtype": "Text",
+   "label": "Message"
+  },
+  {
+   "fieldname": "sb_follow",
+   "fieldtype": "Section Break",
+   "label": "Follow-up"
+  },
+  {
+   "fieldname": "hire_quotation",
+   "fieldtype": "Link",
+   "label": "Hire Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "purchase_quotation",
+   "fieldtype": "Link",
+   "label": "Purchase Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "staff_notes",
+   "fieldtype": "Small Text",
+   "label": "Staff Notes",
+   "description": "Internal: never shown to the customer."
+  },
+  {
+   "fieldname": "source_page",
+   "fieldtype": "Data",
+   "label": "Sent From Page",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-15 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Website Enquiry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "share": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "write": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1,
+   "write": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "naming_series:",
+ "title_field": "full_name",
+ "search_fields": "full_name,company_name,email,enquiry_type",
+ "track_changes": 1,
+ "show_title_field_in_link": 1
+}

@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "creation": "2026-11-15 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_type",
+  "enabled",
+  "title",
+  "subtitle",
+  "cb_1",
+  "item_group",
+  "limit",
+  "tone",
+  "sb_1",
+  "content",
+  "image",
+  "cta_label",
+  "cta_link",
+  "cta2_label",
+  "cta2_link"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_type",
+   "fieldtype": "Select",
+   "label": "Section",
+   "options": "Hero\nSearch\nCategories\nFeatured Products\nCategory Products\nServices\nProcess\nIndustries\nAdvantages\nTestimonials\nStatistics\nBanner\nCall to Action\nAbout\nContact\nText",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Show",
+   "default": "1",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "subtitle",
+   "fieldtype": "Small Text",
+   "label": "Subtitle",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Item Group",
+   "options": "Item Group",
+   "description": "Category Products: the item group (and its sub-groups) to show."
+  },
+  {
+   "fieldname": "limit",
+   "fieldtype": "Int",
+   "label": "Items to Show",
+   "default": "8"
+  },
+  {
+   "fieldname": "tone",
+   "fieldtype": "Select",
+   "label": "Background",
+   "options": "Light\nTinted\nDark\nBrand",
+   "default": "Light",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "sb_1",
+   "fieldtype": "Section Break",
+   "label": "Content"
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Text Editor",
+   "label": "Content",
+   "description": "Text, About and Banner sections."
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image",
+   "description": "Hero, Banner and About sections."
+  },
+  {
+   "fieldname": "cta_label",
+   "fieldtype": "Data",
+   "label": "Button Label"
+  },
+  {
+   "fieldname": "cta_link",
+   "fieldtype": "Data",
+   "label": "Button Link",
+   "description": "A page of this site (/hire/equipment) or a full address."
+  },
+  {
+   "fieldname": "cta2_label",
+   "fieldtype": "Data",
+   "label": "Second Button Label"
+  },
+  {
+   "fieldname": "cta2_link",
+   "fieldtype": "Data",
+   "label": "Second Button Link"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-15 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Website Section",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

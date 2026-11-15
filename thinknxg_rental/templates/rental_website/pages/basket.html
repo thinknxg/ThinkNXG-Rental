@@ -1,0 +1,35 @@
+{%- from "templates/rental_website/macros.html" import icon, page_hero, field, honeypot with context -%}
+{{ page_hero(_("Your enquiry"), _("Check the items and quantities, give your dates and project, and send. We reply with availability and a quotation."), rw_crumbs) }}
+<div class="rw-wrap rw-basket" data-rw-basket>
+	<div class="rw-basket__items">
+		<div class="rw-basket__dates rw-panel">
+			<h2 class="rw-h3">{{ _("Rental period") }}</h2>
+			<div class="rw-form__grid">
+				<label class="rw-field"><span>{{ _("Start date") }} <i aria-hidden="true">*</i></span><input type="date" name="required_from" data-rw-date></label>
+				<label class="rw-field"><span>{{ _("Expected return") }} <i aria-hidden="true">*</i></span><input type="date" name="expected_return" data-rw-date></label>
+			</div>
+			<p class="rw-basket__days" data-rw-days></p>
+		</div>
+		<div data-rw-lines aria-live="polite"><p class="rw-loading">{{ _("Loading your enquiry…") }}</p></div>
+		<div class="rw-basket__total" data-rw-total hidden></div>
+		<a class="rw-link" href="/hire/equipment">{{ icon("plus", "rw-i--sm") }} {{ _("Add more equipment") }}</a>
+	</div>
+	<form class="rw-panel rw-basket__form rw-form" data-rw-enquiry novalidate>
+		<h2 class="rw-h3">{{ _("Your details") }}</h2>
+		{% if rw_logged_in %}<p class="rw-note">{{ icon("badge-check", "rw-i--sm") }} {{ _("Signed in: the enquiry is added to your account.") }}</p>{% endif %}
+		<div class="rw-form__grid">
+			{{ field("full_name", _("Name"), required=True, value=rw_prefill.get("full_name", ""), attrs='autocomplete="name"') }}
+			{{ field("company_name", _("Company"), attrs='autocomplete="organization"') }}
+			{{ field("email", _("E-mail"), "email", required=True, value=rw_prefill.get("email", ""), attrs='autocomplete="email"') }}
+			{{ field("phone", _("Phone"), "tel", value=rw_prefill.get("phone", ""), attrs='autocomplete="tel"') }}
+			{{ field("project_location", _("Project location"), wide=True, attrs='maxlength="140"') }}
+			{{ field("delivery_requirements", _("Delivery requirements"), "textarea", wide=True, attrs='maxlength="1000"') }}
+			{{ field("message", _("Remarks"), "textarea", wide=True, attrs='maxlength="4000"') }}
+			{{ honeypot() }}
+		</div>
+		<button class="rw-btn rw-btn--primary rw-btn--lg rw-btn--block" type="submit">{{ icon("send", "rw-i--sm") }} {{ _("Send enquiry") }}</button>
+		<small>{{ _("Estimates use our current rates and are confirmed in the quotation.") if rw_boot.show_prices else _("Prices are given in the quotation.") }}</small>
+		<div class="rw-form__status" role="alert"></div>
+	</form>
+	<div class="rw-done" data-rw-done hidden></div>
+</div>

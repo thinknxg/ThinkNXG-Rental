@@ -27,7 +27,20 @@
   "repair_charge",
   "lost_charge",
   "beyond_repair_charge",
-  "inspection_required"
+  "inspection_required",
+  "sb_website",
+  "show_on_website",
+  "featured",
+  "available_for_purchase",
+  "route",
+  "cb_website",
+  "short_description",
+  "material",
+  "datasheet",
+  "sb_website_2",
+  "usage",
+  "specifications",
+  "gallery"
  ],
  "fields": [
   {
@@ -175,10 +188,93 @@
    "fieldtype": "Check",
    "label": "Inspect on Return",
    "default": "1"
+  },
+  {
+   "fieldname": "sb_website",
+   "fieldtype": "Section Break",
+   "label": "Public Website",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "show_on_website",
+   "fieldtype": "Check",
+   "label": "Show on Website",
+   "description": "Lists the item in the public catalogue at /hire/equipment."
+  },
+  {
+   "fieldname": "featured",
+   "fieldtype": "Check",
+   "label": "Featured",
+   "depends_on": "show_on_website",
+   "description": "Shown in Featured Products on the home page."
+  },
+  {
+   "fieldname": "available_for_purchase",
+   "fieldtype": "Check",
+   "label": "Available for Purchase",
+   "depends_on": "show_on_website",
+   "description": "Customers can also ask for a purchase quote."
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Website Slug",
+   "depends_on": "show_on_website",
+   "unique": 1,
+   "description": "The last part of the product address. Left empty, made from the item name."
+  },
+  {
+   "fieldname": "cb_website",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "short_description",
+   "fieldtype": "Small Text",
+   "label": "Short Description",
+   "depends_on": "show_on_website",
+   "description": "One or two sentences for product cards and search results."
+  },
+  {
+   "fieldname": "material",
+   "fieldtype": "Data",
+   "label": "Material",
+   "depends_on": "show_on_website"
+  },
+  {
+   "fieldname": "datasheet",
+   "fieldtype": "Attach",
+   "label": "Datasheet",
+   "depends_on": "show_on_website",
+   "description": "A PDF customers can download. Attach it as a public file."
+  },
+  {
+   "fieldname": "sb_website_2",
+   "fieldtype": "Section Break",
+   "depends_on": "show_on_website",
+   "collapsible": 1,
+   "label": "Website Details"
+  },
+  {
+   "fieldname": "usage",
+   "fieldtype": "Text Editor",
+   "label": "Usage and Applications"
+  },
+  {
+   "fieldname": "specifications",
+   "fieldtype": "Table",
+   "label": "Technical Specifications",
+   "options": "Rental Item Specification"
+  },
+  {
+   "fieldname": "gallery",
+   "fieldtype": "Table",
+   "label": "Image Gallery",
+   "options": "Rental Item Image",
+   "description": "The Item's own image comes first."
   }
  ],
  "links": [],
- "modified": "2026-11-14 23:00:00.000000",
+ "modified": "2026-11-15 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Item Profile",

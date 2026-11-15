@@ -37,8 +37,15 @@ doc_events = {
 	# Rental section of the Item form: Rental Item Profile saved with the Item
 	"Item": {
 		"validate": "thinknxg_rental.services.item_rental.item_validate",
-		"on_update": "thinknxg_rental.services.item_rental.item_on_update",
+		"on_update": ["thinknxg_rental.services.item_rental.item_on_update", "thinknxg_rental.website.catalogue.clear_cache"],
 	},
+	# public rental website (/hire): product slugs and the category cache
+	"Rental Item Profile": {
+		"validate": "thinknxg_rental.website.catalogue.ensure_route",
+		"on_update": "thinknxg_rental.website.catalogue.clear_cache",
+		"on_trash": "thinknxg_rental.website.catalogue.clear_cache",
+	},
+	"Item Group": {"on_update": "thinknxg_rental.website.catalogue.clear_cache", "on_trash": "thinknxg_rental.website.catalogue.clear_cache"},
 	"Hire Order Contract": {
 	    "validate": "thinknxg_rental.events.default_terms.apply",
 	},
@@ -103,6 +110,8 @@ doctype_js = {
 website_route_rules = [
 	{"from_route": "/rental/admin", "to_route": "rental/admin"},
 	{"from_route": "/rental/admin/<path:app_path>", "to_route": "rental/admin"},
+	# public rental website: every page under /hire is served by www/hire/index.py
+	{"from_route": "/hire/<path:app_path>", "to_route": "hire"},
 	# customer Command Center: one single-page application for /rental and every path under it
 	{"from_route": "/rental/<path:app_path>", "to_route": "rental"},
 ]

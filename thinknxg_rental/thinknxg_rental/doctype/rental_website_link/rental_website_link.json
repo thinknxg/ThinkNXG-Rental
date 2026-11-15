@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-11-15 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "location",
+  "label",
+  "link",
+  "open_in_new_tab"
+ ],
+ "fields": [
+  {
+   "fieldname": "location",
+   "fieldtype": "Select",
+   "label": "Where",
+   "options": "Header\nFooter: Equipment\nFooter: Company\nFooter: Support",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "link",
+   "fieldtype": "Data",
+   "label": "Link",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "open_in_new_tab",
+   "fieldtype": "Check",
+   "label": "New Tab",
+   "in_list_view": 1,
+   "columns": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-15 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Website Link",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 1
+}

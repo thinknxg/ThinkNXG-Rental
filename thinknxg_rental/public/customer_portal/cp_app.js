@@ -40,6 +40,7 @@
 			["additional", __("Additional Material"), "package-plus"],
 		]],
 		[__("Commercial"), [
+			["enquiries", __("Enquiries"), "inbox"],
 			["quotations", __("Quotations"), "file-text", () => cp.features.quotations],
 			["sales-orders", __("Sales Orders"), "shopping-cart", () => cp.features.sales_orders],
 			["invoices", __("Invoices"), "receipt"],
@@ -275,7 +276,7 @@
 		[/^deliveries$/, "deliveries"], [/^deliveries\/(.+)$/, "delivery"],
 		[/^returns$/, "returns"], [/^returns\/(.+)$/, "return_note"],
 		[/^extensions$/, "extensions"], [/^additional$/, "additional"],
-		[/^quotations$/, "quotations"], [/^quotations\/(.+)$/, "quotation"],
+		[/^enquiries$/, "enquiries"], [/^quotations$/, "quotations"], [/^quotations\/(.+)$/, "quotation"],
 		[/^sales-orders$/, "sales_orders"], [/^sales-orders\/(.+)$/, "sales_order"],
 		[/^invoices$/, "invoices"], [/^invoices\/(.+)$/, "invoice"],
 		[/^payments$/, "payments"], [/^statement$/, "statement"],

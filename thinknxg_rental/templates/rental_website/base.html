@@ -1,0 +1,98 @@
+{%- from "templates/rental_website/macros.html" import icon, logo with context -%}
+<!doctype html>
+<html lang="{{ lang or 'en' }}" {% for k, v in rw_theme.attrs.items() %}{{ k }}="{{ v }}" {% endfor %}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ rw_title | e }}</title>
+<meta name="description" content="{{ rw_description | e }}">
+{%- if rw_noindex %}<meta name="robots" content="noindex, follow">{% endif %}
+<link rel="canonical" href="{{ rw_canonical | e }}">
+<meta property="og:type" content="{{ 'product' if rw_product else 'website' }}">
+<meta property="og:site_name" content="{{ (rw.site_name or 'thinkNXG Rental') | e }}">
+<meta property="og:title" content="{{ rw_title | e }}">
+<meta property="og:description" content="{{ rw_description | e }}">
+<meta property="og:url" content="{{ rw_canonical | e }}">
+<meta property="og:image" content="{{ rw_og_image | e }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="{{ rw_theme.dark }}">
+<link rel="icon" href="{{ (rw.logo or '/assets/thinknxg_rental/images/logo.svg') | e }}">
+<link rel="preload" href="/assets/thinknxg_rental/command_center/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/thinknxg_rental/rental_website/rw.css?v={{ rw_version }}">
+<style>{{ rw_theme.css }}</style>
+{%- for ld in rw_json_ld %}
+<script type="application/ld+json">{{ rw_json(ld) | replace("</", "<\\/") }}</script>
+{%- endfor %}
+</head>
+<body>
+<a class="rw-skip" href="#rw-main">{{ _("Skip to content") }}</a>
+{% if rw_staff_preview %}<div class="rw-preview">{{ icon("eye") }} {{ _("The website is switched off. Only website managers can see this preview.") }} <a href="/app/rental-website-settings">{{ _("Website settings") }}</a></div>{% endif %}
+<header class="rw-header" data-rw-header>
+	<div class="rw-wrap rw-header__bar">
+		<a class="rw-brand" href="/hire" aria-label="{{ (rw.site_name or 'thinkNXG Rental') | e }}">{{ logo() }}</a>
+		<nav class="rw-nav" aria-label="{{ _('Main') }}" id="rw-nav">
+			<ul>
+			{%- for l in rw_header_links %}
+				<li><a href="{{ l.link | e }}"{% if l.open_in_new_tab %} target="_blank" rel="noopener"{% endif %}{% if rw_path.startswith(l.link) and l.link != '/hire' %} aria-current="page"{% endif %}>{{ l.label | e }}</a></li>
+			{%- endfor %}
+			</ul>
+			<form class="rw-nav__search" action="/hire/equipment" method="get" role="search">
+				<label class="rw-sr" for="rw-nav-q">{{ _("Search equipment") }}</label>
+				<input id="rw-nav-q" type="search" name="q" placeholder="{{ _('Search equipment') }}" value="{{ (rw_search or '') | e }}">
+			</form>
+			<div class="rw-nav__account">
+				<a href="/hire/account">{{ icon("user") }} {{ _("My account") if rw_logged_in else _("Log in / Register") }}</a>
+			</div>
+		</nav>
+		<div class="rw-header__tools">
+			<form class="rw-search" action="/hire/equipment" method="get" role="search">
+				<label class="rw-sr" for="rw-q">{{ _("Search equipment") }}</label>
+				{{ icon("search", "rw-i--sm") }}
+				<input id="rw-q" type="search" name="q" placeholder="{{ _('Search equipment') }}" value="{{ (rw_search or '') | e }}">
+			</form>
+			<a class="rw-tool rw-tool--account" href="/hire/account" aria-label="{{ _('My account') if rw_logged_in else _('Log in') }}">{{ icon("user") }}<span>{{ (rw_user_name | e) if rw_logged_in and rw_user_name else (_("Account") if rw_logged_in else _("Log in")) }}</span></a>
+			<a class="rw-tool rw-tool--basket" href="/hire/basket" aria-label="{{ _('Your enquiry') }}">{{ icon("clipboard-list") }}<span>{{ _("Enquiry") }}</span><b class="rw-count" data-rw-count hidden>0</b></a>
+			<button class="rw-menu" type="button" aria-expanded="false" aria-controls="rw-nav" data-rw-menu>{{ icon("menu") }}<span class="rw-sr">{{ _("Menu") }}</span></button>
+		</div>
+	</div>
+</header>
+
+<main id="rw-main" tabindex="-1">
+{% include rw_page %}
+</main>
+
+<footer class="rw-footer">
+	<div class="rw-wrap rw-footer__grid">
+		<div class="rw-footer__brand">
+			<a class="rw-brand rw-brand--footer" href="/hire">{{ logo() }}</a>
+			{% if rw.footer_text %}<p>{{ rw.footer_text | e }}</p>{% elif rw.tagline %}<p>{{ rw.tagline | e }}</p>{% endif %}
+			<ul class="rw-footer__contact">
+				{% if rw.contact_phone %}<li>{{ icon("phone", "rw-i--sm") }} <a href="tel:{{ rw.contact_phone | replace(' ', '') | e }}">{{ rw.contact_phone | e }}</a></li>{% endif %}
+				{% if rw.contact_email %}<li>{{ icon("mail", "rw-i--sm") }} <a href="mailto:{{ rw.contact_email | e }}">{{ rw.contact_email | e }}</a></li>{% endif %}
+				{% if rw.address %}<li>{{ icon("map-pin", "rw-i--sm") }} <span>{{ rw.address | e | replace("\n", "<br>") }}</span></li>{% endif %}
+			</ul>
+		</div>
+		{% if rw_top_categories %}
+		<div>
+			<h2>{{ _("Equipment") }}</h2>
+			<ul>{% for c in rw_top_categories[:7] %}<li><a href="{{ c.url }}">{{ c.title | e }}</a></li>{% endfor %}
+				<li><a href="/hire/equipment">{{ _("Full catalogue") }}</a></li></ul>
+		</div>
+		{% endif %}
+		{% for col, links in rw_footer.items() %}
+		<div>
+			<h2>{{ _(col) }}</h2>
+			<ul>{% for l in links %}<li><a href="{{ l.link | e }}"{% if l.open_in_new_tab %} target="_blank" rel="noopener"{% endif %}>{{ l.label | e }}</a></li>{% endfor %}</ul>
+		</div>
+		{% endfor %}
+	</div>
+	<div class="rw-wrap rw-footer__bottom">
+		<span>© {{ frappe.utils.nowdate()[:4] }} {{ (rw.organization_name or rw.site_name or "thinkNXG Rental") | e }}</span>
+		<span>{{ _("Rental operations run on thinkNXG ERP") }}</span>
+	</div>
+</footer>
+<div class="rw-toasts" role="status" aria-live="polite"></div>
+<script>window.rw_boot = {{ rw_json(rw_boot) | replace("</", "<\\/") }}; window.csrf_token = {{ rw_json(rw_csrf) }};</script>
+<script src="/assets/thinknxg_rental/rental_website/rw.js?v={{ rw_version }}" defer></script>
+</body>
+</html>
