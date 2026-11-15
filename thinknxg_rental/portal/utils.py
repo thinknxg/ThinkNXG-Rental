@@ -48,6 +48,8 @@ def get_portal_customers(customer=None):
 		)
 	if customer:
 		customers &= {customer}
+	if customers:  # a disabled customer account no longer opens the portal
+		customers = set(frappe.get_all("Customer", filters={"name": ["in", list(customers)], "disabled": 0}, pluck="name"))
 	return sorted(c for c in customers if c), False
 
 

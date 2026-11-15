@@ -4,15 +4,39 @@ from frappe.model.document import Document
 from frappe.utils import flt, getdate, nowdate
 
 
+# Every kind of customer request. The first three predate the customer Command Center; the stored values
+# stay as they are (Off-Hire Request is shown to customers as "Material Return Request").
+REQUEST_TYPES = (
+	"Hire Enquiry", "Additional Material Request", "Extension Request", "Off-Hire Request", "Pickup Request",
+	"Delivery Reschedule", "Replacement Request", "Damage Report", "Missing Material Report", "Complaint", "Support Request",
+)
+# requests that list items and quantities
+ITEM_TYPES = (
+	"Hire Enquiry", "Additional Material Request", "Off-Hire Request", "Pickup Request", "Replacement Request",
+	"Damage Report", "Missing Material Report",
+)
+# requests about one of the customer's rental contracts (optional for complaints and support)
+CONTRACT_TYPES = (
+	"Additional Material Request", "Extension Request", "Off-Hire Request", "Pickup Request", "Delivery Reschedule",
+	"Replacement Request", "Damage Report", "Missing Material Report",
+)
+# requests that become an off-hire note, or a hire order
+OFF_HIRE_TYPES = ("Off-Hire Request", "Pickup Request")
+HIRE_ORDER_TYPES = ("Hire Enquiry", "Additional Material Request")
+
+
 class RentalPortalRequest(Document):
 	def validate(self):
 		if self.rental_contract:
-			contract = frappe.db.get_value("Rental Contract", self.rental_contract, ["customer", "company"], as_dict=True)
+			contract = frappe.db.get_value("Rental Contract", self.rental_contract, ["customer", "company", "rental_site"], as_dict=True)
+			self.rental_site = self.rental_site or contract.rental_site
 			if contract.customer != self.customer:
 				frappe.throw(_("Contract {0} does not belong to customer {1}").format(self.rental_contract, self.customer))
 			self.company = self.company or contract.company
-		if self.request_type != "Extension Request" and not self.items:
+		if self.request_type in ITEM_TYPES and not self.items:
 			frappe.throw(_("Add at least one item"))
+		if self.request_type in CONTRACT_TYPES and not self.rental_contract:
+			frappe.throw(_("Choose the rental contract this request is about"))
 		if self.status == "Rejected" and not (self.response or "").strip():
 			frappe.throw(_("Give the customer a reason in Response before rejecting the request"))
 
@@ -35,6 +59,29 @@ class RentalPortalRequest(Document):
 		self.status = "Rejected"
 		self.response = (reason or "").strip()
 		self.save()
+
+	@frappe.whitelist()
+	def complete(self, response: str | None = None):
+		"""Close a service request (reschedule, replacement, damage or missing report, complaint, support)
+		with a reply the customer sees on the portal."""
+		self.check_permission("write")
+		if self.status not in ("Open", "In Progress"):
+			frappe.throw(_("Request {0} is already {1}").format(self.name, self.status))
+		self.status = "Completed"
+		if (response or "").strip():
+			self.response = response.strip()
+		self.save()
+
+	def on_update(self):
+		if self.has_value_changed("status") and not self.flags.in_insert:
+			from thinknxg_rental.services.customer_notify import request_status_changed
+
+			request_status_changed(self)
+
+	def after_insert(self):
+		from thinknxg_rental.services.customer_notify import request_raised
+
+		request_raised(self)
 
 	@frappe.whitelist()
 	def apply_extension(self):
@@ -78,8 +125,9 @@ def set_request_reference(doc, completed=True):
 def _open_request(source_name, request_type):
 	source = frappe.get_doc("Rental Portal Request", source_name)
 	source.check_permission("read")
-	if source.request_type != request_type:
-		frappe.throw(_("This is not a {0}").format(request_type))
+	allowed = request_type if isinstance(request_type, tuple) else (request_type,)
+	if source.request_type not in allowed:
+		frappe.throw(_("This is not a {0}").format(_(allowed[0])))
 	if source.status in ("Completed", "Rejected", "Cancelled"):
 		frappe.throw(_("Request {0} is {1}").format(source.name, source.status))
 	if existing := _existing_document(source.name):
@@ -100,7 +148,7 @@ def _existing_document(request):
 def make_hire_order(source_name: str, target_doc=None):
 	from thinknxg_rental.services.utils import get_settings
 
-	source = _open_request(source_name, "Hire Enquiry")
+	source = _open_request(source_name, HIRE_ORDER_TYPES)
 	start = max(getdate(source.required_date or nowdate()), getdate(nowdate()))
 	target = frappe.new_doc("Hire Order")
 	target.update(
@@ -111,6 +159,7 @@ def make_hire_order(source_name: str, target_doc=None):
 			"order_date": nowdate(),
 			"required_from": start,
 			"expected_return_date": max(getdate(source.expected_return_date or start), start),
+			"rental_site": source.rental_site or (source.rental_contract and frappe.db.get_value("Rental Contract", source.rental_contract, "rental_site")),
 			"remarks": "\n".join(filter(None, [source.site_location, source.remarks])),
 		}
 	)
@@ -125,7 +174,7 @@ def make_off_hire_note(source_name: str, target_doc=None):
 	the customer raised the request, which is what the grace period is measured from."""
 	from thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note import get_items_at_site
 
-	source = _open_request(source_name, "Off-Hire Request")
+	source = _open_request(source_name, OFF_HIRE_TYPES)
 	contract = frappe.get_doc("Rental Contract", source.rental_contract)
 	target = frappe.new_doc("Hire Off-Hire Note")
 	target.update(

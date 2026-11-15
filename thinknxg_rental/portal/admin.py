@@ -326,7 +326,7 @@ def get_cross_hire():
 	)
 
 
-REQUEST_TYPES = ("Hire Enquiry", "Off-Hire Request", "Extension Request")
+from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import REQUEST_TYPES  # noqa: E402
 
 
 def get_admin_requests(view="open", search=None, request_type=None):
