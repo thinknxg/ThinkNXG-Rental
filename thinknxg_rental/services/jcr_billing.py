@@ -228,6 +228,10 @@ def make_combined_invoice(jcrs: str, bill_upto: str | None = None):
     names=list(dict.fromkeys(frappe.parse_json(jcrs) or []))
     if not names: frappe.throw(_("Select at least one JCR"))
     upto=getdate(bill_upto) if bill_upto else getdate(get_last_day(nowdate()))  # excess is billed up to this date: month end unless a date is chosen
+    late=frappe.get_all("Job Completion Report Line",filters={"parent":["in",names],"parenttype":"Job Completion Report","erection_date":[">",str(upto)]},fields=["parent","idx","erection_date"],order_by="parent asc, idx asc")
+    if late:
+        from frappe.utils import formatdate
+        frappe.msgprint(_("Bill Up To {0} is before the Erection Date of these job lines:").format(formatdate(upto))+"<br>"+"<br>".join(_("{0}, row {1}: erected {2}").format(r.parent,r.idx,formatdate(r.erection_date)) for r in late),title=_("Bill Up To is before Erection Date"),indicator="orange")
     _release_draft_invoices(names)
     for n in names:
         frappe.get_doc("Job Completion Report",n).check_permission("write")
