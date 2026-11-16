@@ -14,6 +14,17 @@ frappe.ui.form.on("Lead", {
 		}, __("Create"));
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
+	customer(frm) {
+		if (!frm.doc.customer) return;
+		// Existing customer: fill the organization, address and primary contact details
+		frappe.call({
+			method: "thinknxg_rental.services.lead_fields.get_customer_details",
+			args: { customer: frm.doc.customer },
+		}).then((r) => {
+			const d = r.message || {};
+			Object.keys(d).forEach((k) => { if (d[k]) frm.set_value(k, d[k]); });
+		});
+	},
 	lead_owner(frm) {
 		if (frm.doc.lead_owner && !frm.doc.nxg_tender_assignee) frm.set_value("nxg_tender_assignee", frm.doc.lead_owner);
 	},
