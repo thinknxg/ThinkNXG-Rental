@@ -10,7 +10,7 @@ def customer_name_search(doctype, txt, searchfield, start, page_len, filters):
         """select name, customer_name from `tabCustomer`
         where disabled=0 and customer_name like %(txt)s
         order by customer_name limit %(start)s, %(page_len)s""",
-        {"txt": f"%{txt}%", "start": cint(start), "page_len": cint(page_len)},
+        {"txt": f"%{txt}%", "start": cint(start), "page_len": max(cint(page_len), 100)},
     )
 
 
