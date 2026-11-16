@@ -34,6 +34,39 @@ def get_custom_fields():
 			dict(fieldname="project_title", label="Project Title", fieldtype="Data", insert_after="deal_type",
 				description="Name of the customer's project. A Project with this name is linked when the Rental Site is created."),
 			dict(fieldname="project", label="Project", fieldtype="Link", options="Project", insert_after="project_title"),
+			# Customer details
+			dict(fieldname="nxg_branches", label="Branches / Subsidiary Companies", fieldtype="Small Text", insert_after="company_name"),
+			# Project contact (the customer's contact for this project)
+			dict(fieldname="nxg_project_contact_sb", label="Project Contact", fieldtype="Section Break", insert_after="project"),
+			dict(fieldname="nxg_project_contact_name", label="Contact Name", fieldtype="Data", insert_after="nxg_project_contact_sb"),
+			dict(fieldname="nxg_project_contact_job_title", label="Job Title", fieldtype="Data", insert_after="nxg_project_contact_name"),
+			dict(fieldname="nxg_project_contact_cb", label="", fieldtype="Column Break", insert_after="nxg_project_contact_job_title"),
+			dict(fieldname="nxg_project_contact_gender", label="Gender", fieldtype="Link", options="Gender", insert_after="nxg_project_contact_cb"),
+			dict(fieldname="nxg_project_contact_email", label="Email", fieldtype="Data", options="Email", insert_after="nxg_project_contact_gender"),
+			# Hire period: same field names as on the Quotation, so they carry across when the Quotation is made
+			dict(fieldname="nxg_hire_period_sb", label="Hire Period", fieldtype="Section Break", insert_after="nxg_project_contact_email", depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_required_from", label="Required From", fieldtype="Date", insert_after="nxg_hire_period_sb", depends_on="eval:doc.deal_type=='Material Hire'", mandatory_depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_expected_return_date", label="Expected Return Date", fieldtype="Date", insert_after="nxg_required_from", depends_on="eval:doc.deal_type=='Material Hire'", mandatory_depends_on="eval:doc.deal_type=='Material Hire'"),
+			dict(fieldname="nxg_hire_period_cb", label="", fieldtype="Column Break", insert_after="nxg_expected_return_date"),
+			dict(fieldname="nxg_hire_period_days", label="Hire Period (Days)", fieldtype="Int", insert_after="nxg_hire_period_cb", read_only=1, no_copy=1, depends_on="eval:doc.deal_type=='Material Hire'"),
+			# Tender
+			dict(fieldname="nxg_tender_sb", label="Tender", fieldtype="Section Break", insert_after="nxg_hire_period_days"),
+			dict(fieldname="nxg_tender_assignee", label="Tender (Assignee) Name", fieldtype="Link", options="User", insert_after="nxg_tender_sb", description="Defaults to the Lead Owner."),
+			dict(fieldname="nxg_tender_cb", label="", fieldtype="Column Break", insert_after="nxg_tender_assignee"),
+			dict(fieldname="nxg_tender_final_submission_date", label="Tender Final Submission Date", fieldtype="Date", insert_after="nxg_tender_cb"),
+			dict(fieldname="nxg_tender_finalization_date", label="Tender Finalization Date", fieldtype="Date", insert_after="nxg_tender_final_submission_date"),
+			# Lead owner details, pulled from the owner's User record (User has no salutation, job title or extension)
+			dict(fieldname="nxg_owner_sb", label="Lead Owner Details", fieldtype="Section Break", insert_after="nxg_tender_finalization_date"),
+			dict(fieldname="nxg_owner_salutation", label="Salutation", fieldtype="Link", options="Salutation", insert_after="nxg_owner_sb"),
+			dict(fieldname="nxg_owner_first_name", label="First Name", fieldtype="Data", insert_after="nxg_owner_salutation", read_only=1, fetch_from="lead_owner.first_name"),
+			dict(fieldname="nxg_owner_last_name", label="Last Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=1, fetch_from="lead_owner.last_name"),
+			dict(fieldname="nxg_owner_job_title", label="Job Title", fieldtype="Data", insert_after="nxg_owner_last_name"),
+			dict(fieldname="nxg_owner_cb", label="", fieldtype="Column Break", insert_after="nxg_owner_job_title"),
+			dict(fieldname="nxg_owner_gender", label="Gender", fieldtype="Link", options="Gender", insert_after="nxg_owner_cb", read_only=1, fetch_from="lead_owner.gender"),
+			dict(fieldname="nxg_owner_email", label="Email", fieldtype="Data", options="Email", insert_after="nxg_owner_gender", read_only=1, fetch_from="lead_owner.email"),
+			dict(fieldname="nxg_owner_phone", label="Tel. Number", fieldtype="Data", insert_after="nxg_owner_email", read_only=1, fetch_from="lead_owner.phone"),
+			dict(fieldname="nxg_owner_ext", label="Extension", fieldtype="Data", insert_after="nxg_owner_phone"),
+			dict(fieldname="nxg_owner_mobile", label="Mobile", fieldtype="Data", insert_after="nxg_owner_ext", read_only=1, fetch_from="lead_owner.mobile_no"),
 		],
 		"Quotation": [
 			# ERPNext's Quotation has no Project or Cost Center; same names as on Sales Order so the
@@ -257,6 +290,11 @@ def after_migrate():
 	make_property_setter("Quotation Item", "amount", "columns", "1", "Int", validate_fields_for_doctype=False)
 	make_property_setter("Sales Invoice Item", "description", "in_list_view", "1", "Check", validate_fields_for_doctype=False)
 	make_property_setter("Sales Invoice Item", "description", "columns", "3", "Int", validate_fields_for_doctype=False)
+	# Lead: Deal Type replaces Request Type; fields the client does not use are hidden (not removed)
+	for fieldname in ("request_type", "qualified_by", "qualified_on", "qualification_status", "annual_revenue", "no_of_employees",
+			"market_segment", "industry", "utm_content", "utm_medium", "utm_campaign", "blog_subscriber", "unsubscribed"):
+		make_property_setter("Lead", fieldname, "hidden", "1", "Check", validate_fields_for_doctype=False)
+	make_property_setter("Lead", "customer", "label", "Customer", "Data", validate_fields_for_doctype=False)
 	setup_uoms()
 	ensure_settings_defaults()
 	ensure_extra_warehouses()
