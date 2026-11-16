@@ -299,7 +299,33 @@ def arrange_lead_layout():
 	frappe.clear_cache(doctype="Lead")
 
 
+def ensure_quotation_extras():
+	"""Quotation: Purchase Cost / Total Cost on Material Sale rows, contact details copied from the Lead,
+	and Weight / Purchase Cost / Total Cost kept off the printed quotation."""
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	ms = "eval:parent.deal_type=='Material Sale'"
+	create_custom_fields({
+		"Quotation Item": [
+			dict(fieldname="nxg_purchase_cost", label="Purchase Cost", fieldtype="Currency", options="currency", insert_after="nxg_weight", depends_on=ms, no_copy=0, description="Defaults to the item's valuation rate. Not printed."),
+			dict(fieldname="nxg_total_cost", label="Total Cost", fieldtype="Currency", options="currency", insert_after="nxg_purchase_cost", depends_on=ms, read_only=1, description="Qty x Purchase Cost. Not printed."),
+		],
+		"Quotation": [
+			dict(fieldname="nxg_contact_salutation", label="Contact Salutation", fieldtype="Data", insert_after="contact_email", read_only=1),
+			dict(fieldname="nxg_contact_first_name", label="Contact First Name", fieldtype="Data", insert_after="nxg_contact_salutation", read_only=1),
+			dict(fieldname="nxg_contact_last_name", label="Contact Last Name", fieldtype="Data", insert_after="nxg_contact_first_name", read_only=1),
+			dict(fieldname="nxg_contact_job_title", label="Contact Job Title", fieldtype="Data", insert_after="nxg_contact_last_name", read_only=1),
+			dict(fieldname="nxg_contact_phone_ext", label="Contact Extension", fieldtype="Data", insert_after="nxg_contact_job_title", read_only=1),
+			dict(fieldname="nxg_project_contact_name", label="Project Contact Name", fieldtype="Data", insert_after="nxg_contact_phone_ext", read_only=1),
+			dict(fieldname="nxg_project_contact_job_title", label="Project Contact Job Title", fieldtype="Data", insert_after="nxg_project_contact_name", read_only=1),
+			dict(fieldname="nxg_project_contact_email", label="Project Contact Email", fieldtype="Data", options="Email", insert_after="nxg_project_contact_job_title", read_only=1),
+		],
+	}, update=True)
+	for fieldname in ("nxg_weight", "nxg_purchase_cost", "nxg_total_cost"):
+		make_property_setter("Quotation Item", fieldname, "print_hide", "1", "Check", validate_fields_for_doctype=False)
+
+
 def after_migrate():
+	ensure_quotation_extras()
 	create_custom_fields(get_custom_fields(), ignore_validate=True)
 	create_custom_fields({
 	    "Sales Order": [

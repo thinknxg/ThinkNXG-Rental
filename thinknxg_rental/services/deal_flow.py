@@ -77,6 +77,25 @@ def _set_party_from_lead(source, target):
         target.contact_mobile = source.phone
 
 
+LEAD_CONTACT_FIELDS = {
+    "salutation": "nxg_contact_salutation",
+    "first_name": "nxg_contact_first_name",
+    "last_name": "nxg_contact_last_name",
+    "job_title": "nxg_contact_job_title",
+    "phone_ext": "nxg_contact_phone_ext",
+    "nxg_project_contact_name": "nxg_project_contact_name",
+    "nxg_project_contact_job_title": "nxg_project_contact_job_title",
+    "nxg_project_contact_email": "nxg_project_contact_email",
+}
+
+
+def _carry_lead_contacts(lead, quotation):
+    """Lead -> Quotation: customer contact and project contact details (read-only on the Quotation)."""
+    for src_field, dst_field in LEAD_CONTACT_FIELDS.items():
+        if quotation.meta.has_field(dst_field) and lead.get(src_field):
+            quotation.set(dst_field, lead.get(src_field))
+
+
 @frappe.whitelist()
 def make_quotation_from_lead(source_name: str, target_doc=None):
     source = frappe.get_doc("Lead", source_name)
@@ -95,6 +114,7 @@ def make_quotation_from_lead(source_name: str, target_doc=None):
         from thinknxg_rental.services.project_link import carry_to_quotation
 
         carry_to_quotation(src, target)
+        _carry_lead_contacts(src, target)
 
     return get_mapped_doc(
         "Lead",

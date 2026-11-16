@@ -713,3 +713,31 @@ Object.entries(NXG_RATE_FIELDS).forEach(([basis, field]) => {
 		}
 	});
 });
+
+// ---------------------------------------------------------------------------------------------
+// Weight comes from the Item when it is picked (still editable). On Material Sale rows the Purchase Cost
+// defaults to the Item's valuation rate and Total Cost = Qty x Purchase Cost. None of these are printed.
+// ---------------------------------------------------------------------------------------------
+function nxg_item_cost_total(frm, cdt, cdn) {
+    if (frm.doc.deal_type !== "Material Sale") return;
+    const row = locals[cdt][cdn];
+    frappe.model.set_value(cdt, cdn, "nxg_total_cost", flt(row.qty) * flt(row.nxg_purchase_cost));
+}
+
+frappe.ui.form.on("Quotation Item", {
+    item_code(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (!row.item_code) return;
+        frappe.db.get_value("Item", row.item_code, ["weight_per_unit", "valuation_rate"]).then((r) => {
+            const v = (r && r.message) || {};
+            if (["Material Sale", "Material Hire"].includes(frm.doc.deal_type)) {
+                frappe.model.set_value(cdt, cdn, "nxg_weight", flt(v.weight_per_unit));
+            }
+            if (frm.doc.deal_type === "Material Sale") {
+                frappe.model.set_value(cdt, cdn, "nxg_purchase_cost", flt(v.valuation_rate));
+            }
+        });
+    },
+    qty(frm, cdt, cdn) { nxg_item_cost_total(frm, cdt, cdn); },
+    nxg_purchase_cost(frm, cdt, cdn) { nxg_item_cost_total(frm, cdt, cdn); },
+});
