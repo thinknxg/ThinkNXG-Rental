@@ -49,7 +49,9 @@ frappe.ui.form.on("Hire Order", {
 
 frappe.ui.form.on("Hire Order Item", {
 	item_code(frm, cdt, cdn) {
-		thinknxg_rental.fetch_rental_details(frm, cdt, cdn, ["security_deposit_rate", "replacement_value", "available_qty"]);
+		// a new row starts from the profile's damage and loss charges; once saved it keeps its own
+		thinknxg_rental.fetch_rental_details(frm, cdt, cdn, ["security_deposit_rate", "replacement_value", "available_qty",
+			"lost_charge", "beyond_repair_charge", "repair_charge"]);
 	},
 	rate_basis(frm, cdt, cdn) {
 		frappe.model.set_value(cdt, cdn, "rate", 0);

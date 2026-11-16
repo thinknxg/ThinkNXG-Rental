@@ -65,6 +65,17 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.5.0 - damage and loss charges end to end
+
+- Lost, Beyond Repair and Repair charges per unit travel from the Rental Item Profile through Quotation
+  rows to Hire Order rows, Hire Order Contract materials and Rental Contract rows. Each row keeps its own
+  snapshot taken when it is created; later profile changes reach only new rows.
+- Damage settlements price Lost, Beyond Repair and Repairable units from the Rental Contract row's agreed
+  charges (shown in *Charge From*), no longer from the profile's replacement value. The replacement value
+  stays as the fallback for contracts with no agreed charge.
+- Patch `backfill_damage_charges` fills existing rows from their source documents.
+  See [docs/DAMAGE_CHARGES.md](docs/DAMAGE_CHARGES.md).
+
 ### Changes in 2.4.3 - blank reservation, delivery and off-hire forms
 
 - Rental Material Reservation, Hire Delivery Order, Hire Off-Hire Note, Cross Hire Order and Rental

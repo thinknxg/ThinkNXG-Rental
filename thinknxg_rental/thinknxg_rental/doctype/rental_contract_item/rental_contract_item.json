@@ -18,7 +18,13 @@
   "lost_qty",
   "cb_33",
   "at_site_qty",
-  "pending_qty"
+  "pending_qty",
+  "sb_charges",
+  "lost_charge",
+  "cb_charges",
+  "beyond_repair_charge",
+  "cb_charges2",
+  "repair_charge"
  ],
  "fields": [
   {
@@ -133,10 +139,46 @@
    "no_copy": 1,
    "in_list_view": 1,
    "columns": 1
+  },
+  {
+   "fieldname": "sb_charges",
+   "fieldtype": "Section Break",
+   "label": "Damage and Loss Charges",
+   "collapsible": 0,
+   "description": "Agreed charges, carried from the Hire Order or Hire Order Contract. Damage settlements use these values."
+  },
+  {
+   "fieldname": "lost_charge",
+   "fieldtype": "Currency",
+   "label": "Lost Charge per Unit",
+   "non_negative": 1,
+   "description": "Charged per unit not returned"
+  },
+  {
+   "fieldname": "cb_charges",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "beyond_repair_charge",
+   "fieldtype": "Currency",
+   "label": "Beyond Repair Charge per Unit",
+   "non_negative": 1,
+   "description": "Charged per unit returned damaged beyond repair"
+  },
+  {
+   "fieldname": "cb_charges2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "repair_charge",
+   "fieldtype": "Currency",
+   "label": "Repair Charge per Unit",
+   "non_negative": 1,
+   "description": "Charged per unit returned repairable"
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-16 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Contract Item",

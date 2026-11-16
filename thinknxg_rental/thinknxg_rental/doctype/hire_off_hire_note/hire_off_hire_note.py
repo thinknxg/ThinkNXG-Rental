@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
+from thinknxg_rental.services import damage_charges
 from thinknxg_rental.services import ledger, stock
 from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import get_profile, get_settings
@@ -395,9 +396,14 @@ def make_damage_settlement(source_name: str, target_doc=None):
 		}
 	)
 
-	def add(d, classification, qty, rate_field):
+	# rates are the damage and loss charges agreed on the Rental Contract (services/damage_charges.py),
+	# never the Rental Item Profile's current values
+	agreed = damage_charges.contract_rows(source.rental_contract)
+
+	def add(d, classification, qty):
 		if flt(qty) <= 0:
 			return
+		rate, rate_source = damage_charges.settlement_rate(source.rental_contract, agreed.get(d.item_code), classification)
 		target.append(
 			"items",
 			{
@@ -407,19 +413,20 @@ def make_damage_settlement(source_name: str, target_doc=None):
 				"ownership": d.ownership,
 				"classification": classification,
 				"qty": qty,
-				"rate": flt(get_profile(d.item_code).get(rate_field)),
+				"rate": rate,
+				"rate_source": rate_source,
 				"liability_percent": 100,
 				"remarks": d.get("damage_notes"),
 			},
 		)
 
 	for d in source.items:
-		add(d, "Lost", d.lost_qty, "replacement_value")
+		add(d, "Lost", d.lost_qty)
 	inspection = frappe.db.get_value("Rental Return Inspection", {"hire_off_hire_note": source.name, "docstatus": 1}, "name")
 	if inspection:
 		for d in frappe.get_doc("Rental Return Inspection", inspection).items:
-			add(d, "Repairable", d.repairable_qty, "repair_charge")
-			add(d, "Beyond Repair", d.damaged_qty, "replacement_value")
+			add(d, "Repairable", d.repairable_qty)
+			add(d, "Beyond Repair", d.damaged_qty)
 	if not target.items:
 		frappe.throw(_("Nothing was lost or damaged on this off-hire"))
 	return target

@@ -12,6 +12,7 @@
   "cb_86",
   "qty",
   "rate",
+  "rate_source",
   "liability_percent",
   "salvage_value",
   "amount",
@@ -77,6 +78,14 @@
    "columns": 1
   },
   {
+   "fieldname": "rate_source",
+   "fieldtype": "Data",
+   "label": "Charge From",
+   "read_only": 1,
+   "no_copy": 0,
+   "description": "The agreed charge the rate was taken from (contract row and charge)"
+  },
+  {
    "fieldname": "liability_percent",
    "fieldtype": "Percent",
    "label": "Customer Liability %",
@@ -104,7 +113,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-16 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Damage Settlement Item",

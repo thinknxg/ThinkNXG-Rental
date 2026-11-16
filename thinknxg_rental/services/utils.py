@@ -219,6 +219,10 @@ def item_rental_details(item_code, customer=None, rate_basis=None, posting_date=
 		"rate": get_rental_rate(item_code, rate_basis, customer, posting_date),
 		"security_deposit_rate": flt(profile.get("security_deposit_rate")),
 		"replacement_value": flt(profile.get("replacement_value")),
+		# defaults for a new row; a saved row keeps its own (services/damage_charges.py)
+		"lost_charge": flt(profile.get("lost_charge")),
+		"beyond_repair_charge": flt(profile.get("beyond_repair_charge")),
+		"repair_charge": flt(profile.get("repair_charge")),
 		"minimum_hire_days": cint(profile.get("minimum_hire_days")),
 		"weight_per_unit": flt(profile.get("weight_per_unit")),
 		# one warehouse when asked, else every own rental warehouse

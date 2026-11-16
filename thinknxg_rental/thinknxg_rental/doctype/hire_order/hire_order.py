@@ -5,6 +5,7 @@ from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
+from thinknxg_rental.services import damage_charges
 from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
 from thinknxg_rental.thinknxg_rental.doctype.rental_portal_request.rental_portal_request import check_request_unused, set_request_reference
 from thinknxg_rental.services.utils import (
@@ -25,6 +26,7 @@ class HireOrder(Document):
 		check_duplicate_items(self)
 		check_request_unused(self)
 		self.set_item_values()
+		damage_charges.hire_order(self)
 
 	def set_item_values(self):
 		totals = frappe._dict(qty=0, amount=0, deposit=0, replacement=0, shortfall=0)
