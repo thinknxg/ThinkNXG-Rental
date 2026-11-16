@@ -4,6 +4,7 @@ from frappe.model.document import Document
 
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
+from thinknxg_rental.services import damage_charges
 from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
 from thinknxg_rental.events.job_type import get_job_type_items
 from thinknxg_rental.services.utils import get_contract_for_source, get_settings
@@ -21,6 +22,7 @@ class HireOrderContract(Document):
 		if not self.materials:
 			self.explode_materials()
 		self.validate_materials()
+		damage_charges.hire_order_contract(self)
 
 	def validate_jobs(self):
 		seen = set()
@@ -140,8 +142,10 @@ def make_rental_contract(source_name: str, target_doc=None):
 			"terms": source.terms,
 		}
 	)
+	charges = damage_charges.material_charges(source.name)
 	for item_code, qty in source.get_material_totals().items():
-		target.append("items", {"item_code": item_code, "qty": qty, "rate_basis": "Monthly", "rate": 0})
+		# the agreed damage and loss charges of the materials travel with the item
+		target.append("items", {"item_code": item_code, "qty": qty, "rate_basis": "Monthly", "rate": 0, **charges.get(item_code, {})})
 	return target
 
 

@@ -136,7 +136,9 @@ frappe.ui.form.on("Rental Contract Item", {
                         callback(r) {
                                 if (!r.message) return;
                                 const m = r.message;
-                                frappe.model.set_value(cdt, cdn, { item_name: m.item_name, uom: m.uom, rate_basis: m.rate_basis, rate: m.rate, replacement_value: m.replacement_value });
+                                // a new row starts from the profile's damage and loss charges; once saved it keeps its own
+                                frappe.model.set_value(cdt, cdn, { item_name: m.item_name, uom: m.uom, rate_basis: m.rate_basis, rate: m.rate, replacement_value: m.replacement_value,
+                                        lost_charge: m.lost_charge, beyond_repair_charge: m.beyond_repair_charge, repair_charge: m.repair_charge });
                         },
                 });
         },

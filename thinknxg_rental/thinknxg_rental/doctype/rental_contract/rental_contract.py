@@ -6,7 +6,7 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, flt, getdate, nowdate
 
 from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
-from thinknxg_rental.services import billing, ledger
+from thinknxg_rental.services import billing, damage_charges, ledger
 from thinknxg_rental.services.utils import check_duplicate_items, get_contract_source, get_rental_rate
 
 SOURCE_TYPES = {"Hire Order": "Item Rental", "Hire Order Contract": "Job Type Contract"}
@@ -17,6 +17,7 @@ class RentalContract(Document):
 		self.set_source()
 		self.validate_header()
 		self.validate_items()
+		damage_charges.rental_contract(self)
 
 	def set_source(self):
 		"""The contract is the common commercial layer; its source decides which business rules apply."""

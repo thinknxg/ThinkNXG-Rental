@@ -1,6 +1,8 @@
 import frappe
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
+
+from thinknxg_rental.services.damage_charges import quotation_row_charges
 from frappe.utils import nowdate
 
 DEAL_TYPES = ("Material Hire", "Material Sale", "Hire Order Contract")
@@ -198,6 +200,8 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
                     "rate": row.rate,
                     "rate_basis": row.get("nxg_rate_basis") or "Monthly",
                     "expected_hire_days": row.get("nxg_hire_days") or 0,
+                    # the quotation row's own damage and loss charges, as saved (never the profile's)
+                    **quotation_row_charges(row),
                 })
 
     return _new_mapped_doc(
