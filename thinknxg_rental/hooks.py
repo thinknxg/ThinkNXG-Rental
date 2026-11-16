@@ -103,6 +103,12 @@ doctype_js = {
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
 	"Sales Invoice": "public/js/sales_invoice.js",
+	# forms whose setup uses thinknxg_rental.rental_warehouses(): the helper travels with the form
+	"Rental Material Reservation": "public/js/rental_warehouses.js",
+	"Hire Delivery Order": "public/js/rental_warehouses.js",
+	"Hire Off-Hire Note": "public/js/rental_warehouses.js",
+	"Cross Hire Order": "public/js/rental_warehouses.js",
+	"Rental Return Inspection": "public/js/rental_warehouses.js",
 }
 
 # Command Center: one single-page application answers every path under /rental/admin

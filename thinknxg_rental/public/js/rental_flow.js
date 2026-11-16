@@ -157,8 +157,9 @@
 })();
 
 // Rental warehouses of Rental Settings (own and cross hire, with their locations), fetched once per page.
+// (the same helper is shipped with each form that uses it: public/js/rental_warehouses.js)
 frappe.provide("thinknxg_rental");
-thinknxg_rental.rental_warehouses = function () {
+if (typeof thinknxg_rental.rental_warehouses !== "function") thinknxg_rental.rental_warehouses = function () {
 	if (!thinknxg_rental._rental_warehouses) {
 		thinknxg_rental._rental_warehouses = frappe
 			.xcall("thinknxg_rental.services.warehouses.get_rental_warehouses")
