@@ -65,6 +65,15 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.4.3 - blank reservation, delivery and off-hire forms
+
+- Rental Material Reservation, Hire Delivery Order, Hire Off-Hire Note, Cross Hire Order and Rental
+  Return Inspection could open with their section headings but no fields. Their setup called a helper
+  (`thinknxg_rental.rental_warehouses`) defined only in a separately loaded desk script
+  (`rental_flow.js`); when that file was missing, late or an old cached copy, setup failed with
+  "thinknxg_rental is not defined" and the desk stopped drawing the form. The helper now ships with
+  each of these forms (`doctype_js`), so they work whatever the desk scripts' state.
+
 ### Changes in 2.4.2 - desk forms: reservation, delivery order, off-hire note
 
 - Item tables on Rental Material Reservation, Hire Delivery Order and Hire Off-Hire Note fit the form:

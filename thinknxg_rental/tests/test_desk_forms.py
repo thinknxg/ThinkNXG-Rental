@@ -101,3 +101,29 @@ class TestDeskForms(IntegrationTestCase):
 		hooks = frappe.get_hooks("app_include_css", app_name="thinknxg_rental")
 		self.assertTrue(any(h.endswith("rental_menu.css") for h in hooks))
 		self.assertTrue(os.path.exists(frappe.get_app_path("thinknxg_rental", "public", "js", "rental_menu.js")))
+
+
+class TestFormScriptsStandAlone(IntegrationTestCase):
+	"""A form must not depend on a separately loaded desk script (app_include_js): when that file was
+	missing or an old cached copy, setup stopped at "thinknxg_rental is not defined" and the form showed
+	its section headings with no fields. Helpers a form script calls travel with the form."""
+
+	def test_forms_ship_the_warehouse_helper(self):
+		import re
+
+		from frappe.desk.form.meta import get_meta
+
+		root = frappe.get_app_path("thinknxg_rental", "thinknxg_rental", "doctype")
+		users = []
+		for name in sorted(os.listdir(root)):
+			path = os.path.join(root, name, name + ".js")
+			if os.path.exists(path) and re.search(r"thinknxg_rental\.rental_warehouses\(", open(path).read()):
+				with open(os.path.join(root, name, name + ".json")) as f:
+					users.append(json.load(f)["name"])
+		self.assertTrue({"Rental Material Reservation", "Hire Delivery Order", "Hire Off-Hire Note"} <= set(users))
+		hooks = frappe.get_hooks("doctype_js", app_name="thinknxg_rental")
+		for doctype in users:
+			self.assertIn("public/js/rental_warehouses.js", hooks.get(doctype, []), doctype)
+			js = get_meta(doctype, cached=False).get("__js") or ""
+			self.assertIn("thinknxg_rental.rental_warehouses = function", js, doctype)
+			self.assertIn('frappe.provide("thinknxg_rental")', js, doctype)
