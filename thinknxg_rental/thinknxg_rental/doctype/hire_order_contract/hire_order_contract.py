@@ -25,15 +25,11 @@ class HireOrderContract(Document):
 		damage_charges.hire_order_contract(self)
 
 	def validate_jobs(self):
-		seen = set()
 		self.total_jobs = self.total_contract_amount = 0
 		for d in self.items:
 			if not frappe.db.exists("Job Type", {"name": d.job_type, "disabled": 0}):
 				frappe.throw(_("Row #{0}: {1} is not an active Job Type").format(d.idx, frappe.bold(d.job_type)))
-			key = (d.job_type, (d.location or "").strip().lower())
-			if key in seen:
-				frappe.throw(_("Row #{0}: {1} is entered twice for the same location. Raise the number of jobs instead.").format(d.idx, d.job_type))
-			seen.add(key)
+			# the same job type may appear on several rows, also at the same location: each row is tracked on its own
 			if flt(d.qty) <= 0:
 				frappe.throw(_("Row #{0}: No. of Jobs must be greater than zero").format(d.idx))
 			if cint(d.included_days) < 1:
