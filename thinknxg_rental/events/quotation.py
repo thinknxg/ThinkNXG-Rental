@@ -70,3 +70,4 @@ def validate(doc, method=None):
 
 	# the totals pass counted Qty x Duration; the quantity column and its total stay as typed
 	doc.total_qty = sum(flt(row.qty) for row in rows)
+	doc.set_total_in_words()
