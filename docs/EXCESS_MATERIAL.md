@@ -8,7 +8,7 @@ that must pass before a contract or project is closed.
 
 | What | Where it lives | Moved by |
 |---|---|---|
-| Physical stock | ERPNext Stock Entries (never Bin or the Stock Ledger directly) | Off-hire note (excess in), Excess Material Return Note (excess out), Dismantling Entry (settled units out of the site warehouse) |
+| Physical stock | thinkNXG ERP Stock Entries (never Bin or the Stock Ledger directly) | Off-hire note (excess in), Excess Material Return Note (excess out), Dismantling Entry (settled units out of the site warehouse) |
 | What the customer owes | Rental Ownership Ledger, *At Site* position | Delivery Order (Dispatch), Off-hire note (Return, Loss), Dismantling Entry (**Adjustment**) |
 | Commercial record of excess | Excess Material Register | Made by the off-hire note; balances recalculated from submitted return notes and dismantling entries |
 
@@ -106,7 +106,7 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
        warehouse) or *Zero Value*.
    - *Convert to Existing Rental Item* needs a target item with a Rental Item Profile, which can be the
      same code. *Convert to Different Item* takes any stock item, including one created for the purpose.
-   - On submit, one ERPNext **Repack** Stock Entry is made. It consumes the excess item at its zero value
+   - On submit, one thinkNXG ERP **Repack** Stock Entry is made. It consumes the excess item at its zero value
      and receives the target item at the chosen rate (Set Basic Rate Manually). The value added posts to
      the **Difference Account** (default: the company's Stock Adjustment Account).
    - The register shows **Converted to Rental Stock** and **Available to Convert**. The customer's

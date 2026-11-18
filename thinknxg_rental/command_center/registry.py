@@ -77,6 +77,24 @@ VIEWS = {
 	"warehouses": dict(kind="doctype", doctype="Warehouse", label="Warehouses", search=["warehouse_name", "parent_warehouse"],
 		columns=[("warehouse_name", "Warehouse"), ("parent_warehouse", "Parent"), ("is_group", "Group"), ("company", "Company")]),
 	"users": dict(kind="users"),
+	# public website enquiries (website/api.py): followed up into quotations by staff
+	"website-enquiries": dict(kind="doctype", doctype="Rental Website Enquiry", label="Website Enquiries", date_field="enquiry_date",
+		party="customer", search=["full_name", "company_name", "email", "subject"],
+		columns=[("full_name", "Name"), ("company_name", "Company"), ("enquiry_type", "Type"), ("enquiry_date", "Date"), ("status", "Status")],
+		tabs=[("Open", {"status": ["in", ["New", "In Review"]]}), ("Quoted", {"status": "Quoted"}), ("All", {})]),
+	# excess material (services/excess.py): the register lists, the documents open in the shared form
+	"excess/register": dict(kind="doctype", doctype="Excess Material Register", label="Excess Material Register", date_field="posting_date",
+		party="customer", search=["customer_name", "item_code", "hire_off_hire_note", "rental_contract"],
+		columns=[("customer_name", "Customer"), ("item_code", "Item"), ("excess_qty", "Received"), ("available_qty", "Held for customer"),
+			("convertible_qty", "To convert"), ("status", "Status")],
+		tabs=[("Held for customer", {"available_qty": [">", 0], "status": ["!=", "Cancelled"]}),
+			("To convert", {"convertible_qty": [">", 0], "status": ["!=", "Cancelled"]}), ("All", {})]),
+	"excess/returns": dict(kind="entry", entry="excess-return-note", date_field="posting_date", party="customer"),
+	"excess/dismantling": dict(kind="entry", entry="dismantling-entry", date_field="posting_date", party="customer",
+		tabs=[("Drafts", {"docstatus": 0}), ("Submitted", {"docstatus": 1}), ("All", {})]),
+	"excess/abandonment": dict(kind="entry", entry="excess-abandonment", date_field="posting_date", party="customer",
+		tabs=[("Awaiting approval", {"docstatus": 0}), ("Approved", {"docstatus": 1}), ("All", {})]),
+	"excess/conversion": dict(kind="entry", entry="excess-conversion", date_field="posting_date", party="customer"),
 }
 
 # ----------------------------------------------------------------------------- sidebar
@@ -93,6 +111,7 @@ NAV = [
 		("customers", "Customers", "building-2", "list"),
 		("sites", "Rental Sites", "map-pin", "list"),
 		("requests", "Customer Requests", "inbox", "requests"),
+		("website-enquiries", "Website Enquiries", "globe", "list"),
 	]),
 	("operations", "Rental operations", [
 		("hire-orders", "Hire Orders", "clipboard-list", "list"),
@@ -110,6 +129,15 @@ NAV = [
 		("settlements", "Damage Settlements", "shield-alert", "list"),
 		("reports/stock-availability", "Rental Stock Position", "boxes", "report"),
 		("reports/rental-inventory", "Inventory by Warehouse", "warehouse", "report"),
+	]),
+	("excess", "Excess material", [
+		("excess/register", "Excess Material Register", "package", "list"),
+		("excess/returns", "Excess Returns", "package-minus", "list"),
+		("excess/dismantling", "Dismantling Entries", "scale", "list"),
+		("excess/abandonment", "Abandonments", "package-x", "list"),
+		("excess/conversion", "Conversions to Stock", "package-plus", "list"),
+		("reports/project-reconciliation", "Material Reconciliation", "list-checks", "report"),
+		("reports/outstanding-materials", "Outstanding Materials", "clipboard-list", "report"),
 	]),
 	("crosshire", "Cross hire", [
 		("cross-hire", "Cross Hire Orders", "arrow-left-right", "list"),
@@ -133,6 +161,8 @@ NAV = [
 		("reports/rental-inventory", "Inventory by Warehouse", "warehouse", "report"),
 		("reports/contract-profitability", "Contract Profitability", "trending-up", "report"),
 		("reports/damage-loss", "Damage and Loss Register", "clipboard-x", "report"),
+		("reports/excess-register", "Excess Material Register", "package", "report"),
+		("reports/customer-excess", "Customer-wise Excess", "users", "report"),
 		("billing-schedules", "Billing Reports", "calendar-range", "list"),
 	]),
 	("system", "System", [
@@ -153,6 +183,10 @@ REPORTS = {
 	"reports/unbilled": "Unbilled Rental",
 	"reports/damage-loss": "Damage and Loss Register",
 	"reports/contract-profitability": "Hire Contract Profitability",
+	"reports/excess-register": "Excess Material Register",
+	"reports/customer-excess": "Customer-wise Excess Material",
+	"reports/project-reconciliation": "Project-wise Material Reconciliation",
+	"reports/outstanding-materials": "Outstanding Customer Materials",
 }
 
 # The filters each report page offers (the same fields as the report's own filters in the desk).

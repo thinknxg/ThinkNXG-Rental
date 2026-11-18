@@ -598,7 +598,8 @@ class TestAdminPortal(IntegrationTestCase):
 		lead = form("lead")
 		head = {f["fieldname"]: f for f in lead["header"]}
 		self.assertEqual(head["utm_source"]["label"], "Source")
-		self.assertEqual(head["customer"]["label"], "From Customer")
+		# the desk relabelled ERPNext's "From Customer" to "Customer" (services/setup.py, commit 13176a3); the portal follows the meta
+		self.assertEqual(head["customer"]["label"], "Customer")
 		frappe.set_user("Administrator")
 		if not frappe.db.exists("UTM Source", "Existing Customer"):
 			frappe.get_doc({"doctype": "UTM Source", "name": "Existing Customer"}).insert()

@@ -29,6 +29,7 @@ MENU = [
 		dict(entry="quotation", doctype="Quotation"),
 		dict(entry="rental-site", doctype="Rental Site"),
 		dict(entry="request", doctype="Rental Portal Request", label="Customer Request"),
+		dict(doctype="Rental Website Enquiry", label="Website Enquiry"),
 	]),
 	dict(label="Hire Orders", items=[
 		dict(entry="hire-order", doctype="Hire Order"),
@@ -62,10 +63,10 @@ MENU = [
 	# converted (services/excess.py)
 	dict(label="Excess Material", items=[
 		dict(doctype="Excess Material Register", label="Register"),
-		dict(doctype="Excess Material Return Note", label="Return Note"),
-		dict(doctype="Dismantling Entry"),
-		dict(doctype="Excess Material Abandonment", label="Abandonment"),
-		dict(doctype="Excess Material Conversion Entry", label="Conversion Entry"),
+		dict(entry="excess-return-note", doctype="Excess Material Return Note", label="Return Note"),
+		dict(entry="dismantling-entry", doctype="Dismantling Entry"),
+		dict(entry="excess-abandonment", doctype="Excess Material Abandonment", label="Abandonment"),
+		dict(entry="excess-conversion", doctype="Excess Material Conversion Entry", label="Conversion Entry"),
 	]),
 	dict(label="Reports", items=[
 		dict(report="Material at Site"),
@@ -96,6 +97,7 @@ MENU = [
 		dict(doctype="Job Type"),
 		dict(doctype="Rental Rate Card"),
 		dict(doctype="Rental Ownership Ledger"),
+		dict(doctype="Rental Website Settings", label="Website Settings"),
 	]),
 ]
 

@@ -22,7 +22,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Sales",
-   "link_count": 4,
+   "link_count": 5,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -62,6 +62,16 @@
    "label": "Customer Request",
    "link_count": 0,
    "link_to": "Rental Portal Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Website Enquiry",
+   "link_count": 0,
+   "link_to": "Rental Website Enquiry",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -458,7 +468,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
-   "link_count": 5,
+   "link_count": 6,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -511,9 +521,19 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Website Settings",
+   "link_count": 0,
+   "link_to": "Rental Website Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-11-18 23:10:00.000000",
+ "modified": "2026-11-19 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",

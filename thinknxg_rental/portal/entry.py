@@ -23,6 +23,8 @@ HIRE = ["Material Hire", "Hire Order Contract"]
 MH = ["Material Hire"]
 HOC = ["Hire Order Contract"]
 NOT_MH = [None, "", "Material Sale", "Hire Order Contract"]
+MS = ["Material Sale"]
+WEIGHT = ["Material Sale", "Material Hire"]
 LIVE_CONTRACT = {"docstatus": 1, "status": ["not in", ["Completed", "Cancelled"]]}
 STOCK_ITEM = {"is_stock_item": 1, "disabled": 0}
 ITEM_FETCH = {"item_name": "item_name", "uom": "stock_uom"}
@@ -36,6 +38,9 @@ COST_CENTER = {"fieldname": "cost_center", "filters": {"company": "$company", "i
 # "create" puts a "New Project" button beside the field (name typed in place, company and customer from the form).
 PROJECT = {"fieldname": "project", "filters": {"company": "$company"},
 	"create": {"doctype": "Project", "name_field": "project_name", "label": "Project name", "defaults": {"company": "company", "customer": "customer"}}}
+# Lead and Quotation: the Project is made by the Rental Site (after the quotation is submitted) and the desk hides
+# the field on both; here it is shown read-only so the link stays visible, with no New Project button.
+PROJECT_RO = {"fieldname": "project", "ro": 1}
 # "loads" refills a table when the field changes: the template's tax rows, as the desk form does.
 TAX_TEMPLATE = {"fieldname": "taxes_and_charges", "filters": {"company": "$company", "disabled": 0},
 	"loads": {"table": "taxes", "method": "thinknxg_rental.portal.entry.get_tax_rows"}}
@@ -98,9 +103,13 @@ ENTRY_TYPES = {
 		search_fields=["lead_name", "company_name", "email_id", "mobile_no"],
 		list_columns=[("lead_name", "Name"), ("company_name", "Company"), ("deal_type", "Deal type"), ("mobile_no", "Mobile")],
 		header=[
-			"first_name", "last_name", "company_name", "deal_type", "project_title", PROJECT, "email_id", "mobile_no", "phone",
+			"first_name", "last_name", "company_name", "deal_type", "project_title", "nxg_rental_site_profile", PROJECT_RO,
+			"email_id", "mobile_no", "phone",
 			# v15+ Lead: Source is utm_source ("source" is gone); From Customer links the lead to an existing customer
 			"utm_source", "source", "customer", "territory", "status", "company",
+			# the desk Lead's Project & Deal and Tender & Assignment sections
+			"nxg_project_contact_name", "nxg_project_contact_job_title", "nxg_project_contact_email",
+			"lead_owner", "nxg_tender_assignee", "nxg_tender_final_submission_date", "nxg_tender_finalization_date",
 		],
 		next=[
 			# once a live quotation exists the button gives way to the quotation itself (listed below)
@@ -124,7 +133,8 @@ ENTRY_TYPES = {
 		header=[
 			"quotation_to",
 			{"fieldname": "party_name", "fetch": {}},
-			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, "project_title", PROJECT,
+			"deal_type", "transaction_date", "valid_till", "company", "currency", "payment_terms_template", TAX_TEMPLATE, COST_CENTER, "project_title",
+			{"fieldname": "nxg_rental_site_profile", "show_if": {"deal_type": HIRE}}, PROJECT_RO,
 			{"fieldname": "nxg_required_from", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_expected_return_date", "show_if": {"deal_type": MH}},
 			{"fieldname": "nxg_default_rate_basis", "show_if": {"deal_type": MH}},
@@ -143,6 +153,11 @@ ENTRY_TYPES = {
 				{"fieldname": "qty", "w": 1.2},
 				{"fieldname": "uom", "w": 1.2, "clears": ["conversion_factor"]},
 				{"fieldname": "rate", "w": 1.5},
+				# as on the desk: Weight from the Item (Material Sale and Hire); Purchase / Total Cost on Material Sale
+				# (defaults and Qty x Purchase Cost are set on save by events/quotation.py, so every app gets them)
+				{"fieldname": "nxg_weight", "w": 1, "show_if": {"deal_type": WEIGHT}},
+				{"fieldname": "nxg_purchase_cost", "w": 1.4, "show_if": {"deal_type": MS}},
+				{"fieldname": "nxg_total_cost", "w": 1.4, "ro": 1, "show_if": {"deal_type": MS}},
 				# Rate follows the row's Rate Basis (services/item_rental.py quotation_rates does the same on save)
 				{"fieldname": "nxg_rate_basis", "w": 1.3, "show_if": {"deal_type": MH},
 					"copies": {"to": "rate", "from": {"Daily": "nxg_daily_rate", "Weekly": "nxg_weekly_rate", "Monthly": "nxg_monthly_rate"}}},
@@ -167,8 +182,9 @@ ENTRY_TYPES = {
 		],
 		totals=["total_qty", "net_total", "total_taxes_and_charges", "grand_total"],
 		next=[
+			# as on the desk: the Rental Site (and its Project) is made once the quotation is submitted
 			dict(label="Create Rental Site", target="rental-site", method="thinknxg_rental.portal.entry.make_site_from_quotation",
-				when={"docstatus": [0, 1], "deal_type": HIRE}, when_fn=lambda d: not _made_from("Rental Site", "nxg_quotation", d.name)),
+				when={"docstatus": [1], "deal_type": HIRE}, when_fn=lambda d: not _made_from("Rental Site", "nxg_quotation", d.name)),
 			dict(label="Create Hire Order", target="hire-order", method="thinknxg_rental.services.deal_flow.make_hire_order_from_quotation",
 				when={"docstatus": [1], "deal_type": MH}, when_fn=lambda d: not _made_from("Hire Order", "quotation", d.name)),
 			dict(label="Create Hire Order Contract", target="hire-order-contract",
@@ -249,6 +265,11 @@ ENTRY_TYPES = {
 				{"fieldname": "available_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "shortfall_qty", "w": 1.3, "ro": 1},
 				{"fieldname": "estimated_amount", "w": 1.5, "ro": 1},
+				# damage and loss charges per unit, the row's own snapshot (services/damage_charges.py)
+				{"fieldname": "repair_charge", "label": "Repair / unit", "w": 1.3},
+				{"fieldname": "lost_charge", "label": "Lost / unit", "w": 1.3},
+				{"fieldname": "beyond_repair_charge", "label": "Beyond repair / unit", "w": 1.4},
+				{"fieldname": "replacement_value", "w": 1.4},
 			]),
 		],
 		totals=["total_qty", "estimated_amount", "total_security_deposit", "total_shortfall_qty"],
@@ -313,6 +334,10 @@ ENTRY_TYPES = {
 				{"fieldname": "qty", "w": 1.2},
 				{"fieldname": "available_qty", "w": 1.2},
 				{"fieldname": "shortfall_qty", "w": 1.2},
+				# damage and loss charges per unit, the row's own snapshot (services/damage_charges.py)
+				{"fieldname": "repair_charge", "label": "Repair / unit", "w": 1.3, "ro": 1},
+				{"fieldname": "lost_charge", "label": "Lost / unit", "w": 1.3, "ro": 1},
+				{"fieldname": "beyond_repair_charge", "label": "Beyond repair / unit", "w": 1.4, "ro": 1},
 			]),
 		],
 		totals=["total_jobs", "total_contract_amount"],
@@ -439,8 +464,15 @@ ENTRY_TYPES = {
 				{"fieldname": "dispatched_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "returned_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "lost_qty", "w": 1.1, "ro": 1},
+				# settled against the customer's excess on Dismantling Entries (services/excess.py)
+				{"fieldname": "adjusted_qty", "w": 1.1, "ro": 1},
 				{"fieldname": "at_site_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "pending_qty", "w": 1.2, "ro": 1},
+				# damage and loss charges per unit, the row's own snapshot (services/damage_charges.py)
+				{"fieldname": "repair_charge", "label": "Repair / unit", "w": 1.3},
+				{"fieldname": "lost_charge", "label": "Lost / unit", "w": 1.3},
+				{"fieldname": "beyond_repair_charge", "label": "Beyond repair / unit", "w": 1.4},
+				{"fieldname": "replacement_value", "w": 1.4},
 			]),
 			dict(fieldname="extensions", readonly=1, columns=[
 				{"fieldname": "extension_date", "w": 1.5},
@@ -454,6 +486,10 @@ ENTRY_TYPES = {
 		next=[
 			dict(label="New Delivery Order", target="delivery-order", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["Active", "On Hire"]}),
 			dict(label="New Off-Hire Note", target="off-hire-note", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["On Hire", "Active"]}),
+			# settle material still owed against the customer's excess (services/excess.py)
+			dict(label="Dismantling Entry", target="dismantling-entry",
+				method="thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry.make_from_contract",
+				when={"docstatus": [1], "status": ["On Hire", "Off Hired"]}),
 			dict(label="Material Reservation", target="material-reservation",
 				method="thinknxg_rental.thinknxg_rental.doctype.rental_contract.rental_contract.make_reservation",
 				when={"docstatus": [1], "status": ["Active", "On Hire"]}, when_fn=lambda d: any(flt(r.pending_qty) > 0 for r in d.items)),
@@ -856,8 +892,12 @@ ENTRY_TYPES = {
 				{"fieldname": "cross_hire_order", "w": 2},
 				{"fieldname": "at_site_qty", "w": 1.2, "ro": 1},
 				{"fieldname": "delivered_from", "w": 2, "filters": RENTAL_WH},
+				# Received (everything that came back) is split on save into Returned (up to what is at site) and
+				# Excess (the rest, into the excess warehouse), as on the desk (services/excess.py)
+				{"fieldname": "received_qty", "w": 1.2},
 				{"fieldname": "returned_qty", "w": 1.2},
 				{"fieldname": "lost_qty", "w": 1.2},
+				{"fieldname": "excess_qty", "w": 1.2},
 				{"fieldname": "pending_qty", "w": 1.3, "ro": 1},
 				# where it is moved now, and the own warehouse good stock ends up in (after inspection)
 				{"fieldname": "target_warehouse", "w": 2, "filters": RETURN_WH},
@@ -865,15 +905,29 @@ ENTRY_TYPES = {
 				{"fieldname": "remarks", "w": 2},
 			]),
 		],
-		totals=["total_returned_qty", "total_lost_qty"],
+		totals=["total_returned_qty", "total_lost_qty", "total_excess_qty"],
 		# Submitted: inspect what came back, then settle damage and loss (the desk's Create menu).
 		next=[
 			dict(label="Create Return Inspection", target="return-inspection", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_inspection",
 				when={"docstatus": [1], "inspection_status": ["Pending"]}),
 			dict(label="Create Damage Settlement", target="damage-settlement", method="thinknxg_rental.thinknxg_rental.doctype.hire_off_hire_note.hire_off_hire_note.make_damage_settlement",
 				when={"docstatus": [1], "inspection_status": ["Not Required", "Completed"]}, when_fn=lambda d: not _settlement_of(d.name)),
+			# excess material (services/excess.py): hand it back, settle outstanding material against it, or record it as abandoned
+			dict(label="Create Excess Material Return", target="excess-return-note",
+				method="thinknxg_rental.thinknxg_rental.doctype.excess_material_return_note.excess_material_return_note.make_from_off_hire",
+				when={"docstatus": [1]}, when_fn=lambda d: _excess_open(d)),
+			dict(label="Create Dismantling Entry", target="dismantling-entry",
+				method="thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry.make_from_off_hire", when={"docstatus": [1]}),
+			dict(label="Create Excess Material Abandonment", target="excess-abandonment",
+				method="thinknxg_rental.thinknxg_rental.doctype.excess_material_abandonment.excess_material_abandonment.make_from_off_hire",
+				when={"docstatus": [1]}, when_fn=lambda d: _excess_open(d)),
 		],
 		related=[
+			dict(label="Excess material", rows=lambda d: linked("Excess Material Register", {"hire_off_hire_note": d.name},
+				["item_code", "excess_category", "excess_qty", "returned_to_customer_qty", "adjusted_qty", "abandoned_qty", "available_qty", "status"]),
+				columns=[("name", "Register", "Data"), ("item_code", "Item", "Data"), ("excess_category", "Category", "Data"),
+					("excess_qty", "Received", "Float"), ("returned_to_customer_qty", "Returned", "Float"), ("adjusted_qty", "Adjusted", "Float"),
+					("abandoned_qty", "Abandoned", "Float"), ("available_qty", "Held for customer", "Float"), ("status", "Status", "Data")]),
 			dict(label="Return inspections", rows=lambda d: linked("Rental Return Inspection", {"hire_off_hire_note": d.name, "docstatus": ["<", 2]},
 				["inspection_date", "total_good_qty", "total_repairable_qty", "total_damaged_qty"], "return-inspection"),
 				columns=[("name", "Inspection", "Data"), ("inspection_date", "Date", "Date"), ("total_good_qty", "Good", "Float"),
@@ -966,6 +1020,162 @@ ENTRY_TYPES = {
 
 # A customer portal request, opened from /rental/admin/requests. The customer's own entries are read-only
 # here; staff convert it (Hire Order, Off-Hire Note, extension) or reject it with a reply the customer sees.
+# ----------------------------------------------------------------------------- excess material (services/excess.py)
+# The desk's Excess Material documents, entered here with the same controllers and validations.
+EXCESS_REGISTER = "Excess Material Register"
+_REG_FETCH = {"item_code": "item_code", "item_name": "item_name", "uom": "uom", "hire_off_hire_note": "hire_off_hire_note"}
+_CUSTOMER = {"fieldname": "customer", "fetch": {"customer_name": "customer_name"}}
+_HELD = {"customer": "$customer", "available_qty": [">", 0], "status": ["not in", ["Closed", "Cancelled"]]}
+
+
+def _excess_open(note):
+	"""An off-hire note with excess still held for the customer."""
+	return flt(note.get("total_excess_qty")) > 0 and note.get("excess_status") not in ("Settled", "Cancelled")
+
+
+ENTRY_TYPES["excess-return-note"] = dict(
+	menu="more",
+	doctype="Excess Material Return Note",
+	label="Excess Material Return Note",
+	plural="Excess Material Return Notes",
+	title_field="customer_name",
+	search_fields=["customer_name", "rental_contract", "hire_off_hire_note"],
+	list_columns=[("customer_name", "Customer"), ("posting_date", "Date"), ("total_return_qty", "Qty"), ("status", "Status")],
+	header=[
+		_CUSTOMER, {"fieldname": "customer_name", "ro": 1}, "company", "posting_date",
+		{"fieldname": "rental_contract", "filters": {"customer": "$customer", "docstatus": 1}},
+		{"fieldname": "hire_off_hire_note", "filters": {"customer": "$customer", "docstatus": 1}},
+		{"fieldname": "project", "ro": 1}, "source_warehouse", "target_warehouse",
+		{"fieldname": "return_location", "wide": 1}, {"fieldname": "remarks", "wide": 1},
+	],
+	tables=[
+		dict(fieldname="items", columns=[
+			{"fieldname": "excess_register", "w": 2.2, "filters": _HELD,
+				"fetch": dict(_REG_FETCH, available_qty="available_qty", return_qty="available_qty", source_warehouse="excess_warehouse")},
+			{"fieldname": "item_code", "w": 2, "ro": 1},
+			{"fieldname": "item_name", "w": 2.6, "ro": 1},
+			{"fieldname": "uom", "w": 1, "ro": 1},
+			{"fieldname": "available_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "return_qty", "w": 1.2},
+			{"fieldname": "balance_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "remarks", "w": 2},
+		]),
+	],
+	totals=["total_return_qty"],
+)
+
+ENTRY_TYPES["dismantling-entry"] = dict(
+	menu="more",
+	doctype="Dismantling Entry",
+	label="Dismantling Entry",
+	plural="Dismantling Entries",
+	title_field="customer_name",
+	search_fields=["customer_name", "rental_contract", "hire_off_hire_note"],
+	list_columns=[("customer_name", "Customer"), ("rental_contract", "Contract"), ("posting_date", "Date"), ("total_adjustment_qty", "Settled")],
+	prefill=["rental_contract"],
+	header=[
+		{"fieldname": "rental_contract", "filters": LIVE_CONTRACT,
+			"fetch": {"customer": "customer", "customer_name": "customer_name", "project": "project", "company": "company"}},
+		{"fieldname": "customer_name", "ro": 1}, {"fieldname": "project", "ro": 1}, "posting_date",
+		{"fieldname": "hire_delivery_order", "filters": {"rental_contract": "$rental_contract", "docstatus": 1}},
+		{"fieldname": "hire_off_hire_note", "filters": {"rental_contract": "$rental_contract", "docstatus": 1}},
+		"allow_cross_project", {"fieldname": "cross_project_reason", "show_if": {"allow_cross_project": [1]}},
+		{"fieldname": "cross_project_approved_by", "ro": 1, "label": "Cross-project approved by"}, {"fieldname": "approved_by", "ro": 1},
+		{"fieldname": "remarks", "wide": 1},
+	],
+	tables=[
+		# balances from submitted transactions, refreshed by the server on every save
+		dict(fieldname="outstanding_items", readonly=1, no_add=1, columns=[
+			{"fieldname": "item_code", "w": 2.2}, {"fieldname": "item_name", "w": 2.6}, {"fieldname": "delivered_qty", "w": 1.1},
+			{"fieldname": "returned_qty", "w": 1.1}, {"fieldname": "lost_qty", "w": 1}, {"fieldname": "adjusted_qty", "w": 1.1},
+			{"fieldname": "outstanding_qty", "w": 1.2}, {"fieldname": "adjustment_qty", "w": 1.1}, {"fieldname": "remaining_qty", "w": 1.1},
+		]),
+		dict(fieldname="excess_items", readonly=1, no_add=1, columns=[
+			{"fieldname": "excess_register", "w": 2.2}, {"fieldname": "item_code", "w": 2.2}, {"fieldname": "project", "w": 1.6},
+			{"fieldname": "received_qty", "w": 1.1}, {"fieldname": "returned_qty", "w": 1.1}, {"fieldname": "adjusted_qty", "w": 1.1},
+			{"fieldname": "available_qty", "w": 1.1}, {"fieldname": "adjustment_qty", "w": 1.1}, {"fieldname": "remaining_qty", "w": 1.1},
+		]),
+		# explicit quantities on both sides: items are never assumed to be interchangeable
+		dict(fieldname="adjustments", columns=[
+			{"fieldname": "outstanding_item", "w": 2.2, "filters": STOCK_ITEM, "fetch": {"outstanding_item_name": "item_name", "outstanding_uom": "stock_uom"}},
+			{"fieldname": "adjustment_qty", "w": 1.3},
+			{"fieldname": "excess_register", "w": 2.2, "filters": {"customer": "$customer", "available_qty": [">", 0], "status": ["!=", "Cancelled"]},
+				"fetch": {"excess_item": "item_code", "excess_item_name": "item_name", "excess_uom": "uom", "excess_available_qty": "available_qty"}},
+			{"fieldname": "excess_item", "w": 2, "ro": 1},
+			{"fieldname": "excess_available_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "excess_qty_used", "w": 1.2},
+			{"fieldname": "conversion_ratio", "w": 1.1, "ro": 1},
+			{"fieldname": "ratio_approved", "w": 1},
+			{"fieldname": "remarks", "w": 2},
+		]),
+	],
+	totals=["total_outstanding_qty", "total_adjustment_qty", "total_excess_used_qty", "remaining_outstanding_qty"],
+)
+
+ENTRY_TYPES["excess-abandonment"] = dict(
+	menu="more",
+	doctype="Excess Material Abandonment",
+	label="Excess Material Abandonment",
+	plural="Excess Material Abandonments",
+	title_field="customer_name",
+	search_fields=["customer_name", "rental_contract", "hire_off_hire_note"],
+	list_columns=[("customer_name", "Customer"), ("posting_date", "Date"), ("total_abandon_qty", "Qty"), ("status", "Status")],
+	header=[
+		_CUSTOMER, {"fieldname": "customer_name", "ro": 1}, "company", "posting_date",
+		{"fieldname": "rental_contract", "filters": {"customer": "$customer", "docstatus": 1}},
+		{"fieldname": "hire_off_hire_note", "filters": {"customer": "$customer", "docstatus": 1}},
+		"abandonment_basis", "customer_reference", {"fieldname": "notice_date", "show_if": {"abandonment_basis": ["Not collected after notice"]}},
+		{"fieldname": "approved_by", "ro": 1}, {"fieldname": "reason", "wide": 1}, {"fieldname": "remarks", "wide": 1},
+	],
+	tables=[
+		dict(fieldname="items", columns=[
+			{"fieldname": "excess_register", "w": 2.2, "filters": _HELD,
+				"fetch": dict(_REG_FETCH, available_qty="available_qty", abandon_qty="available_qty")},
+			{"fieldname": "item_code", "w": 2, "ro": 1},
+			{"fieldname": "item_name", "w": 2.6, "ro": 1},
+			{"fieldname": "uom", "w": 1, "ro": 1},
+			{"fieldname": "available_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "abandon_qty", "w": 1.2},
+			{"fieldname": "balance_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "remarks", "w": 2},
+		]),
+	],
+	totals=["total_abandon_qty"],
+)
+
+ENTRY_TYPES["excess-conversion"] = dict(
+	menu="more",
+	doctype="Excess Material Conversion Entry",
+	label="Excess Material Conversion Entry",
+	plural="Excess Material Conversion Entries",
+	title_field="customer_name",
+	search_fields=["customer_name", "conversion_type"],
+	list_columns=[("customer_name", "Customer"), ("conversion_type", "Type"), ("posting_date", "Date"), ("total_value", "Value")],
+	header=[
+		_CUSTOMER, {"fieldname": "customer_name", "ro": 1}, "company", "conversion_type", "posting_date", "project",
+		"source_warehouse", {"fieldname": "target_warehouse", "filters": OWN_WH},
+		{"fieldname": "difference_account", "filters": {"company": "$company", "is_group": 0}},
+		{"fieldname": "stock_entry", "ro": 1}, {"fieldname": "remarks", "wide": 1},
+	],
+	tables=[
+		dict(fieldname="items", columns=[
+			{"fieldname": "excess_register", "w": 2.2, "filters": {"customer": "$customer", "convertible_qty": [">", 0], "status": ["!=", "Cancelled"]},
+				"fetch": {"source_item_code": "item_code", "source_item_name": "item_name", "source_uom": "uom",
+					"available_qty": "convertible_qty", "conversion_qty": "convertible_qty", "target_qty": "convertible_qty"}},
+			{"fieldname": "source_item_code", "w": 2, "ro": 1},
+			{"fieldname": "available_qty", "w": 1.2, "ro": 1},
+			{"fieldname": "conversion_qty", "w": 1.2},
+			{"fieldname": "target_item_code", "w": 2.2, "filters": STOCK_ITEM, "fetch": {"target_item_name": "item_name", "target_uom": "stock_uom"}},
+			{"fieldname": "target_qty", "w": 1.1},
+			{"fieldname": "target_warehouse", "w": 2, "filters": OWN_WH},
+			{"fieldname": "valuation_basis", "w": 1.8},
+			{"fieldname": "valuation_rate", "w": 1.3},
+			{"fieldname": "amount", "w": 1.3, "ro": 1},
+		]),
+	],
+	totals=["total_conversion_qty", "total_target_qty", "total_value"],
+)
+
 ENTRY_TYPES["request"] = dict(
 	menu="none",
 	active="requests",
@@ -1197,6 +1407,8 @@ def make_site_from_quotation(source_name: str, target_doc=None):
 		"company": quotation.company,
 		"project": quotation.get("project"),
 		"nxg_quotation": quotation.name,
+		# the Rental Site Profile typed on the Lead / Quotation names the site (as the desk's Create > Rental Site)
+		"site_name": quotation.get("nxg_rental_site_profile"),
 	})
 	return site
 

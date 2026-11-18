@@ -697,6 +697,7 @@ def return_note(name: str, customer: str | None = None):
 			at_site_before=flt(d.at_site_qty), still_at_site=flt(d.pending_qty)))
 		row["returned"] += flt(d.returned_qty)
 		row["lost"] += flt(d.lost_qty)
+		row["excess"] = row.get("excess", 0) + flt(d.get("excess_qty"))
 	inspection = frappe.db.get_value("Rental Return Inspection", {"hire_off_hire_note": doc.name, "docstatus": 1},
 		["name", "inspection_date", "total_good_qty", "total_repairable_qty", "total_damaged_qty"], as_dict=True)
 	return {
@@ -705,8 +706,18 @@ def return_note(name: str, customer: str | None = None):
 		"rental_site": doc.rental_site, "vehicle_no": doc.vehicle_no, "driver_name": doc.driver_name,
 		"total_returned_qty": flt(doc.total_returned_qty), "total_lost_qty": flt(doc.total_lost_qty),
 		"inspection_status": doc.inspection_status, "inspection": inspection, "items": list(items.values()),
-		"request": doc.portal_request,
+		"request": doc.portal_request, "excess": _note_excess(doc.name),
 	}
+
+
+def _note_excess(note):
+	"""Extra material that came back with this return (services/excess.py), and what became of it, in the
+	customer's terms. Conversion into the company's own stock is internal and not shown."""
+	rows = frappe.get_all("Excess Material Register", filters={"hire_off_hire_note": note, "status": ["!=", "Cancelled"]},
+		fields=["item_code", "item_name", "uom", "excess_qty", "returned_to_customer_qty", "adjusted_qty", "abandoned_qty", "available_qty"],
+		order_by="creation")
+	return [dict(item_code=r.item_code, item_name=r.item_name, uom=r.uom, received=flt(r.excess_qty), held=flt(r.available_qty),
+		returned=flt(r.returned_to_customer_qty), settled=flt(r.adjusted_qty), abandoned=flt(r.abandoned_qty)) for r in rows]
 
 
 # ============================================================================= commercial

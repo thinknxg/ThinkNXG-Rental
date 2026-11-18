@@ -295,5 +295,5 @@
  "show_title_field_in_link": 1,
  "search_fields": "customer_name,conversion_type",
  "track_changes": 1,
- "description": "Optional, explicit move of excess material the company owns (adjusted on Dismantling Entries) out of the excess warehouse into rental stock, as the same or another item, through an ERPNext Repack Stock Entry."
+ "description": "Optional, explicit move of excess material the company owns (adjusted on Dismantling Entries) out of the excess warehouse into rental stock, as the same or another item, through a thinkNXG ERP Repack Stock Entry."
 }

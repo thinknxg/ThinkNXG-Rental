@@ -87,7 +87,8 @@
 
 	const brand = el("a", { class: "cc-brand", href: cc.base + "/dashboard" }, el("img", { src: "/assets/thinknxg_rental/images/logo.svg", alt: "" }), el("div", {}, el("b", { text: "thinkNXG Rental" }), el("span", { text: __("Command Center") })));
 	brand.addEventListener("click", (e) => cc.linkClick(e, brand.getAttribute("href")));
-	const side = el("aside", { class: "cc-side", "aria-label": __("Main menu") }, brand, navEl, el("div", { class: "cc-side-foot" }, collapseBtn));
+	const side = el("aside", { class: "cc-side", "aria-label": __("Main menu") }, brand, navEl, el("div", { class: "cc-side-foot" }, collapseBtn,
+		el("a", { class: "cc-powered cc-label", href: "https://thinknxg.com", target: "_blank", rel: "noopener", text: __("Powered by thinkNXG") })));
 
 	// top bar
 	const menuBtn = el("button", { type: "button", class: "cc-iconbtn cc-menu-btn", "aria-label": __("Menu"), onclick: () => (app.dataset.drawer = app.dataset.drawer === "1" ? "0" : "1") }, cc.icon("menu"));

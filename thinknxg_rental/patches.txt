@@ -15,3 +15,4 @@ thinknxg_rental.patches.v2_4.clear_section_hints
 thinknxg_rental.patches.v2_4.backfill_damage_charges
 thinknxg_rental.patches.v2_6.register_existing_excess
 thinknxg_rental.patches.v2_6.refresh_workspace_menu
+thinknxg_rental.patches.v2_6.refresh_workspace_menu #2026-11-19 website enquiries and settings

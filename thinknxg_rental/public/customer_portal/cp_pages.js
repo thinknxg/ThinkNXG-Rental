@@ -349,7 +349,15 @@
 					el("thead", {}, el("tr", {}, [__("Item"), __("On site before"), __("Returned"), __("Lost"), __("Still on site")].map((h, i) => el("th", { class: i ? "cp-num" : null, text: h })))),
 					el("tbody", {}, r.items.map((i) => el("tr", {}, el("td", {}, el("b", { text: i.item_name }), el("span", { class: "cp-sub", text: i.item_code })),
 						el("td", { class: "cp-num", text: cp.qty(i.at_site_before) }), el("td", { class: "cp-num cp-strong", text: cp.qty(i.returned) }),
-						el("td", { class: "cp-num", text: i.lost ? cp.qty(i.lost) : "" }), el("td", { class: "cp-num", text: cp.qty(i.still_at_site) })))))), { flush: true })),
+						el("td", { class: "cp-num", text: i.lost ? cp.qty(i.lost) : "" }), el("td", { class: "cp-num", text: cp.qty(i.still_at_site) })))))), { flush: true }),
+				// extra material handed over with this return (more than was on site), and what has become of it
+				(r.excess || []).length ? cp.card(__("Extra material received"), el("div", { class: "cp-tablewrap" }, el("table", { class: "cp-table" },
+					el("thead", {}, el("tr", {}, [__("Item"), __("Received"), __("Held for you"), __("Returned to you"), __("Set against material owed"), __("Left with us")]
+						.map((h, n) => el("th", { class: n ? "cp-num" : null, text: h })))),
+					el("tbody", {}, r.excess.map((x) => el("tr", {}, el("td", {}, el("b", { text: x.item_name }), el("span", { class: "cp-sub", text: x.item_code })),
+						el("td", { class: "cp-num cp-strong", text: cp.qty(x.received) }), el("td", { class: "cp-num", text: x.held ? cp.qty(x.held) : "" }),
+						el("td", { class: "cp-num", text: x.returned ? cp.qty(x.returned) : "" }), el("td", { class: "cp-num", text: x.settled ? cp.qty(x.settled) : "" }),
+						el("td", { class: "cp-num", text: x.abandoned ? cp.qty(x.abandoned) : "" })))))), { flush: true }) : null),
 			cp.card(__("Progress"), cp.timeline(steps))));
 	};
 

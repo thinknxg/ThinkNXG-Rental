@@ -1,7 +1,7 @@
 """Multi-line JCR billing. Each JCR line owns its own billing periods."""
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, date_diff, flt, formatdate, get_last_day, getdate, nowdate
+from frappe.utils import add_days, cint, date_diff, flt, get_last_day, getdate, nowdate
 from thinknxg_rental.services.billing import append_taxes
 from thinknxg_rental.services.utils import as_system, billable_units, get_settings
 

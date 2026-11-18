@@ -11,6 +11,7 @@ calculation is reused, so taxes, discounts and rounding keep working: while it r
 temporarily multiplied by Duration, then the typed Qty is put back. The unit price is never touched,
 which keeps price list, margin and discount fields intact. Other deal types use the standard Qty x Rate.
 """
+import frappe
 from frappe.utils import cint, flt
 from thinknxg_rental.services.utils import BASIS_FACTOR
 
@@ -71,3 +72,26 @@ def validate(doc, method=None):
 	# the totals pass counted Qty x Duration; the quantity column and its total stay as typed
 	doc.total_qty = sum(flt(row.qty) for row in rows)
 	doc.set_total_in_words()
+
+
+def item_costs(doc, method=None):
+	"""Weight, Purchase Cost and Total Cost on Quotation rows, on the server so every way of saving gets them
+	(the desk form sets the same in public/js/quotation_deal.js; the Command Center and the API rely on this).
+	New rows take Weight from the Item (Material Sale and Hire) and, on Material Sale, Purchase Cost from the
+	Item's valuation rate; a value already on the row is kept. Total Cost = Qty x Purchase Cost (Material Sale)."""
+	deal = doc.get("deal_type")
+	if deal not in ("Material Sale", "Material Hire") or not doc.get("items"):
+		return
+	before = doc.get_doc_before_save()
+	saved = {r.name for r in (before.get("items") or [])} if before else set()
+	for row in doc.items:
+		if not row.get("item_code"):
+			continue
+		if row.name not in saved:
+			item = frappe.get_cached_value("Item", row.item_code, ["weight_per_unit", "valuation_rate"], as_dict=True) or {}
+			if not flt(row.get("nxg_weight")):
+				row.nxg_weight = flt(item.get("weight_per_unit"))
+			if deal == "Material Sale" and not flt(row.get("nxg_purchase_cost")):
+				row.nxg_purchase_cost = flt(item.get("valuation_rate"))
+		if deal == "Material Sale":
+			row.nxg_total_cost = flt(row.qty) * flt(row.get("nxg_purchase_cost"))
