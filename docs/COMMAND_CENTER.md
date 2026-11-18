@@ -35,7 +35,7 @@ Browser (single-page app, vanilla JS, no build step)
   public/command_center/cc.css        design system (tokens, components, responsive, print)
         │  fetch /api/method/... with X-Frappe-CSRF-Token
         ▼
-Frappe (website page + whitelisted methods)
+thinkNXG Framework (website page + whitelisted methods)
   www/rental/admin/index.{html,py}    the shell page; staff only; inlines the boot data and CSRF token
   hooks.website_route_rules           /rental/admin/<path:app_path> -> rental/admin
   command_center/registry.py          the map: sidebar groups, list views, reports, Quick Create, badges
@@ -138,11 +138,11 @@ are picked up by `clear-cache`. The Command Center's scripts and styles are plai
 `public/command_center` and need no bundling; `bench build` only links them into `sites/assets`.
 
 Roles: give staff **Rental User** (enter and submit) or **Rental Manager** (also cancel, settings). They
-also need the ERPNext roles for the standard documents they work with (Sales User for Leads, Quotations
+also need the thinkNXG ERP roles for the standard documents they work with (Sales User for Leads, Quotations
 and Customers; Accounts User for Sales Invoices and outstanding; Stock User for Items and Warehouses;
 Purchase User for supplier bills). Pages a user cannot read are not in their sidebar.
 
-Fonts (Barlow, Barlow Condensed, SIL Open Font License) are served from the app; icons are Frappe's
+Fonts (Barlow, Barlow Condensed, SIL Open Font License) are served from the app; icons are thinkNXG's
 Lucide sprite. The page makes no requests to other sites.
 
 ## 5. Testing
@@ -182,7 +182,7 @@ Manager:
   the desk, as they have no portal form.
 * Bill all due bills each due contract in turn through the billing engine; a contract the engine refuses
   shows its own message and the rest continue.
-* Found while testing on a plain ERPNext site: the Job Type DocType fetches `tax_code`, `is_zero_rated`
-  and `is_exempt` from Item. Those fields come from an e-invoicing app, not ERPNext, so on a site without
+* Found while testing on a plain thinkNXG ERP site: the Job Type DocType fetches `tax_code`, `is_zero_rated`
+  and `is_exempt` from Item. Those fields come from an e-invoicing app, not thinkNXG ERP, so on a site without
   it saving a Job Type fails with "Unknown column 'tax_code'". Unchanged in this release; worth either
   adding those fields as custom fields or removing the fetches.

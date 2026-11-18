@@ -1,7 +1,7 @@
 app_name = "thinknxg_rental"
 app_title = "thinkNXG Rental"
 app_publisher = "thinkNXG"
-app_description = "Formwork and scaffolding rental for ERPNext"
+app_description = "Formwork and scaffolding rental for thinkNXG ERP"
 app_email = "info@thinknxg.com"
 app_license = "mit"
 required_apps = ["erpnext"]
@@ -21,6 +21,21 @@ after_migrate = ["thinknxg_rental.services.job_type_migration.run",
     "thinknxg_rental.services.print_formats.sync",
     "thinknxg_rental.services.hide_rotation.run",
     "thinknxg_rental.services.jcr_columns.run",
+    # thinkNXG names on the framework's own screens where the site still has the default (services/branding.py)
+    "thinknxg_rental.services.branding.apply",
+]
+
+# Web pages drawn by the framework (login, password reset, 404, the desk's tab): thinkNXG favicon, splash
+# and footer. The last installed app's value wins, so these replace the ERP app's.
+website_context = {
+	"favicon": "/assets/thinknxg_rental/images/logo.svg",
+	"splash_image": "/assets/thinknxg_rental/images/logo.svg",
+	"footer_powered": 'Powered by <a href="https://thinknxg.com" target="_blank" rel="noopener" class="text-muted">thinkNXG</a>',
+}
+
+# Help menu: thinkNXG Support (services/branding.py hides the framework's own support entry)
+standard_help_items = [
+	{"item_label": "thinkNXG Support", "item_type": "Route", "route": "https://thinknxg.com/thinkdesk", "is_standard": 1},
 ]
 before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 
@@ -71,6 +86,7 @@ doc_events = {
 		    # rates and rate basis first: the hire amounts below are worked out from Rate
 		    "thinknxg_rental.services.item_rental.quotation_rates",
 		    "thinknxg_rental.events.quotation.validate",
+		    "thinknxg_rental.events.quotation.item_costs",
 		    "thinknxg_rental.events.default_terms.apply",
 		    "thinknxg_rental.services.item_rental.quotation_charges",
 		],

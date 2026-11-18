@@ -3,11 +3,11 @@
 The app used to know one **Rental Yard** and one **Cross Hire Yard**. From 2.2 a company can keep own rental
 stock in any number of warehouses at any number of locations (Kochi, Calicut, Trivandrum, Bangalore, ...)
 and receive cross-hired material into any number of cross hire warehouses. Each warehouse keeps its own
-ERPNext stock. A setup with one yard of each kind behaves exactly as before.
+thinkNXG ERP stock. A setup with one yard of each kind behaves exactly as before.
 
 ## 1. Architecture in short
 
-- **ERPNext is still the stock engine.** Every physical move is a standard Stock Entry (Material Transfer,
+- **thinkNXG ERP is still the stock engine.** Every physical move is a standard Stock Entry (Material Transfer,
   Issue, Receipt) or Purchase Receipt / Return. Stock per warehouse is read from Bins.
 - **Rental Ownership Ledger** is still the only rental ledger. It holds the *At Site* position (what is at
   customer sites, Own or Cross Hire) and the *Cross Hire Custody* position (supplier material we hold).

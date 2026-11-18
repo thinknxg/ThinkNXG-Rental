@@ -93,6 +93,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .cp-side__foot { border-top: 1px solid rgba(255, 255, 255, 0.06); padding: 10px; }
 .cp-side__foot button { width: 100%; display: flex; align-items: center; gap: 11px; padding: 8px 10px; border: 0; background: none; color: var(--shell-mute); border-radius: var(--r-sm); cursor: pointer; font-size: 13px; }
 .cp-side__foot button:hover { background: var(--shell-2); color: #fff; }
+.cp-powered { display: block; padding: 6px 10px 0; font-size: 11.5px; color: var(--shell-mute); text-decoration: none; }
+.cp-powered:hover, .cp-powered:focus-visible { color: #fff; text-decoration: underline; }
 .is-collapsed .cp-nav__title, .is-collapsed .cp-nav a span, .is-collapsed .cp-brand__text, .is-collapsed .cp-side__foot span, .is-collapsed .cp-nav__badge { display: none; }
 .is-collapsed .cp-nav a { justify-content: center; }
 .is-collapsed .cp-nav__group { margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px; }

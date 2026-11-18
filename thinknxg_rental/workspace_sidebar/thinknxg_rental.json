@@ -74,6 +74,17 @@
    "link_to": "Rental Portal Request"
   },
   {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Website Enquiry",
+   "link_type": "DocType",
+   "type": "Link",
+   "link_to": "Rental Website Enquiry"
+  },
+  {
    "child": 0,
    "collapsible": 1,
    "indent": 1,
@@ -678,9 +689,20 @@
    "link_type": "DocType",
    "type": "Link",
    "link_to": "Rental Ownership Ledger"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Website Settings",
+   "link_type": "DocType",
+   "type": "Link",
+   "link_to": "Rental Website Settings"
   }
  ],
- "modified": "2026-11-18 23:10:00.000000",
+ "modified": "2026-11-19 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",

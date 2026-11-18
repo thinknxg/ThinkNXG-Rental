@@ -10,7 +10,6 @@ Rules every method follows:
 """
 import csv
 import io
-import json
 from urllib.parse import parse_qsl, urlparse
 
 import frappe
@@ -590,7 +589,6 @@ def outstanding():
 	"""Unpaid rental invoices, by customer, aged."""
 	R.check_staff()
 	frappe.has_permission("Sales Invoice", "read", throw=True)
-	from thinknxg_rental.command_center.dashboard import _rental_invoice_filter
 
 	today = getdate(nowdate())
 	invoices = frappe.get_list("Sales Invoice", filters={"docstatus": 1, "outstanding_amount": [">", 0], "is_return": 0},

@@ -1,7 +1,7 @@
 [project]
 name = "thinknxg_rental"
 authors = [{ name = "thinkNXG", email = "info@thinknxg.com" }]
-description = "Formwork and scaffolding rental for ERPNext: hire orders, contracts, dispatch, material at site, recurring billing, off-hire, damage settlement and cross hire"
+description = "Formwork and scaffolding rental for thinkNXG ERP: hire orders, contracts, dispatch, material at site, recurring billing, off-hire, damage settlement and cross hire"
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]
@@ -12,5 +12,7 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-frappe = ">=15.0.0,<17.0.0"
-erpnext = ">=15.0.0,<17.0.0"
+# thinkNXG Framework (frappe) and thinkNXG ERP (erpnext): version 16 only (Python 3.14, the v16 Sidebar and
+# server-side item selection are used)
+frappe = ">=16.0.0,<17.0.0"
+erpnext = ">=16.0.0,<17.0.0"

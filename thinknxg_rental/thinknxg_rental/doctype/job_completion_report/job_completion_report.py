@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, date_diff, flt, getdate, nowdate
+from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
 from thinknxg_rental.services import jcr_billing
 from thinknxg_rental.services.utils import get_contract_for_source

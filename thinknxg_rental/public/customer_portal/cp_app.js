@@ -99,7 +99,8 @@
 					} catch (e) {
 						/* ignore */
 					}
-				} }, icon("panel-left-close"), el("span", { text: __("Collapse menu") }))));
+				} }, icon("panel-left-close"), el("span", { text: __("Collapse menu") })),
+				el("a", { class: "cp-powered", href: "https://thinknxg.com", target: "_blank", rel: "noopener" }, el("span", { text: __("Powered by thinkNXG") }))));
 		crumbs = el("div", { class: "cp-crumbs", "aria-label": __("Breadcrumb") });
 		bell = el("button", { type: "button", class: "cp-iconbtn", "aria-label": __("Notifications"), "aria-haspopup": "true", onclick: () => openNotifications(bell) }, icon("bell"));
 		const companySel = B.customers.length > 1 && !B.staff ? el("select", { class: "cp-company", "aria-label": __("Company"), onchange: (e) => {

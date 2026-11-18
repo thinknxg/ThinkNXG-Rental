@@ -17,7 +17,6 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, add_months, cint, date_diff, flt, get_first_day, get_last_day, getdate, nowdate
 
-from thinknxg_rental.command_center.registry import entry_route
 
 CACHE_SECONDS = 60
 PERIODS = ("today", "week", "month", "quarter", "year", "custom")

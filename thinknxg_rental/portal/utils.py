@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, date_diff, flt, getdate, nowdate
+from frappe.utils import cint, date_diff, flt, getdate, nowdate
 
 STAFF_ROLES = {"System Manager", "Rental Manager", "Rental User"}
 NAV = (

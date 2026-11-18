@@ -1,9 +1,9 @@
 # thinkNXG Rental
 
-Formwork and scaffolding rental for **Frappe / ERPNext v16**: Hire Order, Rental Contract, material
+Formwork and scaffolding rental for **thinkNXG Framework / thinkNXG ERP v16**: Hire Order, Rental Contract, material
 reservation, Delivery Order (material dispatch), material-at-site tracking, recurring rental billing,
 partial returns / off-hire, return inspection, damage and loss settlement, and a cross-hire module that
-runs on the standard ERPNext Purchase Order, Purchase Receipt, Purchase Return and Purchase Invoice.
+runs on the standard thinkNXG ERP Purchase Order, Purchase Receipt, Purchase Return and Purchase Invoice.
 
 ## Install
 
@@ -17,7 +17,7 @@ bench build --app thinknxg_rental && bench restart
 
 Upgrading from an earlier version: replace the app folder, then `bench --site <site> migrate`, `bench build --app thinknxg_rental`, `bench restart`.
 
-Requires `frappe` and `erpnext` version 16 (Python 3.14).
+Requires thinkNXG Framework (`frappe`) and thinkNXG ERP (`erpnext`) version 16 (Python 3.14).
 
 ## First-time setup
 
@@ -29,11 +29,11 @@ Requires `frappe` and `erpnext` version 16 (Python 3.14).
      `RENTAL-LOSS-RECOVERY`, with UOMs Unit-Day / Unit-Week / Unit-Month.
    Set income / expense accounts on those four items as you would for any service item.
 2. **Rental Item Profile** - one per rentable Item (rates, deposit, replacement value, repair charge).
-   The ERPNext Item stays the only stock master; there is no separate "rental item".
+   The thinkNXG ERP Item stays the only stock master; there is no separate "rental item".
 3. **Rental Site** - one per customer site. Saving it creates two warehouses under Customer Sites:
    `<Site> (Own)` and `<Site> (Cross Hire)`.
 4. Roles: **Rental Manager** (everything) and **Rental User** (create / submit, no cancel). These cover the
-   rental documents only. Also give rental staff the standard ERPNext roles that let them pick customers,
+   rental documents only. Also give rental staff the standard thinkNXG ERP roles that let them pick customers,
    items, suppliers and warehouses in link fields: typically Sales User and Stock User, plus Purchase
    User for cross hire.
 5. Put opening rental stock into the Rental Yard warehouse with a normal Stock Reconciliation.
@@ -65,6 +65,25 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.6.1 - repository audit: desk and portals in step, thinkNXG branding
+
+- **Command Center (staff portal):**
+  - Excess Material group: register, returns, Dismantling Entries, abandonments, conversions, reconciliation reports.
+  - The off-hire form takes Received and Excess, and offers the excess documents.
+  - Rental contracts show Adjusted, and the agreed damage and loss charges per line, as do Hire Orders and Hire Order Contracts.
+  - Lead and Quotation forms carry the desk's newer fields: Rental Site Profile, project contact, tender and owner. Project is read-only there, as the Rental Site makes it.
+  - Create Rental Site appears only after the quotation is submitted, and is named from the Rental Site Profile.
+  - Website Enquiries are listed under Sales.
+- **Customer portal:** a return shows any extra material handed over, and what became of it.
+- **Quotation:** Weight, Purchase Cost and Total Cost are now worked out on the server, so every app gets them, not only the desk form.
+- **Desk menu:** Website Enquiry (Sales) and Website Settings (Setup).
+- **thinkNXG branding on the framework's own screens.** The thinkNXG favicon, login and desk logo, a "Powered by thinkNXG" footer and a thinkNXG Support help item. The app name becomes thinkNXG. Values an administrator chose are kept (services/branding.py).
+- **Sidebar footers:** both portals say "Powered by thinkNXG", and the website footer links to thinkNXG Rental.
+- **Housekeeping:**
+  - Documentation reads thinkNXG / thinkNXG ERP.
+  - The app now declares thinkNXG Framework and thinkNXG ERP version 16 only.
+  - Unused imports are removed.
+
 ### Changes in 2.6.0 - excess material, dismantling entries and reconciliation
 
 - Off-hire rows take an optional **Received** quantity. Returned (up to what is at site) and Excess (the
@@ -82,7 +101,7 @@ contract end, as chosen on the Hire Order Contract.
   held for them. That excess becomes the company's (convertible) and stops blocking the reconciliation.
   No stock moves.
 - **Excess Material Conversion Entry** (optional, explicit): moves adjusted or abandoned excess into rental stock, as
-  the same or a different item, through an ERPNext Repack. The valuation rate and target warehouse are
+  the same or a different item, through a thinkNXG ERP Repack. The valuation rate and target warehouse are
   chosen on each row, and cancelling reverses it.
 - Four new reports. See [docs/EXCESS_MATERIAL.md](docs/EXCESS_MATERIAL.md).
 
@@ -130,7 +149,7 @@ contract end, as chosen on the Hire Order Contract.
 ### Changes in 2.4 - public rental website
 
 - **A public website at /hire** (optionally the site's home page): home page, catalogue with categories
-  from ERPNext Item Groups, search, filters, sort, grid and list views, product pages with photos,
+  from thinkNXG ERP Item Groups, search, filters, sort, grid and list views, product pages with photos,
   specifications, datasheets, rates and availability, services, industries, about, contact, an enquiry
   basket and an account page linking to the customer portal.
 - **Rates and availability come from the existing logic** (rate cards and Rental Item Profile; free own
@@ -180,7 +199,7 @@ contract end, as chosen on the Hire Order Contract.
   Source Warehouse when that can cover it, otherwise the rentable warehouse holding the most free stock.
   Deliveries take each item from the warehouse it was reserved in.
 - **Workspace and sidebar refresh on upgrade.** Earlier releases shipped them with an unchanged timestamp,
-  so Frappe kept the layout from the first installed version. This release re-imports both once.
+  so thinkNXG kept the layout from the first installed version. This release re-imports both once.
 - **Item form.** Job Type Rental Items has its own tab (2.0.1).
 
 ### Upgrading from 1.x
@@ -193,7 +212,7 @@ scripts, reports or print formats of your own that mention the old DocType or fi
 
 ## Customer flow
 
-| Step | Document | What it does in ERPNext |
+| Step | Document | What it does in thinkNXG ERP |
 |---|---|---|
 | 1 | **Hire Order** | Commercial order; shows yard availability and shortfall per line. |
 | 2 | **Rental Contract** | The rental agreement: rates, billing cycle, grace days, minimum hire, deposit. Items, quantities and rates can be revised after submit. |
@@ -221,7 +240,7 @@ scripts, reports or print formats of your own that mention the old DocType or fi
 
 ## Cross-hire flow
 
-| Rental document | ERPNext document | Behaviour |
+| Rental document | thinkNXG ERP document | Behaviour |
 |---|---|---|
 | **Cross Hire Order** | **Purchase Order** (created on submit) | Per equipment item: one stock line at **zero rate** (custody) and one non-stock `CROSS-HIRE-CHARGES` line carrying the supplier rate x estimated hire period. |
 | Cross Hire Receipt | **Purchase Receipt** (*Is Cross Hire Receipt*) | Charge lines are dropped; every equipment line is forced to rate 0 with *Allow Zero Valuation Rate*. Stock quantity goes up, stock value does not. |
@@ -281,7 +300,7 @@ thread. In the staff Command Center:
   with a reply the customer sees
 - **Reject** with a reason
 
-**Notifications:** Frappe Notification Logs for every portal user of the customer, so read / unread, the
+**Notifications:** thinkNXG Notification Logs for every portal user of the customer, so read / unread, the
 bell and e-mail (per user) work as usual. Raised when an order is confirmed, material is dispatched or
 returned, returned material is inspected, an invoice or quotation is issued, a payment is received, a
 request is received or changes status, and daily for rentals that end within 7 days or have just ended
@@ -298,7 +317,7 @@ exactly what that customer sees, read-only.
 
 Rental Settings > Customer Portal: switch requests on or off, show standard rates in the request catalogue,
 and set the help phone / e-mail. PDFs use each document's default print format; on a server without
-Chromium set `chromium_path` in `common_site_config.json` (Frappe's own setting). Full details:
+Chromium set `chromium_path` in `common_site_config.json` (thinkNXG's own setting). Full details:
 [docs/CUSTOMER_PORTAL.md](docs/CUSTOMER_PORTAL.md).
 
 ## Items, rental profiles, rates and damage charges
@@ -375,7 +394,7 @@ Quotations, Sales Orders and Sales Invoices show Currency, the **Payment Terms T
 Taxes and Charges Template** and the **Sales Taxes and Charges** table (choosing a template fills the
 table; rows can be edited); a Sales Order made from a quotation keeps its Payment Terms Template. Rental Contracts also take a
 taxes template. Cost Center and Project show wherever the document has them; the app adds both to the
-Quotation (ERPNext's Quotation has neither) and they carry on to the Sales Order, Hire Order and Hire
+Quotation (thinkNXG ERP's Quotation has neither) and they carry on to the Sales Order, Hire Order and Hire
 Order Contract. On Hire Orders, Hire Order Contracts and Rental Contracts, Project fills from the Rental
 Site when left empty and can be changed. Deliveries, off-hires and cross hire take it from the Rental
 Contract, so a new Rental
@@ -397,13 +416,13 @@ Run `bench --site <site> migrate` after updating the app so the new custom field
 Quotation) and the field changes are applied, and the earlier Payment Term field is removed.
 
 Quotations, Hire Orders, Hire Order Contracts, JCRs, Sales Invoices and Cross Hire Orders have a **Print**
-button once saved. It opens ERPNext's print view with the document's default print format and starts
+button once saved. It opens thinkNXG ERP's print view with the document's default print format and starts
 printing; Get PDF is on the same page. A Cross Hire Order also has **Print Purchase Order** for the
 Purchase Order it made on submit.
 
 Each list pages, sorts, filters and exports on the server. Saving goes through the DocType itself
 (`thinknxg_rental.portal.entry.save_entry`) with the user's own permissions, so a portal entry *is* the
-ERPNext document: same naming series, validations, stock entries and ledger, and it shows straight away
+thinkNXG ERP document: same naming series, validations, stock entries and ledger, and it shows straight away
 in the desk. A menu only appears for users who can read that DocType. Users with Cancel permission can
 cancel a submitted document from the form's **More** menu; amending stays in the desk (**Open in desk** on
 every form). Item tables use the full page width: columns share it by
@@ -422,7 +441,7 @@ Profitability (rental revenue + recoveries - cross hire cost).
 
 ## Verification
 
-Version 2.0.0 was tested on a Frappe 16.36 / ERPNext 16.37 bench (Python 3.14, MariaDB 10.11), from the
+Version 2.0.0 was tested on a thinkNXG Framework 16.36 / thinkNXG ERP 16.37 bench (Python 3.14, MariaDB 10.11), from the
 server side, in three ways: a fresh install; an upgrade of a site holding v1.2.1 transactions; and the
 flows as a user holding only the Rental User role. Covered: both order tracks end to end, cross hire,
 rental billing, JCR billing (contract charge, month-end excess, final excess, re-invoicing after a
@@ -432,12 +451,12 @@ browser-side form were not driven in a browser.
 
 ## Design notes and limits
 
-- ERPNext remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
+- thinkNXG ERP remains the stock and accounting engine; this app adds the rental lifecycle and one ledger
   (`Rental Ownership Ledger`) with two positions: *At Site* and *Cross Hire Custody*.
-- Custom fields on ERPNext documents are prefixed `nxg_` and are created on install / migrate.
+- Custom fields on thinkNXG ERP documents are prefixed `nxg_` and are created on install / migrate.
 - Sales Invoices, Purchase Orders, Purchase Returns and Stock Entries that the app raises on a user's
   behalf are written as Administrator, after checking the user's permission on the rental document.
-  ERPNext otherwise refuses them for users who cannot read the party's ledger account.
+  thinkNXG ERP otherwise refuses them for users who cannot read the party's ledger account.
 - Job type contracts: one excess rate per job line; a dismantle date inside an already-invoiced month
   needs that invoice cancelled first; material quantities per job are set on the Hire Order Contract.
 - Rental Settings holds the rental warehouses of one company (any number of own rental and cross hire

@@ -1,8 +1,8 @@
 # thinkNXG Rental customer Command Center (2.3)
 
 The customer portal at `/rental` is a complete customer application. Customers use it to follow their
-rentals, raise requests, read their commercial documents and manage their account, without the Frappe
-desk. It runs on the existing rental documents and ERPNext records. There is no extra database
+rentals, raise requests, read their commercial documents and manage their account, without the thinkNXG
+desk. It runs on the existing rental documents and thinkNXG ERP records. There is no extra database
 structure apart from new request types and one Subject field.
 
 ## 1. Audit of what existed
@@ -14,7 +14,7 @@ structure apart from new request types and one Subject field.
 | Data helpers | `portal.utils` builds contract lists, contract detail, material at site and invoices for the old pages. | The new API in `portal/customer.py` uses paged SQL with the customer filter on every query. `ledger.get_site_balance` and `get_contract_reservations` are reused. |
 | Requests | `Rental Portal Request` with Hire Enquiry, Off-Hire Request and Extension Request. Staff actions: create hire order, create off-hire note, extend, reject. | Extended to 11 types and given a Subject field. Staff get a new **Complete** action. The existing make_* functions accept the new types where they apply. |
 | Old API | `portal/api.py` had create_request, cancel_request, get_catalogue and get_contract_items. | Kept for compatibility, but now delegates to the new API so there is one set of checks. |
-| ERPNext | Quotations come from the deal flow. Sales Invoices are rental, job and damage invoices. Payment Entries and the GL. Sales Orders are not used by the rental flow. | Quotations, Sales Invoices, Payment Entries and GL Entries are read directly. Sales Orders appear only when the customer has some. Delivery Notes are not used: deliveries are Hire Delivery Orders. |
+| thinkNXG ERP | Quotations come from the deal flow. Sales Invoices are rental, job and damage invoices. Payment Entries and the GL. Sales Orders are not used by the rental flow. | Quotations, Sales Invoices, Payment Entries and GL Entries are read directly. Sales Orders appear only when the customer has some. Delivery Notes are not used: deliveries are Hire Delivery Orders. |
 | Notifications | None for customers. | Notification Logs per portal user, raised by document events and a daily job. |
 
 ## 2. Architecture
@@ -102,7 +102,7 @@ Notifications are raised for:
 - a request received, or its status changing (with the team's reply)
 - daily: rentals ending within 7 days, or ended yesterday (once each)
 
-Read and unread state, the bell and e-mail (per the user's Notification Settings) are Frappe's own.
+Read and unread state, the bell and e-mail (per the user's Notification Settings) are thinkNXG's own.
 
 ## 6. Tests
 

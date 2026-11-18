@@ -93,7 +93,7 @@
 	</div>
 	<div class="rw-wrap rw-footer__bottom">
 		<span>© {{ frappe.utils.nowdate()[:4] }} {{ (rw.organization_name or rw.site_name or "thinkNXG Rental") | e }}</span>
-		<span>{{ _("Rental operations run on thinkNXG ERP") }}</span>
+		<span>{{ _("Built on {0}").format('<a href="https://thinknxg.com/rental" target="_blank" rel="noopener">thinkNXG Rental</a>') }}</span>
 	</div>
 </footer>
 <div class="rw-toasts" role="status" aria-live="polite"></div>

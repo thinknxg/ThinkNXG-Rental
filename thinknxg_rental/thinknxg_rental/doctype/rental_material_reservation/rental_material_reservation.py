@@ -3,7 +3,6 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, nowdate
 
-from thinknxg_rental.services import ledger
 from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import (
 	check_duplicate_items,

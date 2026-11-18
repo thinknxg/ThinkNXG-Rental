@@ -1,13 +1,13 @@
 # Public rental website (v2.4.1)
 
 A public, search-engine-readable rental website at **/hire**, built inside the app on the existing
-ERPNext data and rental logic. It can also be the site's home page.
+thinkNXG ERP data and rental logic. It can also be the site's home page.
 
 | Page | Address |
 | --- | --- |
 | Home (sections set in the desk) | `/hire` |
 | Catalogue | `/hire/equipment` |
-| Category (an ERPNext Item Group) | `/hire/equipment/<category>` |
+| Category (a thinkNXG ERP Item Group) | `/hire/equipment/<category>` |
 | Product | `/hire/equipment/<category>/<product>` |
 | Services, Industries, About, Contact | `/hire/services`, `/hire/industries`, `/hire/about`, `/hire/contact` |
 | Enquiry basket | `/hire/basket` |
@@ -18,7 +18,7 @@ ERPNext data and rental logic. It can also be the site's home page.
 
 What was already in the app and is reused:
 
-- **Items and categories**: ERPNext Item and Item Group. A product is an Item with a **Rental Item
+- **Items and categories**: thinkNXG ERP Item and Item Group. A product is an Item with a **Rental Item
   Profile**, so the profile carries the website fields. Categories are the item groups of published
   items, with their parent groups, so the catalogue follows the item master. Nothing is hard-coded.
 - **Rates**: `services/utils.get_rental_rate` (customer rate card, then general rate card, then the
@@ -39,7 +39,7 @@ existing customer, and a Quotation needs prices staff have not set yet. **Rental
 what the visitor asked for (items, dates, site, delivery needs) and links to the Lead or Customer and the
 quotations made from it.
 
-Why `/hire`: Frappe already serves `/about`, `/contact` and `/login`; a prefix avoids clashing with them
+Why `/hire`: thinkNXG already serves `/about`, `/contact` and `/login`; a prefix avoids clashing with them
 and with the customer portal at `/rental`. Ticking **Use as home page** makes `/` open the website.
 
 ## 2. New and modified files
@@ -180,14 +180,14 @@ bench build --app thinknxg_rental       # optional: the website's CSS/JS are pla
 bench --site <site> clear-cache
 ```
 
-No external services or CDNs are used: fonts and icons are served from the app and Frappe.
+No external services or CDNs are used: fonts and icons are served from the app and thinkNXG.
 
 ## 8. Production-readiness review (2.4.1)
 
 | Area | Finding | Change |
 | --- | --- | --- |
-| Quotation workflow | Draft hire quotations had no hire days, so ERPNext priced one rate period, not the enquired period | Each hire line now carries the item's rate basis and the chargeable hire days (minimum hire included); the quotation's amount equals the website estimate |
-| Broken links | Account page linked to `/update-profile` (no such page in Frappe 16) and logged out with a GET to a POST-only method | Profile goes to `/rental/profile` (customers) or `/me`; Log out is a POST with the CSRF token |
+| Quotation workflow | Draft hire quotations had no hire days, so thinkNXG ERP priced one rate period, not the enquired period | Each hire line now carries the item's rate basis and the chargeable hire days (minimum hire included); the quotation's amount equals the website estimate |
+| Broken links | Account page linked to `/update-profile` (no such page in thinkNXG Framework 16) and logged out with a GET to a POST-only method | Profile goes to `/rental/profile` (customers) or `/me`; Log out is a POST with the CSRF token |
 | Broken links | "Create a login" shown even when sign-up is disabled | Shown only when Website Settings allow sign-up |
 | Placeholder content | The seed put an administrator hint in two section subtitles, visible once those sections were switched on | Removed from the defaults; patch `clear_section_hints` removes it from existing sites |
 | Security | Notification subjects carried the visitor's name unescaped into the desk | Escaped; visitor text is stored as plain text (markup removed) |
@@ -197,10 +197,10 @@ No external services or CDNs are used: fonts and icons are served from the app a
 | Consistency | Amounts were formatted twice (Jinja with the currency symbol, the browser with Intl) and looked different | One server formatter: ISO code + system number format + currency decimals (e.g. "OMR 95.000"), used by pages and returned by the API |
 | Translation | Script texts could not be translated | Sent translated with the page; a test keeps the list in step with rw.js |
 | RTL / Arabic | No `dir` attribute; layout used left/right | `dir="rtl"` for RTL languages, logical CSS properties, mirrored arrows, figures isolated |
-| Performance | Every page loaded Frappe's 750 KB icon sprite | Each page inlines only the icons it uses (about 13 KB) |
+| Performance | Every page loaded thinkNXG's 750 KB icon sprite | Each page inlines only the icons it uses (about 13 KB) |
 | Accessibility | White text on the default teal button was 3.9:1 | Button and link colours are computed to reach WCAG AA (4.5:1) for any colour an administrator picks |
 | Design | Tablet hero stacked a full-height drawing; empty photo frames for categories and products; About page half empty without a photo; centred hero chips cut off on phones; "System Fonts" option had no styling | Split hero from 768 px; compact category rows and a drawn grid placeholder; single-column About; chips scroll from the start; system font stack |
-| 404 | Frappe's generic 404 page inside the website | The website's own page (search, categories), still HTTP 404, noindex; a switched-off website still shows nothing of itself |
+| 404 | thinkNXG's generic 404 page inside the website | The website's own page (search, categories), still HTTP 404, noindex; a switched-off website still shows nothing of itself |
 | Availability | Batch free-stock logic duplicated the reservation check | Kept for speed, now proven equal to `available_own_qty` by a test before and after a reservation |
 
 ## 9. Tests
@@ -238,5 +238,5 @@ The pages, basket, estimate, enquiry, contact, account and log-out flows were dr
   tab (the default is the SVG logo).
 - The app ships no Arabic translations; pages switch to right-to-left, and texts appear translated
   once translations are added.
-- Self sign-up uses Frappe's login page and follows Website Settings > *Disable Signup*; a new login is
+- Self sign-up uses thinkNXG's login page and follows Website Settings > *Disable Signup*; a new login is
   linked to a customer by the rental team (the Business Account enquiry asks for this).
