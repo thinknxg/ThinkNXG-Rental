@@ -8,9 +8,9 @@ def customer_name_search(doctype, txt, searchfield, start, page_len, filters):
     """Link search for the Lead's Customer field: matches the customer name only."""
     return frappe.db.sql(
         """select name, customer_name from `tabCustomer`
-        where disabled=0 and customer_name like %(txt)s
+        where disabled=0 and (customer_name like %(txt)s or name = %(exact)s)
         order by customer_name limit %(start)s, %(page_len)s""",
-        {"txt": f"%{txt}%", "start": cint(start), "page_len": max(cint(page_len), 100)},
+        {"txt": f"%{txt}%", "exact": txt, "start": cint(start), "page_len": max(cint(page_len), 100)},
     )
 
 
