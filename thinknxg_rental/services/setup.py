@@ -363,6 +363,9 @@ def after_migrate():
 		make_property_setter("Lead", fieldname, "hidden", "1", "Check", validate_fields_for_doctype=False)
 	make_property_setter("Lead", "customer", "depends_on", "", "Data", validate_fields_for_doctype=False)
 	make_property_setter("Lead", "organization_section", "label", "Organization Details", "Data", validate_fields_for_doctype=False)
+	# Project link is hidden on the Lead and the Quotation (not removed): it is filled from the Project Title / Rental Site
+	for doctype in ("Lead", "Quotation"):
+		make_property_setter(doctype, "project", "hidden", "1", "Check", validate_fields_for_doctype=False)
 	arrange_lead_layout()
 	setup_uoms()
 	ensure_settings_defaults()
