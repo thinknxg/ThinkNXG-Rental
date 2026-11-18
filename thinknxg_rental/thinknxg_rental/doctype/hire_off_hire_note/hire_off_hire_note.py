@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from thinknxg_rental.services import damage_charges
+from thinknxg_rental.services import damage_charges, excess
 from thinknxg_rental.services import ledger, stock
 from thinknxg_rental.services import warehouses as rw
 from thinknxg_rental.services.utils import get_profile, get_settings
@@ -56,10 +56,11 @@ class HireOffHireNote(Document):
 		balance = ledger.get_site_balance(self.rental_contract)
 		site = frappe.db.get_value("Rental Site", self.rental_site, ["site_warehouse", "cross_hire_site_warehouse"], as_dict=True) or frappe._dict()
 		for d in self.items:
-			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0 or flt(d.excess_qty) < 0:
+			if flt(d.returned_qty) < 0 or flt(d.lost_qty) < 0 or flt(d.excess_qty) < 0 or flt(d.get("received_qty")) < 0:
 				frappe.throw(_("Row #{0}: quantities cannot be negative").format(d.idx))
 			if d.ownership != "Cross Hire":
 				d.cross_hire_order = None
+		self.allocate_received()
 		self.set_delivered_from()
 		seen, moved_by_key = set(), {}
 		self.total_returned_qty = self.total_lost_qty = 0
@@ -99,6 +100,7 @@ class HireOffHireNote(Document):
 			self.total_lost_qty += flt(d.lost_qty)
 			if flt(d.excess_qty) > 0 and d.ownership == "Cross Hire":
 				frappe.throw(_("Row #{0}: Excess Qty is only for own stock").format(d.idx))
+			self.set_excess(d, settings, prefix)
 			excess_total += flt(d.excess_qty)
 		# what comes back (returned + lost) is capped by what is at site, over all rows of the item
 		for d in self.items:
@@ -113,10 +115,63 @@ class HireOffHireNote(Document):
 			d.pending_qty = flt(d.at_site_qty) - moved_by_key[key]
 		if not (self.total_returned_qty or self.total_lost_qty or excess_total):
 			frappe.throw(_("Enter a returned or lost quantity on at least one row"))
-		if excess_total and not settings.get("excess_warehouse"):
+		if excess_total and any(flt(d.excess_qty) > 0 and not d.excess_warehouse for d in self.items):
 			frappe.throw(_("Set the Excess Warehouse in Rental Settings first"))
+		self.total_excess_qty = excess_total
 		remaining = sum(balance.values()) - self.total_returned_qty - self.total_lost_qty
 		self.off_hire_type = "Full" if remaining <= 1e-6 else "Partial"
+
+	def allocate_received(self):
+		"""Rows with a Received quantity (everything that physically came back): Returned is what is at
+		site, up to the quantity received; the rest is Excess. Capacity is shared over the rows of the same
+		item, and a row with Delivered From set is capped by what is at site from that warehouse. Lost
+		units and rows entered without a Received quantity are counted first. Cross-hired rows have no
+		excess: their Received quantity is the Returned quantity (checked against the site as usual)."""
+		if self.docstatus != 0 or not any(flt(d.get("received_qty")) > 0 for d in self.items):
+			return
+		by_origin = ledger.get_site_balance_by_origin(self.rental_contract)
+		key_cap, origin_cap = {}, dict(by_origin)
+		for k, q in by_origin.items():
+			key_cap[k[:3]] = key_cap.get(k[:3], 0) + q
+		for d in self.items:
+			key = (d.item_code, d.ownership, d.cross_hire_order or "")
+			used = flt(d.lost_qty) + (0 if flt(d.get("received_qty")) > 0 else flt(d.returned_qty))
+			key_cap[key] = key_cap.get(key, 0) - used
+			if d.delivered_from:
+				okey = key + (d.delivered_from,)
+				origin_cap[okey] = origin_cap.get(okey, 0) - used
+		for d in sorted((d for d in self.items if flt(d.get("received_qty")) > 0), key=lambda d: (0 if d.delivered_from else 1, d.idx)):
+			received = flt(d.received_qty)
+			if d.ownership == "Cross Hire":
+				d.returned_qty, d.excess_qty = received, 0
+				continue
+			key = (d.item_code, d.ownership, d.cross_hire_order or "")
+			cap = key_cap.get(key, 0)
+			if d.delivered_from:
+				cap = min(cap, origin_cap.get(key + (d.delivered_from,), 0))
+			returned = max(min(received, cap), 0)
+			d.returned_qty, d.excess_qty = returned, received - returned
+			key_cap[key] = key_cap.get(key, 0) - returned
+			if d.delivered_from:
+				origin_cap[key + (d.delivered_from,)] -= returned
+
+	def set_excess(self, d, settings, prefix):
+		"""Classify a row's excess and check where it goes."""
+		d.is_excess = 1 if flt(d.excess_qty) > 0 else 0
+		if not d.is_excess:
+			d.excess_category = None
+			d.excess_warehouse = None
+			return
+		d.excess_category = excess.excess_category(self.rental_contract, d.item_code)
+		d.excess_warehouse = d.excess_warehouse or settings.get("excess_warehouse")
+		if not d.excess_warehouse:
+			return
+		if (d.excess_warehouse in rw.get_warehouses(rw.OWN, active_only=False) or d.excess_warehouse in rw.get_warehouses(rw.CROSS_HIRE, active_only=False)
+				or rw.is_site_warehouse(d.excess_warehouse)):
+			frappe.throw(prefix + _("{0} is a rental, cross hire or site warehouse. Excess material is kept apart, in an excess warehouse.").format(
+				frappe.bold(d.excess_warehouse)), title=_("Excess Warehouse"))
+		if frappe.db.get_value("Warehouse", d.excess_warehouse, "company") != self.company:
+			frappe.throw(prefix + _("{0} belongs to another company").format(d.excess_warehouse))
 
 	def set_own_return_warehouses(self, d, settings, prefix):
 		"""Own material: Return To is the warehouse where it is moved now - an own rental warehouse, or the
@@ -186,6 +241,9 @@ class HireOffHireNote(Document):
 				row = d if first else self._copy_row(d)
 				row.delivered_from = origin or None
 				row.returned_qty, row.lost_qty = take_r, take_l
+				if flt(d.get("received_qty")) > 0:
+					# what came back stays with the row it is on: the excess with the first row
+					row.received_qty = take_r + (flt(d.excess_qty) if first else 0)
 				if not first:
 					row.excess_qty = 0
 				left[(d.item_code, d.ownership, d.cross_hire_order or "", origin)] -= take_r + take_l
@@ -203,7 +261,7 @@ class HireOffHireNote(Document):
 
 	def _copy_row(self, d):
 		fields = ("item_code", "item_name", "uom", "ownership", "cross_hire_order", "supplier", "target_warehouse",
-			"return_to_warehouse", "batch_no", "serial_no", "remarks")
+			"return_to_warehouse", "batch_no", "serial_no", "remarks", "excess_warehouse")
 		row = self.append("items", {k: d.get(k) for k in fields})
 		self.items.remove(row)
 		return row
@@ -243,10 +301,15 @@ class HireOffHireNote(Document):
 			stock.make_stock_entry(self, "Material Issue", losses, self.return_date, remarks=f"Lost at site - {self.name}"),
 		)
 
-		# material received over and above what was delivered goes into the excess warehouse, at zero value
-		excess = [{"item_code": d.item_code, "qty": d.excess_qty, "t_warehouse": get_settings().excess_warehouse, "zero_value": True} for d in self.items if flt(d.excess_qty) > 0]
-		if excess:
-			stock.make_stock_entry(self, "Material Receipt", excess, self.return_date, remarks=f"Excess received - {self.name}")
+		# material received over and above what is at site goes into the excess warehouse, at zero value, and
+		# each row of it gets an Excess Material Register (services/excess.py)
+		received = [{"item_code": d.item_code, "qty": d.excess_qty, "t_warehouse": d.excess_warehouse or get_settings().excess_warehouse,
+			"zero_value": True, "batch_no": d.get("excess_batch_no"), "serial_no": d.get("excess_serial_no")}
+			for d in self.items if flt(d.excess_qty) > 0]
+		if received:
+			excess_entry = stock.make_stock_entry(self, "Material Receipt", received, self.return_date, remarks=f"Excess received - {self.name}")
+			self.db_set("excess_stock_entry", excess_entry)
+			excess.make_registers(self, excess_entry)
 
 		billing_date = add_days(self.last_billable_date, 1)
 		common = dict(
@@ -293,6 +356,9 @@ class HireOffHireNote(Document):
 			ledger.update_cross_hire_progress(cho)
 		set_request_reference(self)
 
+	def before_cancel(self):
+		excess.check_note_can_cancel(self)
+
 	def on_cancel(self):
 		set_request_reference(self, completed=False)
 		billed = frappe.db.get_value("Rental Contract", self.rental_contract, "last_billed_upto")
@@ -301,6 +367,7 @@ class HireOffHireNote(Document):
 		stock.cancel_stock_entries(self)
 		cross_hire_orders = {d.cross_hire_order for d in self.items if d.ownership == "Cross Hire" and flt(d.lost_qty)}
 		ledger.delete_entries(self.doctype, self.name)
+		excess.cancel_registers(self)
 		self.db_set("status", "Cancelled")
 		ledger.update_contract_progress(self.rental_contract)
 		for cho in cross_hire_orders:

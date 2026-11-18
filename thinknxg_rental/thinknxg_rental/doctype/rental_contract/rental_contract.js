@@ -95,6 +95,11 @@ frappe.ui.form.on("Rental Contract", {
                                         );
                                 }, __("Actions"));
                         }
+                        frm.add_custom_button(__("Dismantling Entry"), () => frappe.model.open_mapped_doc({
+                                method: "thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry.make_from_contract", frm }), __("Create"));
+                        if (!frm.doc.reconciliation_exception && frappe.user.has_role(["Rental Manager", "System Manager"])) {
+                                frm.add_custom_button(__("Approve Reconciliation Exception"), () => thinknxg_rental.approve_exception(frm), __("Actions"));
+                        }
                         frm.add_custom_button(__("Close Contract"), () => {
                                 frappe.confirm(__("Raise the final rental bill and mark this contract Completed?"), () =>
                                         frm.call("close_contract").then(() => frm.reload_doc())
@@ -109,6 +114,8 @@ frappe.ui.form.on("Rental Contract", {
                                 frappe.set_route("List", "Job Completion Report", { hire_order_contract: frm.doc.hire_order_contract })
                         , __("View"));
                 }
+                frm.add_custom_button(__("Material Reconciliation"), () => thinknxg_rental.reconciliation_dialog(frm), __("View"));
+                frm.add_custom_button(__("Adjustment History"), () => thinknxg_rental.excess_history({ rental_contract: frm.doc.name }), __("View"));
                 frm.add_custom_button(__("Material at Site"), () =>
                         frappe.set_route("query-report", "Material at Site", { rental_contract: frm.doc.name })
                 , __("View"));

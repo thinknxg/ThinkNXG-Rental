@@ -1,0 +1,343 @@
+{
+ "actions": [],
+ "creation": "2026-11-18 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "rental_contract",
+  "customer",
+  "customer_name",
+  "project",
+  "hire_delivery_order",
+  "hire_off_hire_note",
+  "cb_1",
+  "posting_date",
+  "status",
+  "approved_by",
+  "approved_on",
+  "sb_cross",
+  "allow_cross_project",
+  "cross_project_reason",
+  "cb_cross",
+  "cross_project_approved_by",
+  "sb_out",
+  "outstanding_items",
+  "sb_exc",
+  "excess_items",
+  "sb_adj",
+  "adjustments",
+  "sb_tot",
+  "total_outstanding_qty",
+  "total_adjustment_qty",
+  "cb_tot",
+  "total_excess_used_qty",
+  "remaining_outstanding_qty",
+  "sb_stock",
+  "stock_entry",
+  "sb_rem",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "DME-.YYYY.-.#####",
+   "default": "DME-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "hire_delivery_order",
+   "fieldtype": "Link",
+   "label": "Hire Delivery Order",
+   "options": "Hire Delivery Order"
+  },
+  {
+   "fieldname": "hire_off_hire_note",
+   "fieldtype": "Link",
+   "label": "Off-Hire Note",
+   "options": "Hire Off-Hire Note",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "description": "The outstanding material stops being billed from the next day"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nSubmitted\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "in_list_view": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_cross",
+   "fieldtype": "Section Break",
+   "label": "Cross-Project Use",
+   "collapsible": 1,
+   "collapsible_depends_on": "allow_cross_project"
+  },
+  {
+   "fieldname": "allow_cross_project",
+   "fieldtype": "Check",
+   "label": "Allow Excess from Other Projects",
+   "description": "Excess received on another project of the same customer may be used. A Rental Manager must approve it."
+  },
+  {
+   "fieldname": "cross_project_reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "depends_on": "allow_cross_project",
+   "mandatory_depends_on": "allow_cross_project"
+  },
+  {
+   "fieldname": "cb_cross",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cross_project_approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_out",
+   "fieldtype": "Section Break",
+   "label": "Outstanding Delivered Materials",
+   "description": "Own material still at site on this contract, from submitted transactions"
+  },
+  {
+   "fieldname": "outstanding_items",
+   "fieldtype": "Table",
+   "label": "Outstanding Items",
+   "options": "Dismantling Outstanding Item",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_exc",
+   "fieldtype": "Section Break",
+   "label": "Available Excess Materials",
+   "description": "Excess received from this customer and project that is neither returned nor adjusted"
+  },
+  {
+   "fieldname": "excess_items",
+   "fieldtype": "Table",
+   "label": "Excess Items",
+   "options": "Dismantling Excess Item",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_adj",
+   "fieldtype": "Section Break",
+   "label": "Adjustment Details"
+  },
+  {
+   "fieldname": "adjustments",
+   "fieldtype": "Table",
+   "label": "Adjustments",
+   "options": "Dismantling Adjustment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_tot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_outstanding_qty",
+   "fieldtype": "Float",
+   "label": "Total Outstanding",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_adjustment_qty",
+   "fieldtype": "Float",
+   "label": "Total Outstanding Settled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_tot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_excess_used_qty",
+   "fieldtype": "Float",
+   "label": "Total Excess Used",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remaining_outstanding_qty",
+   "fieldtype": "Float",
+   "label": "Remaining Outstanding",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_stock",
+   "fieldtype": "Section Break",
+   "label": "Stock",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Site Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Settled units issued out of the customer-site warehouse: they will not come back"
+  },
+  {
+   "fieldname": "sb_rem",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Dismantling Entry",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-18 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Dismantling Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,rental_contract,project",
+ "track_changes": 1,
+ "description": "Settles material a customer still owes (outstanding at site) against excess material the customer handed over, item by item, with explicit quantities. A customer balance adjustment, not a stock conversion."
+}

@@ -222,6 +222,7 @@ def get_site_groups(search=None, ownership=None):
 		r.delivered_qty = moved.get((*key, "Dispatch"), 0)
 		r.returned_qty = -moved.get((*key, "Return"), 0)
 		r.lost_qty = -moved.get((*key, "Loss"), 0)
+		r.adjusted_qty = -moved.get((*key, "Adjustment"), 0)
 		description = frappe.utils.strip_html(descriptions.get(r.item_code) or "").strip()
 		r.description = description if description and description != r.item_name else ""
 	if search:

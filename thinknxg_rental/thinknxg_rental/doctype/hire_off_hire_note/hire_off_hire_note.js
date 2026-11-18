@@ -23,6 +23,19 @@ frappe.ui.form.on("Hire Off-Hire Note", {
 		} else {
 			frm.add_custom_button(__("Damage Settlement"), () => frappe.model.open_mapped_doc({ method: base + "make_damage_settlement", frm }), __("Create"));
 		}
+		// excess material: return it to the customer, or settle outstanding material against it
+		const rental = "thinknxg_rental.thinknxg_rental.doctype.";
+		if (flt(frm.doc.total_excess_qty) > 0 && !["Settled", "Cancelled"].includes(frm.doc.excess_status)) {
+			frm.add_custom_button(__("Excess Material Return"), () => frappe.model.open_mapped_doc({
+				method: rental + "excess_material_return_note.excess_material_return_note.make_from_off_hire", frm }), __("Create"));
+		}
+		frm.add_custom_button(__("Dismantling Entry"), () => frappe.model.open_mapped_doc({
+			method: rental + "dismantling_entry.dismantling_entry.make_from_off_hire", frm }), __("Create"));
+		if (flt(frm.doc.total_excess_qty) > 0) {
+			frm.add_custom_button(__("Excess Material Register"), () =>
+				frappe.set_route("List", "Excess Material Register", { hire_off_hire_note: frm.doc.name }), __("View"));
+			frm.add_custom_button(__("Adjustment History"), () => thinknxg_rental.excess_history({ hire_off_hire_note: frm.doc.name }), __("View"));
+		}
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
 	rental_contract(frm) {
@@ -43,5 +56,20 @@ frappe.ui.form.on("Hire Off-Hire Note", {
 				frm.refresh_field("items");
 			},
 		});
+	},
+});
+
+// Received: everything that physically came back. The server splits it into Returned (up to what is at
+// site) and Excess (the rest) when the note is saved; shown here as a preview for a single row.
+frappe.ui.form.on("Hire Off-Hire Item", {
+	received_qty(frm, cdt, cdn) {
+		const d = locals[cdt][cdn];
+		if (!flt(d.received_qty)) return;
+		if (d.ownership === "Cross Hire") {
+			frappe.model.set_value(cdt, cdn, { returned_qty: flt(d.received_qty), excess_qty: 0 });
+			return;
+		}
+		const returned = Math.max(Math.min(flt(d.received_qty), flt(d.at_site_qty) - flt(d.lost_qty)), 0);
+		frappe.model.set_value(cdt, cdn, { returned_qty: returned, excess_qty: flt(d.received_qty) - returned });
 	},
 });
