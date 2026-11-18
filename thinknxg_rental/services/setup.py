@@ -34,6 +34,8 @@ def get_custom_fields():
 			dict(fieldname="project_title", label="Project Title", fieldtype="Data", insert_after="deal_type",
 				description="Name of the customer's project. A Project with this name is linked when the Rental Site is created."),
 			dict(fieldname="project", label="Project", fieldtype="Link", options="Project", insert_after="project_title"),
+			dict(fieldname="rental_site", label="Rental Site", fieldtype="Link", options="Rental Site", insert_after="project",
+			        description="Optional. The customer's site for this requirement; carried to the Quotation."),
 			# Layout (Nov 2026): Organization & Contact at the top, then Project & Deal, then Tender & Assignment.
 			# The order itself is set by arrange_lead_layout(); Gender, Branches and the hire-period fields are hidden, not removed.
 			dict(fieldname="nxg_contact_sb", label="Contact Person", fieldtype="Section Break", insert_after="last_name"),
@@ -71,6 +73,8 @@ def get_custom_fields():
 				description="Name of the customer's project, from the Lead. A Project with this name is linked when the Rental Site is created."),
 			dict(fieldname="project", label="Project", fieldtype="Link", options="Project", insert_after="project_title"),
 			dict(fieldname="cost_center", label="Cost Center", fieldtype="Link", options="Cost Center", insert_after="project"),
+			dict(fieldname="rental_site", label="Rental Site", fieldtype="Link", options="Rental Site", insert_after="cost_center",
+			        description="Optional. The customer's site for this requirement; carried from the Lead to the Hire Order and Hire Order Contract."),
 			dict(fieldname="deal_type", label="Deal Type", fieldtype="Select",
 				options="Material Hire\nMaterial Sale\nHire Order Contract", insert_after="quotation_to", in_standard_filter=1,
 				description="Carries the Deal Type from the Lead and selects the next document."),

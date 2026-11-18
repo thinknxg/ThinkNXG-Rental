@@ -198,7 +198,7 @@ def make_hire_order_from_quotation(source_name: str, target_doc=None, args=None)
         target.customer_name = src.get("customer_name") or frappe.db.get_value("Customer", customer, "customer_name")
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.order_date = None
-        target.rental_site = _site_for_quotation(customer, site_arg)
+        target.rental_site = _site_for_quotation(customer, site_arg or _quotation_site(src, customer))
         _carry_project(src, target)
         target.required_from = src.get("nxg_required_from") or nowdate()
         target.expected_return_date = src.get("nxg_expected_return_date") or target.required_from
@@ -241,7 +241,7 @@ def make_hire_order_contract_from_quotation(source_name: str, target_doc=None, a
         target.customer = customer
         target.company = src.get("company") or frappe.defaults.get_global_default("company")
         target.required_from = src.transaction_date or nowdate()
-        target.rental_site = _site_for_quotation(customer, site_arg)
+        target.rental_site = _site_for_quotation(customer, site_arg or _quotation_site(src, customer))
         _carry_project(src, target)
         target.quotation = src.name
         target.items = []
@@ -303,3 +303,9 @@ def _new_mapped_doc(source, target_doctype, target_doc, post_process):
     target.flags.ignore_permissions = False
     post_process(source, target)
     return target
+
+
+def _quotation_site(src, customer):
+    """The Rental Site chosen on the quotation, when it belongs to this customer; otherwise ignored."""
+    site = src.get("rental_site")
+    return site if site and frappe.db.get_value("Rental Site", site, "customer") == customer else None
