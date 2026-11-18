@@ -4,6 +4,7 @@ frappe.ui.form.on("Lead", {
 		frm.set_query("customer", () => ({ query: "thinknxg_rental.services.lead_fields.customer_name_search" }));
 	},
 	refresh(frm) {
+		nxg_site_defaults(frm);
 		if (frm.is_new() && frm.doc.lead_owner && !frm.doc.nxg_tender_assignee) frm.set_value("nxg_tender_assignee", frm.doc.lead_owner);
 		if (frm.is_new() || frm.doc.docstatus !== 0 || !frm.doc.deal_type) return;
 		frm.add_custom_button(__("Quotation"), () => {
@@ -40,4 +41,18 @@ frappe.ui.form.on("Lead", {
 function nxg_lead_hire_days(frm) {
 	const a = frm.doc.nxg_required_from, b = frm.doc.nxg_expected_return_date;
 	frm.set_value("nxg_hire_period_days", a && b ? Math.max(frappe.datetime.get_diff(b, a) + 1, 0) : 0);
+}
+
+// New Rental Site made from the Lead's Rental Site field: the Lead's Customer, Company and Project are filled in.
+function nxg_site_defaults(frm) {
+	const df = frm.fields_dict.rental_site && frm.fields_dict.rental_site.df;
+	if (!df) return; // field not created yet (migrate pending)
+	df.get_route_options_for_new_doc = (field) => {
+		const doc = ((field && field.frm) || frm).doc;
+		const values = {};
+		if (doc.customer) values.customer = doc.customer;
+		if (doc.company) values.company = doc.company;
+		if (doc.project) values.project = doc.project;
+		return values;
+	};
 }
