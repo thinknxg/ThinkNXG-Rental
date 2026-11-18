@@ -1,7 +1,7 @@
 {
  "app": "thinknxg_rental",
  "charts": [],
- "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"menu\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"thinkNXG Rental Menu\", \"col\": 12}}, {\"id\": \"sp0\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Lead\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Quotation\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Sales Invoice\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"sc8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Orders\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Contracts\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & Billing\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd6\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"menu\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"thinkNXG Rental Menu\", \"col\": 12}}, {\"id\": \"sp0\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Lead\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Quotation\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Sales Invoice\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"sc8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Orders\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Contracts\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & Billing\", \"col\": 4}}, {\"id\": \"excessmatl1\", \"type\": \"card\", \"data\": {\"card_name\": \"Excess Material\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd6\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
  "creation": "2026-10-06 10:00:00.000000",
  "custom_blocks": [
   {
@@ -291,8 +291,66 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Excess Material",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Register",
+   "link_count": 0,
+   "link_to": "Excess Material Register",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Return Note",
+   "link_count": 0,
+   "link_to": "Excess Material Return Note",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Dismantling Entry",
+   "link_count": 0,
+   "link_to": "Dismantling Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Abandonment",
+   "link_count": 0,
+   "link_to": "Excess Material Abandonment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Conversion Entry",
+   "link_count": 0,
+   "link_to": "Excess Material Conversion Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Reports",
-   "link_count": 6,
+   "link_count": 10,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -358,6 +416,46 @@
   },
   {
    "hidden": 0,
+   "is_query_report": 1,
+   "label": "Excess Material Register",
+   "link_count": 0,
+   "link_to": "Excess Material Register",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Customer-wise Excess Material",
+   "link_count": 0,
+   "link_to": "Customer-wise Excess Material",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project-wise Material Reconciliation",
+   "link_count": 0,
+   "link_to": "Project-wise Material Reconciliation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Outstanding Customer Materials",
+   "link_count": 0,
+   "link_to": "Outstanding Customer Materials",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
    "link_count": 5,
@@ -415,7 +513,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-10-26 12:00:00.000000",
+ "modified": "2026-11-18 23:10:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",
