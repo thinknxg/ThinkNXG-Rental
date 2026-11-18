@@ -12,7 +12,13 @@ from frappe.utils import add_days, flt, nowdate
 from thinknxg_rental.services import excess, ledger
 from thinknxg_rental.tests.test_admin_portal import STAFF, create, ensure_item, ensure_user, form, prepare, save
 from thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry import make_from_contract
+from thinknxg_rental.thinknxg_rental.doctype.excess_material_conversion_entry.excess_material_conversion_entry import (
+	DIFFERENT as CONV_DIFFERENT,
+	EXISTING as CONV_EXISTING,
+	make_from_register as make_conversion_from_register,
+)
 from thinknxg_rental.thinknxg_rental.doctype.excess_material_return_note.excess_material_return_note import (
+	get_history,
 	make_from_off_hire,
 	make_from_registers,
 )
@@ -467,3 +473,134 @@ class TestExcessMaterial(IntegrationTestCase):
 		self.assertEqual([(r.item_code, flt(r.outstanding_qty), flt(r.adjusted_qty), flt(r.excess_available_qty)) for r in rows], [(s.a, 1, 2, 2)])
 		# warehouse stock agrees with the registers
 		self.assertFalse(excess.excess_stock_issues(excess.reconcile(s.rc)["excess"]))
+
+
+class TestExcessConversion(TestExcessMaterial):
+	"""Excess Material Conversion Entry: excess the company owns moved into rental stock (Repack)."""
+
+	# the parent's tests are run by the parent class, not again here
+	for _name in [n for n in dir(TestExcessMaterial) if n.startswith("test_")]:
+		locals()[_name] = None
+	del _name
+
+	def convert(self, s, rows, submit=True, **header):
+		"""rows: (register, conversion qty, target item, rate[, target qty, basis, warehouse])"""
+		doc = frappe.get_doc({"doctype": "Excess Material Conversion Entry", "company": self.company, "customer": s.note.customer,
+			"posting_date": nowdate(), "source_warehouse": self.excess_wh, "target_warehouse": self.yard,
+			"conversion_type": header.pop("conversion_type", CONV_EXISTING), **header})
+		for r in rows:
+			doc.append("items", {"excess_register": r[0].name, "conversion_qty": r[1], "target_item_code": r[2], "valuation_rate": r[3],
+				"target_qty": r[4] if len(r) > 4 else 0, "valuation_basis": r[5] if len(r) > 5 else "Manual Rate",
+				"target_warehouse": r[6] if len(r) > 6 else None})
+		doc.insert()
+		if submit:
+			doc.submit()
+		return doc
+
+	def adjusted(self):
+		"""A, 3 short, settled against 3 of the 5 excess B: 3 B are the company's, 2 still the customer's."""
+		s = self.scenario()
+		s.de = self.dismantle(s.rc, [(s.a, 3, s.reg, 3)])
+		return s
+
+	def test_c1_only_company_owned_excess_converts(self):
+		s = self.scenario()
+		self.assertEqual(flt(excess.convertible([s.reg.name])[s.reg.name]), 0)
+		with self.assertRaises(frappe.ValidationError):  # all 5 are still the customer's
+			make_conversion_from_register(s.reg.name)
+		with self.assertRaises(frappe.ValidationError):
+			self.convert(s, [(s.reg, 1, s.b, 40)])
+		# a Dismantling Entry never converts anything by itself
+		self.dismantle(s.rc, [(s.a, 3, s.reg, 3)])
+		self.assertFalse(frappe.db.exists("Excess Material Conversion Item", {"excess_register": s.reg.name}))
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.convertible_qty), flt(s.reg.converted_qty)), (3, 0))
+
+	def test_c2_convert_to_existing_rental_item(self):
+		s = self.adjusted()
+		ex_before, yard_before = bin_qty(s.b, self.excess_wh), bin_qty(s.b, self.yard)
+		doc = self.convert(s, [(s.reg, 2, s.b, 40)])
+		self.assertEqual((doc.status, flt(doc.total_value)), ("Converted", 80))
+		se = frappe.get_doc("Stock Entry", doc.stock_entry)
+		self.assertEqual((se.purpose, se.docstatus, se.nxg_hire_voucher_no), ("Repack", 1, doc.name))
+		self.assertEqual(bin_qty(s.b, self.excess_wh), ex_before - 2)
+		self.assertEqual(bin_qty(s.b, self.yard), yard_before + 2)
+		incoming = frappe.get_all("Stock Ledger Entry", filters={"voucher_no": se.name, "is_cancelled": 0, "actual_qty": [">", 0]},
+			fields=["item_code", "warehouse", "actual_qty", "incoming_rate"])
+		self.assertEqual([(r.item_code, r.warehouse, flt(r.actual_qty), flt(r.incoming_rate)) for r in incoming], [(s.b, self.yard, 2, 40)])
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.converted_qty), flt(s.reg.convertible_qty)), (2, 1))
+		# customer side untouched: still 3 adjusted, 2 available to the customer, nothing outstanding
+		self.assertEqual((flt(s.reg.adjusted_qty), flt(s.reg.available_qty)), (3, 2))
+		self.assertEqual(flt(self.contract_row(s.rc, s.a).adjusted_qty), 3)
+		self.assertEqual(flt(frappe.db.get_value("Rental Contract", s.rc, "total_adjusted_qty")), 3)
+		# the customer's 2 can still be returned; the reconciliation is unaffected by the conversion
+		self.return_note([s.reg], qty=2)
+		self.assertTrue(excess.reconcile(s.rc)["reconciled"], excess.reconcile(s.rc)["issues"])
+
+	def test_c3_convert_to_different_item(self):
+		s = self.adjusted()
+		other = ensure_item(f"EX-T-{tag()}", "Converted Target Item")  # no Rental Item Profile
+		with self.assertRaises(frappe.ValidationError):  # not a rental item
+			self.convert(s, [(s.reg, 2, other, 30)])
+		doc = self.convert(s, [(s.reg, 2, other, 30, 1)], conversion_type=CONV_DIFFERENT)  # 2 B become 1 of the other item
+		row = doc.items[0]
+		self.assertEqual((row.source_item_code, row.target_item_code, flt(row.conversion_qty), flt(row.target_qty), flt(row.amount)),
+			(s.b, other, 2, 1, 30))
+		self.assertEqual(bin_qty(other, self.yard), 1)
+		se = frappe.get_doc("Stock Entry", doc.stock_entry)
+		self.assertEqual(sorted((d.item_code, d.s_warehouse or "", d.t_warehouse or "", flt(d.qty)) for d in se.items),
+			sorted([(s.b, self.excess_wh, "", 2), (other, "", self.yard, 1)]))
+		history = get_history(register=s.reg.name)["history"]
+		self.assertIn(("Excess Material Conversion Entry", doc.name, other), [(h.doctype, h.name, h.get("target_item")) for h in history])
+
+	def test_c4_limits_and_duplicates(self):
+		s = self.adjusted()
+		with self.assertRaises(frappe.ValidationError):  # 4 > 3 owned
+			self.convert(s, [(s.reg, 4, s.b, 40)])
+		with self.assertRaises(frappe.ValidationError):  # the same row twice
+			self.convert(s, [(s.reg, 1, s.b, 40), (s.reg, 1, s.b, 40)])
+		first = self.convert(s, [(s.reg, 3, s.b, 40)], submit=False)
+		second = self.convert(s, [(s.reg, 2, s.b, 40)], submit=False)
+		first.submit()
+		with self.assertRaises(frappe.ValidationError):  # processed once only
+			second.submit()
+		with self.assertRaises(frappe.ValidationError):  # no rate given
+			self.convert(s, [(s.reg, 1, s.b, 0)])
+
+	def test_c5_valuation_basis(self):
+		s = self.adjusted()
+		doc = self.convert(s, [(s.reg, 1, s.b, 0, 0, "Target Item Valuation Rate")])
+		self.assertEqual(flt(doc.items[0].valuation_rate), 50)  # the item's rate in the yard (received at 50)
+		doc = self.convert(s, [(s.reg, 1, s.b, 99, 0, "Zero Value")])
+		self.assertEqual((flt(doc.items[0].valuation_rate), flt(doc.total_value)), (0, 0))
+		rate = frappe.db.get_value("Stock Ledger Entry", {"voucher_no": doc.stock_entry, "actual_qty": [">", 0], "is_cancelled": 0}, "incoming_rate")
+		self.assertEqual(flt(rate), 0)
+		fresh = ensure_item(f"EX-N-{tag()}", "Never Valued")
+		with self.assertRaises(frappe.ValidationError):  # nothing to take a rate from
+			self.convert(s, [(s.reg, 1, fresh, 0, 0, "Target Item Valuation Rate")], conversion_type=CONV_DIFFERENT)
+
+	def test_c6_cancel_reverses_and_protects_adjustment(self):
+		s = self.adjusted()
+		ex_before, yard_before = bin_qty(s.b, self.excess_wh), bin_qty(s.b, self.yard)
+		doc = self.convert(s, [(s.reg, 3, s.b, 40)])
+		with self.assertRaises(frappe.ValidationError):  # the adjusted excess is now rental stock
+			frappe.get_doc("Dismantling Entry", s.de.name).cancel()
+		doc.cancel()
+		self.assertEqual((bin_qty(s.b, self.excess_wh), bin_qty(s.b, self.yard)), (ex_before, yard_before))
+		self.assertEqual(frappe.db.get_value("Stock Entry", doc.stock_entry, "docstatus"), 2)
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.converted_qty), flt(s.reg.convertible_qty)), (0, 3))
+		frappe.get_doc("Dismantling Entry", s.de.name).cancel()
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.adjusted_qty), flt(s.reg.convertible_qty), flt(s.reg.available_qty)), (0, 0, 5))
+
+	def test_c7_target_warehouse_and_permissions(self):
+		s = self.adjusted()
+		with self.assertRaises(frappe.ValidationError):  # not a rental warehouse
+			self.convert(s, [(s.reg, 1, s.b, 40)], target_warehouse=self.excess_wh)
+		with self.assertRaises(frappe.ValidationError):
+			self.convert(s, [(s.reg, 1, s.b, 40, 0, "Manual Rate", self.site_warehouse(s.rc))])
+		frappe.set_user(RENTAL_USER)
+		with self.assertRaises(frappe.PermissionError):
+			self.convert(s, [(s.reg, 1, s.b, 40)], submit=False)

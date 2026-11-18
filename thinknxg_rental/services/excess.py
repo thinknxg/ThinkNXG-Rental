@@ -20,6 +20,7 @@ from frappe.utils import cint, flt, now_datetime
 from thinknxg_rental.services import ledger
 
 REGISTER = "Excess Material Register"
+CONVERSION = "Excess Material Conversion Entry"
 DELIVERED = "Excess from Delivered Items"
 UNDELIVERED = "Additional Undelivered Items"
 MANAGER_ROLES = ("Rental Manager", "System Manager")
@@ -128,13 +129,15 @@ def cancel_registers(note):
 
 # ----------------------------------------------------------------------------- register balances
 def usage(register_names, exclude=None):
-	"""{register: {"returned": qty, "adjusted": qty, "documents": [...]}} from submitted documents.
-	``exclude``: (doctype, name) left out, for the document being checked."""
+	"""{register: {"returned": qty, "adjusted": qty, "converted": qty, "documents": [...]}} from submitted
+	documents. ``exclude``: (doctype, name) left out, for the document being checked.
+	Converted is part of Adjusted (only excess the company owns is converted), never in addition to it."""
 	if not register_names:
 		return {}
-	out = {r: {"returned": 0.0, "adjusted": 0.0, "documents": []} for r in register_names}
+	out = {r: {"returned": 0.0, "adjusted": 0.0, "converted": 0.0, "documents": []} for r in register_names}
 	ex_rn = exclude[1] if exclude and exclude[0] == "Excess Material Return Note" else ""
 	ex_de = exclude[1] if exclude and exclude[0] == "Dismantling Entry" else ""
+	ex_cv = exclude[1] if exclude and exclude[0] == CONVERSION else ""
 	for r in frappe.db.sql(
 		"""select i.excess_register as reg, n.name, sum(i.return_qty) as qty
 		from `tabExcess Material Return Item` i
@@ -155,7 +158,40 @@ def usage(register_names, exclude=None):
 	):
 		out[r.reg]["adjusted"] += flt(r.qty)
 		out[r.reg]["documents"].append(r.name)
+	for r in frappe.db.sql(
+		"""select i.excess_register as reg, c.name, sum(i.conversion_qty) as qty
+		from `tabExcess Material Conversion Item` i
+		inner join `tabExcess Material Conversion Entry` c on c.name = i.parent and i.parenttype = 'Excess Material Conversion Entry'
+		where c.docstatus = 1 and i.excess_register in %(regs)s and c.name != %(ex)s
+		group by i.excess_register, c.name""",
+		{"regs": tuple(register_names), "ex": ex_cv}, as_dict=True,
+	):
+		out[r.reg]["converted"] += flt(r.qty)
+		out[r.reg]["documents"].append(r.name)
 	return out
+
+
+def convertible(register_names, exclude=None):
+	"""{register: qty the company may move into rental stock} = adjusted - converted. Excess still
+	available to the customer is theirs and is never converted. A cancelled register has none."""
+	regs = frappe.get_all(REGISTER, filters={"name": ["in", list(register_names)]}, fields=["name", "status"])
+	used = usage([r.name for r in regs], exclude)
+	return {r.name: 0.0 if r.status == "Cancelled" else used[r.name]["adjusted"] - used[r.name]["converted"] for r in regs}
+
+
+def check_adjustment_cancel(dismantling):
+	"""Cancelling a Dismantling Entry gives its excess back to the customer: refused while that excess
+	has already been converted into rental stock (cancel the conversion first)."""
+	regs = list({d.excess_register for d in dismantling.adjustments if d.excess_register})
+	if not regs:
+		return
+	used = usage(regs, exclude=(dismantling.doctype, dismantling.name))
+	blocked = [r for r in regs if used[r]["converted"] > used[r]["adjusted"] + EPS]
+	if blocked:
+		docs = sorted({n for r in blocked for n in frappe.get_all("Excess Material Conversion Item",
+			filters={"excess_register": r, "docstatus": 1}, pluck="parent")})
+		frappe.throw(_("The excess it adjusted has been converted into rental stock on {0}. Cancel the conversion first.").format(", ".join(docs)),
+			title=_("Excess Converted"))
 
 
 def lock_registers(names):
@@ -205,6 +241,8 @@ def recompute(register_names):
 			"returned_to_customer_qty": returned,
 			"adjusted_qty": adjusted,
 			"available_qty": flt(reg.excess_qty) - returned - adjusted,
+			"converted_qty": used[reg.name]["converted"],
+			"convertible_qty": adjusted - used[reg.name]["converted"],
 			"status": status,
 		})
 		if reg.off_hire_item:

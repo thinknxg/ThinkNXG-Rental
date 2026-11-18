@@ -12,11 +12,11 @@ def execute(filters=None):
 	for r in register_rows(filters):
 		key = (r.customer, r.item_code)
 		g = grouped.setdefault(key, frappe._dict(customer=r.customer, customer_name=r.customer_name, item_code=r.item_code,
-			item_name=r.item_name, uom=r.uom, registers=0, projects=set(), excess_qty=0, returned_to_customer_qty=0, adjusted_qty=0, available_qty=0))
+			item_name=r.item_name, uom=r.uom, registers=0, projects=set(), excess_qty=0, returned_to_customer_qty=0, adjusted_qty=0, available_qty=0, converted_qty=0))
 		g.registers += 1
 		if r.project:
 			g.projects.add(r.project)
-		for f in ("excess_qty", "returned_to_customer_qty", "adjusted_qty", "available_qty"):
+		for f in ("excess_qty", "returned_to_customer_qty", "adjusted_qty", "available_qty", "converted_qty"):
 			g[f] += flt(r[f])
 	rows = []
 	for key in sorted(grouped, key=lambda k: (grouped[k].customer_name or k[0] or "", k[1])):
@@ -35,5 +35,6 @@ def execute(filters=None):
 		{"label": _("Returned to Customer"), "fieldname": "returned_to_customer_qty", "fieldtype": "Float", "width": 130},
 		{"label": _("Adjusted"), "fieldname": "adjusted_qty", "fieldtype": "Float", "width": 100},
 		{"label": _("Available"), "fieldname": "available_qty", "fieldtype": "Float", "width": 100},
+		{"label": _("Converted to Rental Stock"), "fieldname": "converted_qty", "fieldtype": "Float", "width": 130},
 	]
 	return columns, rows

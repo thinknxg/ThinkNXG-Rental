@@ -30,6 +30,10 @@
   "returned_to_customer_qty",
   "adjusted_qty",
   "available_qty",
+  "sb_conv",
+  "converted_qty",
+  "cb_conv",
+  "convertible_qty",
   "sb_trace",
   "hire_off_hire_note",
   "off_hire_item",
@@ -219,6 +223,28 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "sb_conv",
+   "fieldtype": "Section Break",
+   "label": "Conversion to Rental Stock",
+   "description": "Adjusted excess belongs to the company and may be moved into rental stock on an Excess Material Conversion Entry. The customer balances above are not affected."
+  },
+  {
+   "fieldname": "converted_qty",
+   "fieldtype": "Float",
+   "label": "Converted to Rental Stock",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_conv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "convertible_qty",
+   "fieldtype": "Float",
+   "label": "Available to Convert",
+   "read_only": 1
+  },
+  {
    "fieldname": "sb_trace",
    "fieldtype": "Section Break",
    "label": "Traceability"
@@ -283,7 +309,7 @@
   }
  ],
  "links": [],
- "modified": "2026-11-18 09:00:00.000000",
+ "modified": "2026-11-18 20:30:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Excess Material Register",

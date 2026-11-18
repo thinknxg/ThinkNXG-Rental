@@ -239,6 +239,7 @@ class DismantlingEntry(Document):
 		ledger.update_contract_progress(self.rental_contract)
 
 	def before_cancel(self):
+		excess.check_adjustment_cancel(self)
 		billed = frappe.db.get_value("Rental Contract", self.rental_contract, "last_billed_upto")
 		if billed and getdate(self.posting_date) < getdate(billed):
 			frappe.throw(_("Cannot cancel: billing has been generated for periods after this adjustment. Cancel those billing schedules first."))

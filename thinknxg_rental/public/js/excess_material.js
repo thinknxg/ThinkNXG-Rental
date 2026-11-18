@@ -23,19 +23,23 @@ frappe.provide("thinknxg_rental");
 			callback(r) {
 				const m = r.message || { registers: [], history: [] };
 				const regs = table(
-					[{ label: __("Excess Register") }, { label: __("Item") }, { label: __("Received"), num: 1 }, { label: __("Available"), num: 1 }, { label: __("Status") }],
-					m.registers.map((g) => [link("Excess Material Register", g.name), esc(g.item_code), qty(g.excess_qty), qty(g.available_qty), esc(__(g.status))])
+					[{ label: __("Excess Register") }, { label: __("Item") }, { label: __("Received"), num: 1 }, { label: __("Available"), num: 1 },
+						{ label: __("Converted"), num: 1 }, { label: __("Status") }],
+					m.registers.map((g) => [link("Excess Material Register", g.name), esc(g.item_code), qty(g.excess_qty), qty(g.available_qty),
+						qty(g.converted_qty), esc(__(g.status))])
 				);
 				const hist = table(
 					[{ label: __("Date") }, { label: __("Document") }, { label: __("Excess Register") }, { label: __("Excess Item") }, { label: __("Qty"), num: 1 },
-						{ label: __("Settled Against") }, { label: __("State") }],
+						{ label: __("Settled Against / Converted To") }, { label: __("State") }],
 					m.history.map((h) => [
 						esc(frappe.datetime.str_to_user(h.posting_date)),
 						`${esc(__(h.doctype))}<br>${link(h.doctype, h.name)}`,
 						link("Excess Material Register", h.excess_register),
 						esc(h.item_code),
 						qty(h.qty),
-						h.outstanding_item ? `${qty(h.settled_qty)} ${esc(h.outstanding_item)}` : esc(__("Returned to customer")),
+						h.target_item
+							? esc(__("Converted to {0} {1} in {2}", [qty(h.target_qty), h.target_item, h.target_warehouse]))
+							: h.outstanding_item ? `${qty(h.settled_qty)} ${esc(h.outstanding_item)}` : esc(__("Returned to customer")),
 						h.docstatus === 2 ? `<span class="text-danger">${esc(__("Cancelled"))}</span>` : esc(__("Submitted")),
 					])
 				);

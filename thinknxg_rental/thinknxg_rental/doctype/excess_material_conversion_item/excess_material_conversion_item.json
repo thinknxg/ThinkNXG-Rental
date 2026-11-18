@@ -1,0 +1,229 @@
+{
+ "actions": [],
+ "creation": "2026-11-18 20:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "excess_register",
+  "source_item_code",
+  "source_item_name",
+  "source_uom",
+  "hire_off_hire_note",
+  "available_qty",
+  "conversion_qty",
+  "cb_1",
+  "target_item_code",
+  "target_item_name",
+  "target_uom",
+  "target_qty",
+  "target_warehouse",
+  "sb_val",
+  "valuation_basis",
+  "valuation_rate",
+  "cb_val",
+  "amount",
+  "sb_sb",
+  "source_batch_no",
+  "source_serial_no",
+  "cb_sb",
+  "target_batch_no",
+  "target_serial_no",
+  "sb_rem",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "excess_register",
+   "fieldtype": "Link",
+   "label": "Excess Register",
+   "options": "Excess Material Register",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "source_item_code",
+   "fieldtype": "Link",
+   "label": "Source Item",
+   "options": "Item",
+   "fetch_from": "excess_register.item_code",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "source_item_name",
+   "fieldtype": "Data",
+   "label": "Source Item Name",
+   "fetch_from": "excess_register.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_uom",
+   "fieldtype": "Link",
+   "label": "Source UOM",
+   "options": "UOM",
+   "fetch_from": "excess_register.uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hire_off_hire_note",
+   "fieldtype": "Link",
+   "label": "Off-Hire Note",
+   "options": "Hire Off-Hire Note",
+   "fetch_from": "excess_register.hire_off_hire_note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "available_qty",
+   "fieldtype": "Float",
+   "label": "Available Excess",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Excess the company owns: adjusted on Dismantling Entries and not yet converted"
+  },
+  {
+   "fieldname": "conversion_qty",
+   "fieldtype": "Float",
+   "label": "Conversion Qty",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Units of the source excess item taken out of the excess warehouse"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_item_code",
+   "fieldtype": "Link",
+   "label": "Target Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "target_item_name",
+   "fieldtype": "Data",
+   "label": "Target Item Name",
+   "fetch_from": "target_item_code.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_uom",
+   "fieldtype": "Link",
+   "label": "Target UOM",
+   "options": "UOM",
+   "fetch_from": "target_item_code.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_qty",
+   "fieldtype": "Float",
+   "label": "Target Qty",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Units of the target item put into rental stock. Defaults to the Conversion Qty."
+  },
+  {
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "label": "Target Warehouse",
+   "options": "Warehouse",
+   "description": "Defaults to the header Target Warehouse. Must be an own rental warehouse."
+  },
+  {
+   "fieldname": "sb_val",
+   "fieldtype": "Section Break",
+   "label": "Valuation"
+  },
+  {
+   "fieldname": "valuation_basis",
+   "fieldtype": "Select",
+   "label": "Valuation Basis",
+   "options": "Manual Rate\nTarget Item Valuation Rate\nZero Value",
+   "default": "Manual Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valuation_rate",
+   "fieldtype": "Currency",
+   "label": "Valuation Rate",
+   "options": "Company:company:default_currency",
+   "read_only_depends_on": "eval:doc.valuation_basis !== 'Manual Rate'",
+   "description": "Per unit of the target item. Manual Rate: as entered. Target Item Valuation Rate: the item's current rate in the target warehouse. Zero Value: 0."
+  },
+  {
+   "fieldname": "cb_val",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Value Added",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "sb_sb",
+   "fieldtype": "Section Break",
+   "label": "Serial / Batch",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "source_batch_no",
+   "fieldtype": "Link",
+   "label": "Source Batch No",
+   "options": "Batch",
+   "fetch_from": "excess_register.batch_no",
+   "fetch_if_empty": 1
+  },
+  {
+   "fieldname": "source_serial_no",
+   "fieldtype": "Small Text",
+   "label": "Source Serial Nos"
+  },
+  {
+   "fieldname": "cb_sb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_batch_no",
+   "fieldtype": "Link",
+   "label": "Target Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "target_serial_no",
+   "fieldtype": "Small Text",
+   "label": "Target Serial Nos"
+  },
+  {
+   "fieldname": "sb_rem",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks"
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-18 20:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Excess Material Conversion Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1,
+ "editable_grid": 0
+}

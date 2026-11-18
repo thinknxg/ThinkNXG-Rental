@@ -28,8 +28,11 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
        │        (Adjustment, −qty At Site)                              │
        │        Material Issue from the site WH                         │
        │                                                                │
-       └── (customer) Excess Material Return Note ──< Return Item ──────┘  (excess returned)
-                Material Issue / Transfer out of the Excess WH
+       ├── (customer) Excess Material Return Note ──< Return Item ──────┤  (excess returned)
+       │        Material Issue / Transfer out of the Excess WH          │
+       │                                                                │
+       └── (company)  Excess Material Conversion Entry ──< Item ────────┘  (adjusted excess converted)
+                Repack: excess item out of the Excess WH → target item into a rental WH
 ```
 
 ## Workflow
@@ -72,7 +75,24 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
      come back (the same treatment as lost material).
    - **Register:** it records the excess used. The excess item stays in the excess warehouse as itself.
      Moving it into rental stock later is an ordinary, separate Material Transfer.
-4. **Reconcile and close.** *View → Material Reconciliation* on the contract shows, per item, Delivered =
+4. **Optional: convert company-owned excess into rental stock (Excess Material Conversion Entry).**
+   - Excess adjusted on a submitted Dismantling Entry belongs to the company. It stays in the Excess
+     Warehouse as itself until someone explicitly converts it. Nothing converts it automatically.
+   - Start from **Create → Excess Material Conversion Entry** on the register, or use **Get
+     Convertible Excess** on a new entry.
+   - Each row has three parts:
+     - the excess register and **Conversion Qty**: the source item out of the excess warehouse;
+     - **Target Item**, **Target Qty** and **Target Warehouse**: an own rental warehouse;
+     - **Valuation Basis**: *Manual Rate*, *Target Item Valuation Rate* (the item's current rate in that
+       warehouse) or *Zero Value*.
+   - *Convert to Existing Rental Item* needs a target item with a Rental Item Profile, which can be the
+     same code. *Convert to Different Item* takes any stock item, including one created for the purpose.
+   - On submit, one ERPNext **Repack** Stock Entry is made. It consumes the excess item at its zero value
+     and receives the target item at the chosen rate (Set Basic Rate Manually). The value added posts to
+     the **Difference Account** (default: the company's Stock Adjustment Account).
+   - The register shows **Converted to Rental Stock** and **Available to Convert**. The customer's
+     balance, the Dismantling Entry and the reconciliation are not affected.
+5. **Reconcile and close.** *View → Material Reconciliation* on the contract shows, per item, Delivered =
    Returned + Lost + Adjusted + Outstanding, and lists every open issue. *Close Contract* refuses while
    any issue is open. Setting a Project to *Completed* runs the same check for every contract on it.
 
@@ -110,6 +130,22 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
     documents are cancelled. Otherwise its registers become *Cancelled* and the excess receipt is
     reversed.
 
+- **Conversion entries:**
+  - Only excess that is adjusted and not yet converted can be converted. Excess still available to the
+    customer is theirs. Registers are locked while an entry is submitted, so the same excess can't be
+    processed twice.
+  - Every register must belong to the entry's customer (and project, if set) and come from the source
+    warehouse.
+  - The target warehouse must be an own rental warehouse; the target item must be an enabled stock
+    item, not a template or fixed asset.
+  - A valuation rate is required unless Zero Value is chosen.
+  - The same register, target item and warehouse can appear on only one row.
+  - Rental Users can view conversion entries. Rental Managers and Stock Managers create and submit them.
+  - Cancelling cancels the Repack, which reverses the stock ledger and GL entries, and puts the
+    quantity back as convertible.
+  - A Dismantling Entry whose excess has been converted can't be cancelled until the conversion is
+    cancelled.
+
 ## Reconciliation checks (contract and project closure)
 
 - Nothing outstanding for any item: delivered − returned − lost − adjusted = 0.
@@ -143,6 +179,7 @@ A Rental Manager can **Approve Reconciliation Exception** on the contract, with 
 | Excess Material Register | read | read (edits only through documents) | read |
 | Excess Material Return Note | create, submit | full | read |
 | Dismantling Entry | create (draft) | full, submit, approve ratios and cross-project use | — |
+| Excess Material Conversion Entry | read | full (also Stock Manager) | read |
 
 ## Migration
 

@@ -159,7 +159,7 @@ def get_history(register: str | None = None, hire_off_hire_note: str | None = No
 		filters["rental_contract"] = rental_contract
 	if not filters:
 		frappe.throw(_("Choose what to show the history of"))
-	regs = frappe.get_list(excess.REGISTER, filters=filters, fields=["name", "item_code", "excess_qty", "available_qty", "status"])
+	regs = frappe.get_list(excess.REGISTER, filters=filters, fields=["name", "item_code", "excess_qty", "available_qty", "converted_qty", "status"])
 	names = [r.name for r in regs]
 	rows = []
 	if names:
@@ -173,5 +173,11 @@ def get_history(register: str | None = None, hire_off_hire_note: str | None = No
 				a.excess_item as item_code, a.excess_qty_used as qty, a.outstanding_item, a.adjustment_qty as settled_qty, e.approved_by as owner
 			from `tabDismantling Adjustment` a inner join `tabDismantling Entry` e on e.name = a.parent
 			where a.excess_register in %(r)s and e.docstatus > 0""", {"r": tuple(names)}, as_dict=True)
+		rows += frappe.db.sql(
+			"""select 'Excess Material Conversion Entry' as doctype, c.name, c.posting_date, c.docstatus, i.excess_register,
+				i.source_item_code as item_code, i.conversion_qty as qty, null as outstanding_item, null as settled_qty,
+				i.target_item_code as target_item, i.target_qty, i.target_warehouse, c.converted_by as owner
+			from `tabExcess Material Conversion Item` i inner join `tabExcess Material Conversion Entry` c on c.name = i.parent
+			where i.excess_register in %(r)s and c.docstatus > 0""", {"r": tuple(names)}, as_dict=True)
 	rows.sort(key=lambda r: (str(r.posting_date), r.name), reverse=True)
 	return {"registers": regs, "history": rows}

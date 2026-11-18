@@ -114,6 +114,7 @@ doctype_js = {
 	"Excess Material Register": "public/js/excess_material.js",
 	"Excess Material Return Note": "public/js/excess_material.js",
 	"Dismantling Entry": "public/js/excess_material.js",
+	"Excess Material Conversion Entry": ["public/js/rental_warehouses.js", "public/js/excess_material.js"],
 	"Cross Hire Order": "public/js/rental_warehouses.js",
 	"Rental Return Inspection": "public/js/rental_warehouses.js",
 }
