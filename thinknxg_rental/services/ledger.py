@@ -154,26 +154,31 @@ def update_contract_progress(rental_contract):
 		if r.movement_type == "Dispatch" and r.first_date:
 			first_dispatch = min(first_dispatch, getdate(r.first_date)) if first_dispatch else getdate(r.first_date)
 
-	totals = frappe._dict(dispatched=0, returned=0, at_site=0)
+	totals = frappe._dict(dispatched=0, returned=0, adjusted=0, at_site=0)
 	for d in doc.items:
 		dispatched = moved.get((d.item_code, "Dispatch"), 0)
 		returned = -moved.get((d.item_code, "Return"), 0)
 		lost = -moved.get((d.item_code, "Loss"), 0)
+		# settled against the customer's excess material on a Dismantling Entry (services/excess.py)
+		adjusted = -moved.get((d.item_code, "Adjustment"), 0)
 		values = {
 			"dispatched_qty": dispatched,
 			"returned_qty": returned,
 			"lost_qty": lost,
-			"at_site_qty": dispatched - returned - lost,
+			"adjusted_qty": adjusted,
+			"at_site_qty": dispatched - returned - lost - adjusted,
 			"pending_qty": max(flt(d.qty) - dispatched, 0),
 		}
 		d.db_set(values, update_modified=False)
 		totals.dispatched += dispatched
 		totals.returned += returned
+		totals.adjusted += adjusted
 		totals.at_site += values["at_site_qty"]
 
 	update = {
 		"total_dispatched_qty": totals.dispatched,
 		"total_returned_qty": totals.returned,
+		"total_adjusted_qty": totals.adjusted,
 		"total_at_site_qty": totals.at_site,
 		"billing_start_date": first_dispatch,
 	}

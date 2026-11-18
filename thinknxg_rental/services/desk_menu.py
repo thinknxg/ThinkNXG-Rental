@@ -58,6 +58,15 @@ MENU = [
 		dict(entry="sales-order", doctype="Sales Order"),
 		dict(entry="delivery-note", doctype="Delivery Note", label="Sales Delivery Note"),
 	]),
+	# Excess material: received over and above what is at site, then returned, settled, abandoned or
+	# converted (services/excess.py)
+	dict(label="Excess Material", items=[
+		dict(doctype="Excess Material Register", label="Register"),
+		dict(doctype="Excess Material Return Note", label="Return Note"),
+		dict(doctype="Dismantling Entry"),
+		dict(doctype="Excess Material Abandonment", label="Abandonment"),
+		dict(doctype="Excess Material Conversion Entry", label="Conversion Entry"),
+	]),
 	dict(label="Reports", items=[
 		dict(report="Material at Site"),
 		dict(report="Rental Stock Position"),
@@ -65,6 +74,10 @@ MENU = [
 		dict(report="Unbilled Rental"),
 		dict(report="Damage and Loss Register"),
 		dict(report="Hire Contract Profitability"),
+		dict(report="Excess Material Register"),
+		dict(report="Customer-wise Excess Material"),
+		dict(report="Project-wise Material Reconciliation"),
+		dict(report="Outstanding Customer Materials"),
 	]),
 	# The Command Center's boards (command_center/registry.py NAV).
 	dict(label="Admin Portal", portal=1, items=[
@@ -145,7 +158,7 @@ def get_menu():
 	entries = _entries()
 	menu = [dict(g, items=list(g["items"])) for g in MENU]
 	placed = {i.get("entry") for g in MENU for i in g["items"]}
-	last_docs = [g for g in menu if not g.get("portal") and g["label"] not in ("Reports", "Setup")][-1]
+	last_docs = [g for g in menu if not g.get("portal") and g["label"] not in ("Reports", "Setup", "Excess Material")][-1]
 	last_docs["items"] += [dict(entry=k) for k, cfg in entries.items() if k not in placed and cfg.get("menu") != "none"]
 
 	groups, routes = [], {}

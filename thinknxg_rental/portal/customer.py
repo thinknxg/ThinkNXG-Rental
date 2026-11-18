@@ -239,7 +239,7 @@ def _movement_chart(c, today):
 	start = getdate(get_first_day(add_months(today, -5)))
 	rows = frappe.db.sql("""select date_format(posting_date, '%%Y-%%m') as ym,
 			sum(case when movement_type = 'Dispatch' then qty else 0 end) as out_qty,
-			sum(case when movement_type in ('Return', 'Loss') then -qty else 0 end) as in_qty
+			sum(case when movement_type in ('Return', 'Loss', 'Adjustment') then -qty else 0 end) as in_qty
 		from `tabRental Ownership Ledger`
 		where position_type = 'At Site' and customer in %(customers)s and posting_date >= %(start)s
 		group by ym""", dict(c.args, start=start), as_dict=True)
@@ -530,7 +530,7 @@ def active_rentals(customer: str | None = None, page: int = 1, page_length: int 
 	elif state == "expiring":
 		cond.append("c.end_date between %(today)s and %(soon)s")
 	elif state == "partial":
-		having += " and sum(case when l.movement_type in ('Return', 'Loss') then 1 else 0 end) > 0"
+		having += " and sum(case when l.movement_type in ('Return', 'Loss', 'Adjustment') then 1 else 0 end) > 0"
 	where = (" and " + " and ".join(cond)) if cond else ""
 	body = f"""from `tabRental Ownership Ledger` l
 		inner join `tabRental Contract` c on c.name = l.rental_contract
@@ -542,7 +542,7 @@ def active_rentals(customer: str | None = None, page: int = 1, page_length: int 
 			max(l.rental_site) as rental_site, max(c.source_document) as order_no, max(c.start_date) as start_date, max(c.end_date) as end_date,
 			max(c.status) as contract_status, sum(l.qty) as qty,
 			sum(case when l.movement_type = 'Dispatch' then l.qty else 0 end) as delivered,
-			sum(case when l.movement_type in ('Return', 'Loss') then -l.qty else 0 end) as returned,
+			sum(case when l.movement_type in ('Return', 'Loss', 'Adjustment') then -l.qty else 0 end) as returned,
 			min(case when l.movement_type = 'Dispatch' then l.posting_date end) as first_dispatch
 		{body} order by max(c.end_date) asc, l.rental_contract, max(i.item_name) limit {length} offset {start}""", a, as_dict=True)
 	rates = {}

@@ -48,6 +48,14 @@
   "cb_41",
   "total_at_site_qty",
   "total_returned_qty",
+  "sb_reconciliation",
+  "total_adjusted_qty",
+  "reconciliation_status",
+  "cb_reconciliation",
+  "reconciliation_exception",
+  "reconciliation_exception_reason",
+  "reconciliation_exception_by",
+  "reconciliation_exception_on",
   "sb_42",
   "extensions",
   "sb_43",
@@ -359,6 +367,69 @@
    "no_copy": 1
   },
   {
+   "fieldname": "sb_reconciliation",
+   "fieldtype": "Section Break",
+   "label": "Material Reconciliation",
+   "collapsible": 1,
+   "collapsible_depends_on": "reconciliation_exception"
+  },
+  {
+   "fieldname": "total_adjusted_qty",
+   "fieldtype": "Float",
+   "label": "Total Adjusted Qty",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "reconciliation_status",
+   "fieldtype": "Select",
+   "label": "Reconciliation Status",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "options": "\nReconciled\nNot Reconciled\nException Approved"
+  },
+  {
+   "fieldname": "cb_reconciliation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reconciliation_exception",
+   "fieldtype": "Check",
+   "label": "Reconciliation Exception Approved",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "reconciliation_exception_reason",
+   "fieldtype": "Small Text",
+   "label": "Exception Reason",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "depends_on": "reconciliation_exception"
+  },
+  {
+   "fieldname": "reconciliation_exception_by",
+   "fieldtype": "Link",
+   "label": "Exception Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "depends_on": "reconciliation_exception"
+  },
+  {
+   "fieldname": "reconciliation_exception_on",
+   "fieldtype": "Datetime",
+   "label": "Exception Approved On",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "depends_on": "reconciliation_exception"
+  },
+  {
    "fieldname": "sb_42",
    "fieldtype": "Section Break",
    "label": "Extensions",
@@ -434,7 +505,7 @@
    "link_fieldname": "nxg_rental_contract"
   }
  ],
- "modified": "2026-10-25 16:00:00.000000",
+ "modified": "2026-11-18 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Contract",

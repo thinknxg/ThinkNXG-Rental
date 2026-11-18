@@ -13,3 +13,5 @@ thinknxg_rental.patches.v2_2.seed_rental_warehouses
 thinknxg_rental.patches.v2_4.seed_rental_website
 thinknxg_rental.patches.v2_4.clear_section_hints
 thinknxg_rental.patches.v2_4.backfill_damage_charges
+thinknxg_rental.patches.v2_6.register_existing_excess
+thinknxg_rental.patches.v2_6.refresh_workspace_menu

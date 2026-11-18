@@ -6,7 +6,7 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, flt, getdate, nowdate
 
 from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
-from thinknxg_rental.services import billing, damage_charges, ledger
+from thinknxg_rental.services import billing, damage_charges, excess, ledger
 from thinknxg_rental.services.utils import check_duplicate_items, get_contract_source, get_rental_rate
 
 SOURCE_TYPES = {"Hire Order": "Item Rental", "Hire Order Contract": "Job Type Contract"}
@@ -157,6 +157,8 @@ class RentalContract(Document):
 			)
 			if standing:
 				frappe.throw(_("Record the dismantle date on {0} before closing this contract.").format(", ".join(standing)))
+		# delivered = returned + lost + adjusted, excess settled, nothing left in draft (services/excess.py)
+		excess.check_can_close(self.name)
 		billing.generate_billing(self.name)
 		self.db_set("status", "Completed")
 		for name in frappe.get_all(
@@ -170,7 +172,25 @@ class RentalContract(Document):
 		if self.status != "Completed":
 			frappe.throw(_("Only a completed contract can be reopened"))
 		self.db_set("status", "Active")
+		# an exception approved for the closure does not carry over to the reopened contract
+		excess.clear_exception(self.name)
 		ledger.update_contract_progress(self.name)
+
+	@frappe.whitelist()
+	def get_reconciliation(self):
+		"""Delivered, returned, lost, adjusted and outstanding per item, the excess material, and what
+		still stands in the way of closing - all from submitted transactions."""
+		self.check_permission("read")
+		result = excess.reconcile(self.name)
+		excess.set_contract_status(self.name, result)
+		return result
+
+	@frappe.whitelist()
+	def approve_reconciliation_exception(self, reason: str):
+		"""A Rental Manager lets the contract (and its project) close with the open issues, with a reason.
+		Recorded on the contract and in its timeline; never applied silently."""
+		self.check_permission("write")
+		return excess.approve_exception(self.name, reason)
 
 
 def _live_contract(source):

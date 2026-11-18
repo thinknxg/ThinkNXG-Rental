@@ -49,6 +49,8 @@ doc_events = {
 	"Hire Order Contract": {
 	    "validate": "thinknxg_rental.events.default_terms.apply",
 	},
+	# a project is not completed while its rental material is not reconciled (services/excess.py)
+	"Project": {"validate": "thinknxg_rental.services.excess.project_validate"},
 	"Purchase Order": {
 		"before_validate": "thinknxg_rental.events.purchase.po_before_validate",
 		"validate": "thinknxg_rental.events.purchase.po_validate",
@@ -106,7 +108,14 @@ doctype_js = {
 	# forms whose setup uses thinknxg_rental.rental_warehouses(): the helper travels with the form
 	"Rental Material Reservation": "public/js/rental_warehouses.js",
 	"Hire Delivery Order": "public/js/rental_warehouses.js",
-	"Hire Off-Hire Note": "public/js/rental_warehouses.js",
+	"Hire Off-Hire Note": ["public/js/rental_warehouses.js", "public/js/excess_material.js"],
+	# excess material, returns and adjustments: shared dialogs travel with each form
+	"Rental Contract": "public/js/excess_material.js",
+	"Excess Material Register": "public/js/excess_material.js",
+	"Excess Material Return Note": "public/js/excess_material.js",
+	"Dismantling Entry": "public/js/excess_material.js",
+	"Excess Material Conversion Entry": ["public/js/rental_warehouses.js", "public/js/excess_material.js"],
+	"Excess Material Abandonment": "public/js/excess_material.js",
 	"Cross Hire Order": "public/js/rental_warehouses.js",
 	"Rental Return Inspection": "public/js/rental_warehouses.js",
 }

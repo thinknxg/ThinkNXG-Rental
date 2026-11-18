@@ -65,6 +65,27 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.6.0 - excess material, dismantling entries and reconciliation
+
+- Off-hire rows take an optional **Received** quantity. Returned (up to what is at site) and Excess (the
+  rest) are worked out from it. Items never delivered are accepted as *Additional Undelivered Items*.
+- Each row with excess gets an **Excess Material Register** record. It is traceable to the customer,
+  project, contract, off-hire note, delivery order and stock entry, and its balances are recalculated
+  from submitted documents.
+- **Excess Material Return Note:** hands excess back to the customer out of the excess warehouse.
+- **Dismantling Entry:** settles outstanding delivered material against the customer's excess, with
+  explicit quantities on both sides. It never converts one item into another, and a ratio other than
+  1 : 1 needs a Rental Manager.
+- A contract or project closes only once its material is reconciled, unless a Rental Manager approves an
+  exception.
+- **Excess Material Abandonment:** a Rental Manager approves that the customer abandoned excess still
+  held for them. That excess becomes the company's (convertible) and stops blocking the reconciliation.
+  No stock moves.
+- **Excess Material Conversion Entry** (optional, explicit): moves adjusted or abandoned excess into rental stock, as
+  the same or a different item, through an ERPNext Repack. The valuation rate and target warehouse are
+  chosen on each row, and cancelling reverses it.
+- Four new reports. See [docs/EXCESS_MATERIAL.md](docs/EXCESS_MATERIAL.md).
+
 ### Changes in 2.5.0 - damage and loss charges end to end
 
 - Lost, Beyond Repair and Repair charges per unit travel from the Rental Item Profile through Quotation

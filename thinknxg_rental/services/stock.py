@@ -6,7 +6,8 @@ from thinknxg_rental.services.utils import as_system
 
 
 def make_stock_entry(doc, purpose, rows, posting_date, remarks=None):
-	"""rows: dicts with item_code, qty, s_warehouse, t_warehouse, zero_value, batch_no, serial_no."""
+	"""rows: dicts with item_code, qty, s_warehouse, t_warehouse, zero_value, batch_no, serial_no, extra
+	(other Stock Entry Detail fields)."""
 	rows = [r for r in rows if flt(r.get("qty")) > 0 and r.get("s_warehouse") != r.get("t_warehouse")]
 	if not rows:
 		return None
@@ -31,6 +32,8 @@ def make_stock_entry(doc, purpose, rows, posting_date, remarks=None):
 			# supplier-owned (cross hire) material is carried at zero value
 			"allow_zero_valuation_rate": 1 if r.get("zero_value") else 0,
 		}
+		# Stock Entry Detail fields passed through as given (a Repack's manual rate, its difference account)
+		item.update(r.get("extra") or {})
 		if r.get("batch_no") or r.get("serial_no"):
 			item.update({"use_serial_batch_fields": 1, "batch_no": r.get("batch_no"), "serial_no": r.get("serial_no")})
 		se.append("items", item)

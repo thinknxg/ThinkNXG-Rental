@@ -1,0 +1,273 @@
+{
+ "actions": [],
+ "creation": "2026-11-18 21:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "customer",
+  "customer_name",
+  "project",
+  "rental_contract",
+  "hire_off_hire_note",
+  "cb_1",
+  "posting_date",
+  "status",
+  "approved_by",
+  "approved_on",
+  "sb_basis",
+  "abandonment_basis",
+  "customer_reference",
+  "notice_date",
+  "cb_basis",
+  "evidence",
+  "reason",
+  "sb_items",
+  "items",
+  "sb_tot",
+  "total_abandon_qty",
+  "sb_rem",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "EMA-.YYYY.-.#####",
+   "default": "EMA-.YYYY.-.#####",
+   "reqd": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "customer.customer_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "hire_off_hire_note",
+   "fieldtype": "Link",
+   "label": "Off-Hire Note",
+   "options": "Hire Off-Hire Note",
+   "description": "Optional: limits Get Excess Items to this off-hire note"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nApproved\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "in_list_view": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_basis",
+   "fieldtype": "Section Break",
+   "label": "Basis for Abandonment",
+   "description": "Why the customer's excess now belongs to the company. Submitting this note is the Rental Manager's approval."
+  },
+  {
+   "fieldname": "abandonment_basis",
+   "fieldtype": "Select",
+   "label": "Basis",
+   "reqd": 1,
+   "options": "Customer confirmed in writing\nNot collected after notice\nAgreed in contract terms\nOther"
+  },
+  {
+   "fieldname": "customer_reference",
+   "fieldtype": "Data",
+   "label": "Customer Confirmation / Notice Reference",
+   "description": "Letter, email or notice number and date"
+  },
+  {
+   "fieldname": "notice_date",
+   "fieldtype": "Date",
+   "label": "Notice Sent On",
+   "depends_on": "eval:doc.abandonment_basis === 'Not collected after notice'",
+   "mandatory_depends_on": "eval:doc.abandonment_basis === 'Not collected after notice'"
+  },
+  {
+   "fieldname": "cb_basis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evidence",
+   "fieldtype": "Attach",
+   "label": "Evidence"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_items",
+   "fieldtype": "Section Break",
+   "label": "Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Excess Material Abandonment Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_tot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "total_abandon_qty",
+   "fieldtype": "Float",
+   "label": "Total Abandoned Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_rem",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Excess Material Abandonment",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-18 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Excess Material Abandonment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "report": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Stock User",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "title_field": "customer_name",
+ "show_title_field_in_link": 1,
+ "search_fields": "customer_name,project",
+ "track_changes": 1,
+ "description": "Rental Manager approval that excess material still held for a customer has been abandoned by them. The excess becomes the company's (it can then be converted into rental stock) and stops blocking the reconciliation. No stock moves."
+}
