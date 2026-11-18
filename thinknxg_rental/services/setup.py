@@ -272,7 +272,7 @@ LEAD_LAYOUT = [
 	"address_section", "address_html", "column_break_38", "city", "state", "country", "column_break2", "contact_html",
 	"nxg_contact_sb", "salutation", "first_name", "middle_name", "last_name", "column_break_1", "lead_name", "job_title",
 	"contact_info_tab", "email_id", "website", "column_break_20", "mobile_no", "whatsapp_no", "column_break_16", "phone", "phone_ext",
-	"nxg_project_sb", "deal_type", "project_title", "project",
+	"nxg_project_sb", "deal_type", "project_title", "nxg_rental_site_profile", "project",
 	"nxg_project_cb", "status", "utm_source", "nxg_project_contact_name", "nxg_project_contact_job_title", "nxg_project_contact_email",
 	"nxg_tender_sb", "lead_owner", "nxg_tender_assignee", "nxg_tender_cb", "nxg_tender_final_submission_date", "nxg_tender_finalization_date",
 	"nxg_owner_sb", "nxg_owner_salutation", "nxg_owner_first_name", "nxg_owner_last_name", "nxg_owner_job_title",
@@ -301,6 +301,17 @@ def arrange_lead_layout():
 	current = [f.fieldname for f in frappe.get_meta("Lead").fields]
 	make_property_setter("Lead", None, "field_order", json.dumps(lead_order(current)), "Data", for_doctype=True, validate_fields_for_doctype=False)
 	frappe.clear_cache(doctype="Lead")
+
+
+def ensure_site_profile():
+	"""Rental Site Profile: the site's name as plain text on the Lead and Quotation. The Rental Site itself (with its
+	warehouses and Project) is only made after the quotation is submitted, from Create > Rental Site."""
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	field = dict(fieldname="nxg_rental_site_profile", label="Rental Site Profile", fieldtype="Data", insert_after="project_title",
+		description="Name of the customer's site. It fills the Site Name when the Rental Site is created after the quotation is submitted.")
+	create_custom_fields({"Lead": [dict(field)], "Quotation": [dict(field)]}, update=True)
+	for doctype in ("Lead", "Quotation"):  # the earlier Rental Site link is no longer used on these two
+		make_property_setter(doctype, "rental_site", "hidden", "1", "Check", validate_fields_for_doctype=False)
 
 
 def ensure_quotation_extras():
@@ -366,6 +377,7 @@ def after_migrate():
 	# Project link is hidden on the Lead and the Quotation (not removed): it is filled from the Project Title / Rental Site
 	for doctype in ("Lead", "Quotation"):
 		make_property_setter(doctype, "project", "hidden", "1", "Check", validate_fields_for_doctype=False)
+	ensure_site_profile()
 	arrange_lead_layout()
 	setup_uoms()
 	ensure_settings_defaults()

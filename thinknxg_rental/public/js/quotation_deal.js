@@ -7,6 +7,7 @@ function nxg_make_rental_site(frm) {
 		customer_name: frm.doc.customer_name,
 		company: frm.doc.company,
 		project: frm.doc.project,
+		site_name: frm.doc.nxg_rental_site_profile,
 		nxg_quotation: frm.doc.name,
 	});
 	if (frm.doc.quotation_to === "Customer" && frm.doc.party_name) {
@@ -27,7 +28,7 @@ function nxg_make_rental_site(frm) {
 
 frappe.ui.form.on("Quotation", {
 	refresh(frm) {
-		if (frm.is_new() || frm.doc.docstatus === 2) return;
+		if (frm.is_new() || frm.doc.docstatus !== 1) return;  // the site is made after the quotation is submitted
 		if (!["Material Hire", "Hire Order Contract"].includes(frm.doc.deal_type)) return;
 		frm.add_custom_button(__("Rental Site"), () => nxg_make_rental_site(frm), __("Create"));
 	},
