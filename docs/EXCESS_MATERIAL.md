@@ -75,8 +75,27 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
      come back (the same treatment as lost material).
    - **Register:** it records the excess used. The excess item stays in the excess warehouse as itself.
      Moving it into rental stock later is an ordinary, separate Material Transfer.
-4. **Optional: convert company-owned excess into rental stock (Excess Material Conversion Entry).**
-   - Excess adjusted on a submitted Dismantling Entry belongs to the company. It stays in the Excess
+4. **Excess the customer leaves behind (Excess Material Abandonment).** Sometimes the customer neither
+   collects their excess nor needs it to settle anything.
+   - A Rental User records the abandonment. Use **Create → Excess Material Abandonment** on the
+     register, the off-hire note or the contract, or **Get Excess Items** on a new note.
+   - Fill in the registers and quantities, up to what is still held for the customer, then the basis:
+     - *Customer confirmed in writing*, with the reference;
+     - *Not collected after notice*, with the notice date;
+     - *Agreed in contract terms*;
+     - *Other*.
+   - Give a reason, and attach evidence if you have any.
+   - **Submitting is the approval, and only a Rental Manager can submit.** The approver and time are
+     stamped, and a comment is added to the contract.
+   - Once approved, the quantity is **Abandoned by Customer** on the register. It is no longer
+     Available, so it can't be returned to the customer, used on a Dismantling Entry, or abandoned
+     again. It now belongs to the company: **Available to Convert** rises.
+   - It stops blocking the reconciliation, so no exception is needed. No stock moves, and the
+     customer's balance of delivered material isn't touched.
+   - Cancelling hands the quantity back to the customer. That is refused while it has been converted,
+     so cancel the conversion first.
+5. **Optional: convert company-owned excess into rental stock (Excess Material Conversion Entry).**
+   - Excess adjusted on a submitted Dismantling Entry, or approved as abandoned, belongs to the company. It stays in the Excess
      Warehouse as itself until someone explicitly converts it. Nothing converts it automatically.
    - Start from **Create → Excess Material Conversion Entry** on the register, or use **Get
      Convertible Excess** on a new entry.
@@ -92,7 +111,7 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
      the **Difference Account** (default: the company's Stock Adjustment Account).
    - The register shows **Converted to Rental Stock** and **Available to Convert**. The customer's
      balance, the Dismantling Entry and the reconciliation are not affected.
-5. **Reconcile and close.** *View → Material Reconciliation* on the contract shows, per item, Delivered =
+6. **Reconcile and close.** *View → Material Reconciliation* on the contract shows, per item, Delivered =
    Returned + Lost + Adjusted + Outstanding, and lists every open issue. *Close Contract* refuses while
    any issue is open. Setting a Project to *Completed* runs the same check for every contract on it.
 
@@ -131,7 +150,7 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
     reversed.
 
 - **Conversion entries:**
-  - Only excess that is adjusted and not yet converted can be converted. Excess still available to the
+  - Only excess that is adjusted or approved as abandoned, and not yet converted, can be converted. Excess still available to the
     customer is theirs. Registers are locked while an entry is submitted, so the same excess can't be
     processed twice.
   - Every register must belong to the entry's customer (and project, if set) and come from the source
@@ -149,7 +168,7 @@ Rental Contract ──< Hire Delivery Order            (Dispatch, +qty At Site)
 ## Reconciliation checks (contract and project closure)
 
 - Nothing outstanding for any item: delivered − returned − lost − adjusted = 0.
-- No excess left available. All of it must be returned or adjusted.
+- No excess left available. All of it must be returned, adjusted or approved as abandoned.
 - Every register has a submitted excess stock entry, so no excess transfer is missing.
 - The excess warehouse holds at least what the registers show as available.
 - No draft Dismantling Entries, Excess Material Return Notes, or off-hire notes with excess.
@@ -180,6 +199,7 @@ A Rental Manager can **Approve Reconciliation Exception** on the contract, with 
 | Excess Material Return Note | create, submit | full | read |
 | Dismantling Entry | create (draft) | full, submit, approve ratios and cross-project use | — |
 | Excess Material Conversion Entry | read | full (also Stock Manager) | read |
+| Excess Material Abandonment | create (draft) | full, submit = approval | read |
 
 ## Migration
 

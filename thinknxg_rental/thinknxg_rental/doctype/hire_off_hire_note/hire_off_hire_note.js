@@ -31,6 +31,10 @@ frappe.ui.form.on("Hire Off-Hire Note", {
 		}
 		frm.add_custom_button(__("Dismantling Entry"), () => frappe.model.open_mapped_doc({
 			method: rental + "dismantling_entry.dismantling_entry.make_from_off_hire", frm }), __("Create"));
+		if (flt(frm.doc.total_excess_qty) > 0 && !["Settled", "Cancelled"].includes(frm.doc.excess_status)) {
+			frm.add_custom_button(__("Excess Material Abandonment"), () => frappe.model.open_mapped_doc({
+				method: rental + "excess_material_abandonment.excess_material_abandonment.make_from_off_hire", frm }), __("Create"));
+		}
 		if (flt(frm.doc.total_excess_qty) > 0) {
 			frm.add_custom_button(__("Excess Material Register"), () =>
 				frappe.set_route("List", "Excess Material Register", { hire_off_hire_note: frm.doc.name }), __("View"));

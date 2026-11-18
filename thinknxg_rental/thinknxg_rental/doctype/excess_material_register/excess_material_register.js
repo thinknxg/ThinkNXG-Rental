@@ -13,6 +13,8 @@ frappe.ui.form.on("Excess Material Register", {
 					},
 				});
 			}, __("Create"));
+			frm.add_custom_button(__("Excess Material Abandonment"), () => frappe.model.open_mapped_doc({
+				method: "thinknxg_rental.thinknxg_rental.doctype.excess_material_abandonment.excess_material_abandonment.make_from_register", frm }), __("Create"));
 			frm.add_custom_button(__("Dismantling Entry"), () => {
 				frappe.new_doc("Dismantling Entry", { rental_contract: frm.doc.rental_contract });
 			}, __("Create"));

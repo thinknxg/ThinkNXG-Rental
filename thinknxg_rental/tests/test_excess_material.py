@@ -12,6 +12,9 @@ from frappe.utils import add_days, flt, nowdate
 from thinknxg_rental.services import excess, ledger
 from thinknxg_rental.tests.test_admin_portal import STAFF, create, ensure_item, ensure_user, form, prepare, save
 from thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry import make_from_contract
+from thinknxg_rental.thinknxg_rental.doctype.excess_material_abandonment.excess_material_abandonment import (
+	make_from_registers as make_abandonment_from_registers,
+)
 from thinknxg_rental.thinknxg_rental.doctype.excess_material_conversion_entry.excess_material_conversion_entry import (
 	DIFFERENT as CONV_DIFFERENT,
 	EXISTING as CONV_EXISTING,
@@ -604,3 +607,93 @@ class TestExcessConversion(TestExcessMaterial):
 		frappe.set_user(RENTAL_USER)
 		with self.assertRaises(frappe.PermissionError):
 			self.convert(s, [(s.reg, 1, s.b, 40)], submit=False)
+
+
+class TestExcessAbandonment(TestExcessConversion):
+	"""Excess Material Abandonment: a Rental Manager approves that the customer abandoned their excess."""
+
+	for _name in [n for n in dir(TestExcessConversion) if n.startswith("test_")]:
+		locals()[_name] = None
+	del _name
+
+	def abandon(self, regs, qty=None, submit=True, **header):
+		doc = make_abandonment_from_registers([r.name for r in regs])
+		doc.update({"abandonment_basis": "Customer confirmed in writing", "customer_reference": "Email 18-11-2026",
+			"reason": "Customer will not collect the extra material", **header})
+		if qty is not None:
+			for d in doc.items:
+				d.abandon_qty = qty
+		doc.insert()
+		if submit:
+			doc.submit()
+		return doc
+
+	def test_a1_manager_approves_no_stock_moves(self):
+		s = self.scenario()
+		before = bin_qty(s.b, self.excess_wh)
+		frappe.set_user(RENTAL_USER)
+		draft = self.abandon([s.reg], qty=2, submit=False)  # a Rental User records it ...
+		with self.assertRaises(frappe.PermissionError):  # ... but cannot approve it
+			draft.submit()
+		frappe.set_user("Administrator")
+		draft.reload()
+		draft.submit()
+		self.assertEqual((draft.status, draft.approved_by), ("Approved", "Administrator"))
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.abandoned_qty), flt(s.reg.available_qty), flt(s.reg.convertible_qty), s.reg.status),
+			(2, 3, 2, "Partly Abandoned"))
+		self.assertEqual(bin_qty(s.b, self.excess_wh), before)  # nothing moved
+		self.assertFalse(frappe.db.exists("Stock Entry", {"nxg_hire_voucher_no": draft.name}))
+		self.assertEqual(flt(self.contract_row(s.rc, s.a).at_site_qty), 3)  # the customer's own balance is untouched
+		self.assertTrue(frappe.db.exists("Comment", {"reference_name": s.rc, "content": ["like", f"%{draft.name}%abandoned%"]}))
+		history = get_history(register=s.reg.name)["history"]
+		self.assertIn(("Excess Material Abandonment", draft.name), [(h.doctype, h.name) for h in history])
+
+	def test_a2_abandoned_is_no_longer_the_customers(self):
+		s = self.scenario()
+		self.abandon([s.reg], qty=4)
+		with self.assertRaises(frappe.ValidationError):  # only 1 left to return
+			self.return_note([s.reg], qty=2)
+		with self.assertRaises(frappe.ValidationError):  # nor to set against outstanding material
+			self.dismantle(s.rc, [(s.a, 2, s.reg, 2)])
+		with self.assertRaises(frappe.ValidationError):  # nor to abandon again
+			self.abandon([s.reg], qty=2)
+		self.return_note([s.reg], qty=1)
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.available_qty), s.reg.status), (0, "Closed"))
+		with self.assertRaises(frappe.ValidationError):  # nothing left to abandon
+			make_abandonment_from_registers([s.reg.name])
+		first, other = self.scenario(), self.scenario()
+		doc = make_abandonment_from_registers([first.reg.name])
+		doc.update({"abandonment_basis": "Other", "reason": "test"})
+		doc.append("items", {"excess_register": other.reg.name, "abandon_qty": 1})
+		with self.assertRaises(frappe.ValidationError):  # another customer's register
+			doc.insert()
+
+	def test_a3_abandoned_excess_can_be_converted(self):
+		s = self.scenario()
+		ab = self.abandon([s.reg], qty=5)
+		conv = self.convert(s, [(s.reg, 5, s.b, 40)])
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.converted_qty), flt(s.reg.convertible_qty)), (5, 0))
+		with self.assertRaises(frappe.ValidationError):  # converted: cancel the conversion first
+			frappe.get_doc("Excess Material Abandonment", ab.name).cancel()
+		conv.cancel()
+		frappe.get_doc("Excess Material Abandonment", ab.name).cancel()
+		s.reg.reload()
+		self.assertEqual((flt(s.reg.abandoned_qty), flt(s.reg.available_qty), s.reg.status), (0, 5, "Available"))
+
+	def test_a4_reconciliation_closes_without_exception(self):
+		s = self.scenario()
+		self.dismantle(s.rc, [(s.a, 3, s.reg, 3)])
+		self.assertFalse(excess.reconcile(s.rc)["reconciled"])  # 2 B still held for the customer
+		draft = self.abandon([s.reg], submit=False)
+		self.assertTrue(any(draft.name in i for i in excess.reconcile(s.rc)["issues"]))
+		draft.submit()
+		result = excess.reconcile(s.rc)
+		self.assertTrue(result["reconciled"], result["issues"])
+		self.assertIsNone(result["exception"])
+		frappe.get_doc("Rental Contract", s.rc).close_contract()
+		self.assertEqual(frappe.db.get_value("Rental Contract", s.rc, ["status", "reconciliation_status"]), ("Completed", "Reconciled"))
+		_c, rows = excess_material_register.execute({"rental_contract": s.rc})
+		self.assertEqual([(flt(r.adjusted_qty), flt(r.abandoned_qty), flt(r.available_qty), flt(r.convertible_qty)) for r in rows], [(3, 2, 0, 5)])

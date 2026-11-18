@@ -1,8 +1,8 @@
 """Excess Material Conversion Entry: excess the company owns, moved into rental stock as the same or
 another item. Optional and explicit: nothing else ever makes one.
 
-Only excess adjusted on a submitted Dismantling Entry (the customer was given credit for it, so it is
-ours) and not yet converted can be converted. Excess still available to the customer is theirs.
+Only excess the company owns can be converted: adjusted on a submitted Dismantling Entry (the customer
+was given credit for it) or approved as abandoned on an Excess Material Abandonment, and not yet converted. Excess still available to the customer is theirs.
 
 The stock movement is ONE ERPNext Repack Stock Entry: the source excess item is consumed from the excess
 warehouse (at its zero value) and the target item is received in an own rental warehouse at the rate
@@ -98,7 +98,7 @@ class ExcessMaterialConversionEntry(Document):
 			self.total_value += flt(d.amount)
 		for name, qty in taken.items():
 			if qty > flt(left.get(name)) + EPS:
-				frappe.throw(_("{0} ({1}): converting {2} but only {3} can be converted. Only excess adjusted on a submitted Dismantling Entry, and not yet converted, belongs to the company.").format(
+				frappe.throw(_("{0} ({1}): converting {2} but only {3} can be converted. Only excess adjusted on a submitted Dismantling Entry or approved as abandoned, and not yet converted, belongs to the company.").format(
 					name, regs[name].item_code, qty, flt(left.get(name))), title=_("More Than Available"))
 
 	def validate_target_item(self, d, prefix):
@@ -201,7 +201,7 @@ def make_from_register(source_name: str, target_doc=None):
 	reg = frappe.get_doc(excess.REGISTER, source_name)
 	qty = flt(excess.convertible([reg.name]).get(reg.name))
 	if qty <= EPS:
-		frappe.throw(_("Nothing of {0} can be converted. Only excess adjusted on a submitted Dismantling Entry, and not yet converted, belongs to the company.").format(reg.name))
+		frappe.throw(_("Nothing of {0} can be converted. Only excess adjusted on a submitted Dismantling Entry or approved as abandoned, and not yet converted, belongs to the company.").format(reg.name))
 	doc = frappe.new_doc("Excess Material Conversion Entry")
 	doc.update({"company": reg.company, "customer": reg.customer, "customer_name": reg.customer_name, "project": reg.project,
 		"posting_date": nowdate(), "source_warehouse": reg.excess_warehouse, "target_warehouse": rw.default_own_warehouse()})

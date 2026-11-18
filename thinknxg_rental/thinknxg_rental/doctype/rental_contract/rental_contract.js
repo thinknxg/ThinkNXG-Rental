@@ -97,6 +97,8 @@ frappe.ui.form.on("Rental Contract", {
                         }
                         frm.add_custom_button(__("Dismantling Entry"), () => frappe.model.open_mapped_doc({
                                 method: "thinknxg_rental.thinknxg_rental.doctype.dismantling_entry.dismantling_entry.make_from_contract", frm }), __("Create"));
+                        frm.add_custom_button(__("Excess Material Abandonment"), () => frappe.model.open_mapped_doc({
+                                method: "thinknxg_rental.thinknxg_rental.doctype.excess_material_abandonment.excess_material_abandonment.make_from_contract", frm }), __("Create"));
                         if (!frm.doc.reconciliation_exception && frappe.user.has_role(["Rental Manager", "System Manager"])) {
                                 frm.add_custom_button(__("Approve Reconciliation Exception"), () => thinknxg_rental.approve_exception(frm), __("Actions"));
                         }

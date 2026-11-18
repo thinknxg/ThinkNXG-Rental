@@ -78,7 +78,10 @@ contract end, as chosen on the Hire Order Contract.
   1 : 1 needs a Rental Manager.
 - A contract or project closes only once its material is reconciled, unless a Rental Manager approves an
   exception.
-- **Excess Material Conversion Entry** (optional, explicit): moves adjusted excess into rental stock, as
+- **Excess Material Abandonment:** a Rental Manager approves that the customer abandoned excess still
+  held for them. That excess becomes the company's (convertible) and stops blocking the reconciliation.
+  No stock moves.
+- **Excess Material Conversion Entry** (optional, explicit): moves adjusted or abandoned excess into rental stock, as
   the same or a different item, through an ERPNext Repack. The valuation rate and target warehouse are
   chosen on each row, and cancelling reverses it.
 - Four new reports. See [docs/EXCESS_MATERIAL.md](docs/EXCESS_MATERIAL.md).

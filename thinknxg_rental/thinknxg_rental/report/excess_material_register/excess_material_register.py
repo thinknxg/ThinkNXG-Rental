@@ -21,7 +21,7 @@ def register_rows(filters, extra_conditions=()):
 	return frappe.db.sql(
 		f"""select r.name as register, r.posting_date, r.customer, r.customer_name, r.project, r.rental_contract,
 			r.hire_off_hire_note, r.hire_delivery_order, r.item_code, r.item_name, r.uom, r.excess_category,
-			r.delivered_qty, r.off_hire_returned_qty, r.excess_qty, r.returned_to_customer_qty, r.adjusted_qty, r.available_qty,
+			r.delivered_qty, r.off_hire_returned_qty, r.excess_qty, r.returned_to_customer_qty, r.adjusted_qty, r.abandoned_qty, r.available_qty,
 			r.converted_qty, r.convertible_qty,
 			r.source_warehouse, r.excess_warehouse, r.stock_entry, r.status
 		from `tabExcess Material Register` r
@@ -51,6 +51,7 @@ def execute(filters=None):
 		{"label": _("Excess Received"), "fieldname": "excess_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Returned to Customer"), "fieldname": "returned_to_customer_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Adjusted"), "fieldname": "adjusted_qty", "fieldtype": "Float", "width": 90},
+		{"label": _("Abandoned by Customer"), "fieldname": "abandoned_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Available"), "fieldname": "available_qty", "fieldtype": "Float", "width": 90},
 		{"label": _("Converted to Rental Stock"), "fieldname": "converted_qty", "fieldtype": "Float", "width": 120},
 		{"label": _("Available to Convert"), "fieldname": "convertible_qty", "fieldtype": "Float", "width": 110},

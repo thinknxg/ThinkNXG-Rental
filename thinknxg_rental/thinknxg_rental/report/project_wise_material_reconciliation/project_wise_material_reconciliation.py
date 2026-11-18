@@ -34,7 +34,7 @@ def execute(filters=None):
 	for r in frappe.db.sql(
 		f"""select ifnull(project, '') as project, rental_contract, max(customer) as customer, max(customer_name) as customer_name,
 			item_code, sum(excess_qty) as excess_qty, sum(returned_to_customer_qty) as excess_returned_qty,
-			sum(adjusted_qty) as excess_adjusted_qty, sum(available_qty) as excess_available_qty
+			sum(adjusted_qty) as excess_adjusted_qty, sum(abandoned_qty) as excess_abandoned_qty, sum(available_qty) as excess_available_qty
 		from `tabExcess Material Register` where {" and ".join(rconds)}
 		group by ifnull(project, ''), rental_contract, item_code""",
 		rvalues, as_dict=True,
@@ -73,6 +73,7 @@ def execute(filters=None):
 		{"label": _("Excess Received"), "fieldname": "excess_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Excess Returned"), "fieldname": "excess_returned_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Excess Adjusted"), "fieldname": "excess_adjusted_qty", "fieldtype": "Float", "width": 110},
+		{"label": _("Excess Abandoned"), "fieldname": "excess_abandoned_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("Excess Available"), "fieldname": "excess_available_qty", "fieldtype": "Float", "width": 110},
 		{"label": _("State"), "fieldname": "state", "width": 120},
 	]
@@ -86,5 +87,5 @@ def _row(m, e):
 		item_code=m.item_code, delivered_qty=flt(m.get("delivered_qty")), returned_qty=flt(m.get("returned_qty")),
 		lost_qty=flt(m.get("lost_qty")), adjusted_qty=flt(m.get("adjusted_qty")), outstanding_qty=flt(m.get("outstanding_qty")),
 		excess_qty=flt(e.get("excess_qty")), excess_returned_qty=flt(e.get("excess_returned_qty")),
-		excess_adjusted_qty=flt(e.get("excess_adjusted_qty")), excess_available_qty=flt(e.get("excess_available_qty")),
+		excess_adjusted_qty=flt(e.get("excess_adjusted_qty")), excess_abandoned_qty=flt(e.get("excess_abandoned_qty")), excess_available_qty=flt(e.get("excess_available_qty")),
 	)

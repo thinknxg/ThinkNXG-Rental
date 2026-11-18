@@ -81,7 +81,7 @@
    "read_only": 1,
    "in_list_view": 1,
    "columns": 1,
-   "description": "Excess the company owns: adjusted on Dismantling Entries and not yet converted"
+   "description": "Excess the company owns: adjusted on Dismantling Entries or approved as abandoned, and not yet converted"
   },
   {
    "fieldname": "conversion_qty",

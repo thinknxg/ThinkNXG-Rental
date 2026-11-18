@@ -29,7 +29,7 @@ frappe.ui.form.on("Excess Material Conversion Entry", {
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Get Convertible Excess"), () => frm.trigger("get_items"));
 			frm.set_intro(
-				__("Only excess adjusted on a submitted Dismantling Entry belongs to the company and can be converted. The source item is consumed from the excess warehouse and the target item received into rental stock on one Repack Stock Entry; customer balances are not touched."),
+				__("Only excess adjusted on a submitted Dismantling Entry, or approved as abandoned by the customer, belongs to the company and can be converted. The source item is consumed from the excess warehouse and the target item received into rental stock on one Repack Stock Entry; customer balances are not touched."),
 				"blue"
 			);
 		}
@@ -51,7 +51,7 @@ frappe.ui.form.on("Excess Material Conversion Entry", {
 			args: { customer: frm.doc.customer, project: frm.doc.project, source_warehouse: frm.doc.source_warehouse },
 			callback(r) {
 				const rows = r.message || [];
-				if (!rows.length) return frappe.msgprint(__("This customer has no adjusted excess left to convert"));
+				if (!rows.length) return frappe.msgprint(__("This customer has no adjusted or abandoned excess left to convert"));
 				frm.clear_table("items");
 				rows.forEach((row) => frm.add_child("items", Object.assign(row, { target_warehouse: frm.doc.target_warehouse })));
 				if (!frm.doc.source_warehouse) frm.set_value("source_warehouse", rows[0].excess_warehouse);

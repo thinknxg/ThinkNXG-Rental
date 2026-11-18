@@ -21,6 +21,7 @@ from thinknxg_rental.services import ledger
 
 REGISTER = "Excess Material Register"
 CONVERSION = "Excess Material Conversion Entry"
+ABANDONMENT = "Excess Material Abandonment"
 DELIVERED = "Excess from Delivered Items"
 UNDELIVERED = "Additional Undelivered Items"
 MANAGER_ROLES = ("Rental Manager", "System Manager")
@@ -129,12 +130,14 @@ def cancel_registers(note):
 
 # ----------------------------------------------------------------------------- register balances
 def usage(register_names, exclude=None):
-	"""{register: {"returned": qty, "adjusted": qty, "converted": qty, "documents": [...]}} from submitted
+	"""{register: {"returned", "adjusted", "abandoned", "converted": qty, "documents": [...]}} from submitted
 	documents. ``exclude``: (doctype, name) left out, for the document being checked.
-	Converted is part of Adjusted (only excess the company owns is converted), never in addition to it."""
+	Returned, adjusted and abandoned each take excess away from the customer. Converted is part of what
+	the company owns (adjusted + abandoned), never in addition to it."""
 	if not register_names:
 		return {}
-	out = {r: {"returned": 0.0, "adjusted": 0.0, "converted": 0.0, "documents": []} for r in register_names}
+	out = {r: {"returned": 0.0, "adjusted": 0.0, "abandoned": 0.0, "converted": 0.0, "documents": []} for r in register_names}
+	ex_ab = exclude[1] if exclude and exclude[0] == ABANDONMENT else ""
 	ex_rn = exclude[1] if exclude and exclude[0] == "Excess Material Return Note" else ""
 	ex_de = exclude[1] if exclude and exclude[0] == "Dismantling Entry" else ""
 	ex_cv = exclude[1] if exclude and exclude[0] == CONVERSION else ""
@@ -168,29 +171,49 @@ def usage(register_names, exclude=None):
 	):
 		out[r.reg]["converted"] += flt(r.qty)
 		out[r.reg]["documents"].append(r.name)
+	for r in frappe.db.sql(
+		"""select i.excess_register as reg, a.name, sum(i.abandon_qty) as qty
+		from `tabExcess Material Abandonment Item` i
+		inner join `tabExcess Material Abandonment` a on a.name = i.parent and i.parenttype = 'Excess Material Abandonment'
+		where a.docstatus = 1 and i.excess_register in %(regs)s and a.name != %(ex)s
+		group by i.excess_register, a.name""",
+		{"regs": tuple(register_names), "ex": ex_ab}, as_dict=True,
+	):
+		out[r.reg]["abandoned"] += flt(r.qty)
+		out[r.reg]["documents"].append(r.name)
 	return out
 
 
+def owned(u):
+	"""What of a register the company owns: adjusted on Dismantling Entries + approved as abandoned."""
+	return u["adjusted"] + u["abandoned"]
+
+
+def held_for_customer(excess_qty, u):
+	return flt(excess_qty) - u["returned"] - u["adjusted"] - u["abandoned"]
+
+
 def convertible(register_names, exclude=None):
-	"""{register: qty the company may move into rental stock} = adjusted - converted. Excess still
-	available to the customer is theirs and is never converted. A cancelled register has none."""
+	"""{register: qty the company may move into rental stock} = adjusted + abandoned - converted. Excess
+	still available to the customer is theirs and is never converted. A cancelled register has none."""
 	regs = frappe.get_all(REGISTER, filters={"name": ["in", list(register_names)]}, fields=["name", "status"])
 	used = usage([r.name for r in regs], exclude)
-	return {r.name: 0.0 if r.status == "Cancelled" else used[r.name]["adjusted"] - used[r.name]["converted"] for r in regs}
+	return {r.name: 0.0 if r.status == "Cancelled" else owned(used[r.name]) - used[r.name]["converted"] for r in regs}
 
 
-def check_adjustment_cancel(dismantling):
-	"""Cancelling a Dismantling Entry gives its excess back to the customer: refused while that excess
-	has already been converted into rental stock (cancel the conversion first)."""
-	regs = list({d.excess_register for d in dismantling.adjustments if d.excess_register})
+def check_adjustment_cancel(dismantling, table="adjustments"):
+	"""Cancelling a Dismantling Entry or an Excess Material Abandonment gives its excess back to the
+	customer: refused while that excess has already been converted into rental stock (cancel the
+	conversion first)."""
+	regs = list({d.excess_register for d in dismantling.get(table) if d.excess_register})
 	if not regs:
 		return
 	used = usage(regs, exclude=(dismantling.doctype, dismantling.name))
-	blocked = [r for r in regs if used[r]["converted"] > used[r]["adjusted"] + EPS]
+	blocked = [r for r in regs if used[r]["converted"] > owned(used[r]) + EPS]
 	if blocked:
 		docs = sorted({n for r in blocked for n in frappe.get_all("Excess Material Conversion Item",
 			filters={"excess_register": r, "docstatus": 1}, pluck="parent")})
-		frappe.throw(_("The excess it adjusted has been converted into rental stock on {0}. Cancel the conversion first.").format(", ".join(docs)),
+		frappe.throw(_("That excess has been converted into rental stock on {0}. Cancel the conversion first.").format(", ".join(docs)),
 			title=_("Excess Converted"))
 
 
@@ -201,27 +224,24 @@ def lock_registers(names):
 
 
 def available(register_names, exclude=None):
-	"""{register: available qty} = received - returned to customer - adjusted (submitted documents only).
+	"""{register: available qty} = received - returned to customer - adjusted - abandoned (submitted documents only).
 	A cancelled register has nothing available."""
 	regs = frappe.get_all(REGISTER, filters={"name": ["in", list(register_names)]}, fields=["name", "excess_qty", "status"])
 	used = usage([r.name for r in regs], exclude)
 	return {
-		r.name: 0.0 if r.status == "Cancelled" else flt(r.excess_qty) - used[r.name]["returned"] - used[r.name]["adjusted"]
+		r.name: 0.0 if r.status == "Cancelled" else held_for_customer(r.excess_qty, used[r.name])
 		for r in regs
 	}
 
 
-def register_status(excess, returned, adjusted):
-	avail = flt(excess) - flt(returned) - flt(adjusted)
+def register_status(excess, returned, adjusted, abandoned=0.0):
+	avail = flt(excess) - flt(returned) - flt(adjusted) - flt(abandoned)
 	if avail <= EPS:
 		return "Closed"
-	if returned > EPS and adjusted > EPS:
+	kinds = [k for k, q in (("Partly Returned", returned), ("Partly Adjusted", adjusted), ("Partly Abandoned", abandoned)) if q > EPS]
+	if len(kinds) > 1:
 		return "Partly Settled"
-	if returned > EPS:
-		return "Partly Returned"
-	if adjusted > EPS:
-		return "Partly Adjusted"
-	return "Available"
+	return kinds[0] if kinds else "Available"
 
 
 def recompute(register_names):
@@ -233,16 +253,18 @@ def recompute(register_names):
 	notes = set()
 	for reg in frappe.get_all(REGISTER, filters={"name": ["in", register_names]},
 			fields=["name", "excess_qty", "status", "hire_off_hire_note", "off_hire_item"]):
-		returned, adjusted = used[reg.name]["returned"], used[reg.name]["adjusted"]
+		u = used[reg.name]
+		returned, adjusted, abandoned = u["returned"], u["adjusted"], u["abandoned"]
 		if reg.status == "Cancelled":
 			continue
-		status = register_status(reg.excess_qty, returned, adjusted)
+		status = register_status(reg.excess_qty, returned, adjusted, abandoned)
 		frappe.db.set_value(REGISTER, reg.name, {
 			"returned_to_customer_qty": returned,
 			"adjusted_qty": adjusted,
-			"available_qty": flt(reg.excess_qty) - returned - adjusted,
-			"converted_qty": used[reg.name]["converted"],
-			"convertible_qty": adjusted - used[reg.name]["converted"],
+			"abandoned_qty": abandoned,
+			"available_qty": held_for_customer(reg.excess_qty, u),
+			"converted_qty": u["converted"],
+			"convertible_qty": owned(u) - u["converted"],
 			"status": status,
 		})
 		if reg.off_hire_item:
@@ -312,19 +334,19 @@ def reconcile(rental_contract):
 	excess = []
 	for r in regs:
 		u = used[r.name]
-		avail = flt(r.excess_qty) - u["returned"] - u["adjusted"]
+		avail = held_for_customer(r.excess_qty, u)
 		excess.append(dict(register=r.name, item_code=r.item_code, item_name=r.item_name, excess_qty=flt(r.excess_qty),
-			returned_qty=u["returned"], adjusted_qty=u["adjusted"], available_qty=avail, excess_warehouse=r.excess_warehouse,
+			returned_qty=u["returned"], adjusted_qty=u["adjusted"], abandoned_qty=u["abandoned"], available_qty=avail, excess_warehouse=r.excess_warehouse,
 			hire_off_hire_note=r.hire_off_hire_note))
 		if not r.stock_entry or frappe.db.get_value("Stock Entry", r.stock_entry, "docstatus") != 1:
 			issues.append(_("{0}: the excess transfer into the excess warehouse is missing").format(r.name))
 		if avail > EPS:
-			issues.append(_("{0}: {1} {2} of excess material is held for the customer - return it or adjust it").format(
+			issues.append(_("{0}: {1} {2} of excess material is held for the customer - return it, adjust it, or record it as abandoned").format(
 				r.name, _q(avail), r.item_code))
 	issues.extend(excess_stock_issues(excess))
 
 	drafts = []
-	for doctype in ("Dismantling Entry", "Excess Material Return Note"):
+	for doctype in ("Dismantling Entry", "Excess Material Return Note", ABANDONMENT):
 		drafts += [(doctype, n) for n in frappe.get_all(doctype, filters={"rental_contract": rental_contract, "docstatus": 0}, pluck="name")]
 	drafts += [("Hire Off-Hire Note", n) for n in frappe.db.sql_list(
 		"""select distinct n.name from `tabHire Off-Hire Note` n inner join `tabHire Off-Hire Item` i on i.parent = n.name
