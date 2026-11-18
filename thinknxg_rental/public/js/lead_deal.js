@@ -49,6 +49,7 @@ function nxg_site_defaults(frm) {
 	if (!df) return; // field not created yet (migrate pending)
 	df.get_route_options_for_new_doc = (field) => {
 		const doc = ((field && field.frm) || frm).doc;
+		frappe.flags.nxg_site_from_lead = { lead: doc.name, at: Date.now() };  // Rental Site goes back to this Lead after save
 		const values = {};
 		if (doc.customer) values.customer = doc.customer;
 		if (doc.company) values.company = doc.company;

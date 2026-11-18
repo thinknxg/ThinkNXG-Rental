@@ -70,3 +70,21 @@ frappe.ui.form.on("Rental Site", {
                 if (q) frappe.db.set_value("Rental Site", frm.doc.name, "nxg_quotation", q).then(() => frm.reload_doc());
         },
 });
+
+// Site started from the Lead's Rental Site field: after saving, go back to that Lead with the site filled in.
+frappe.ui.form.on("Rental Site", {
+        onload(frm) {
+                if (!frm.is_new()) return;
+                const f = frappe.flags.nxg_site_from_lead;
+                frappe.flags.nxg_site_from_lead = null;
+                frm._nxg_from_lead = f && Date.now() - f.at <= 60000 ? f.lead : null;
+        },
+        after_save(frm) {
+                const lead = frm._nxg_from_lead;
+                if (!lead) return;
+                frm._nxg_from_lead = null;
+                frappe.set_route("Form", "Lead", lead).then(() => {
+                        if (cur_frm && cur_frm.doctype === "Lead" && cur_frm.docname === lead) cur_frm.set_value("rental_site", frm.doc.name);
+                });
+        },
+});
