@@ -303,6 +303,14 @@ def arrange_lead_layout():
 	frappe.clear_cache(doctype="Lead")
 
 
+def ensure_quotation_lead():
+	"""Quotation.nxg_lead: the Lead the quotation was made from. Read-only; set when the quotation is made from a
+	Lead and, for older ones, filled from the party (see services/project_link.py)."""
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	create_custom_fields({"Quotation": [dict(fieldname="nxg_lead", label="Lead", fieldtype="Link", options="Lead", insert_after="nxg_rental_site_profile",
+		read_only=1, in_standard_filter=1, description="The Lead this quotation was made from. Filled automatically.")]}, update=True)
+
+
 def ensure_site_profile():
 	"""Rental Site Profile: the site's name as plain text on the Lead and Quotation. The Rental Site itself (with its
 	warehouses and Project) is only made after the quotation is submitted, from Create > Rental Site."""
@@ -378,6 +386,7 @@ def after_migrate():
 	for doctype in ("Lead", "Quotation"):
 		make_property_setter(doctype, "project", "hidden", "1", "Check", validate_fields_for_doctype=False)
 	ensure_site_profile()
+	ensure_quotation_lead()
 	arrange_lead_layout()
 	setup_uoms()
 	ensure_settings_defaults()

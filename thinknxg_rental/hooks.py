@@ -86,6 +86,7 @@ doc_events = {
 		    # rates and rate basis first: the hire amounts below are worked out from Rate
 		    "thinknxg_rental.services.item_rental.quotation_rates",
 		    "thinknxg_rental.events.quotation.validate",
+		    "thinknxg_rental.services.project_link.set_quotation_lead",
 		    "thinknxg_rental.events.quotation.item_costs",
 		    "thinknxg_rental.events.default_terms.apply",
 		    "thinknxg_rental.services.item_rental.quotation_charges",

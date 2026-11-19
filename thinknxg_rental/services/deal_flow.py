@@ -107,6 +107,7 @@ def make_quotation_from_lead(source_name: str, target_doc=None):
     def post_process(src, target):
         target.transaction_date = nowdate()
         target.deal_type = src.deal_type
+        target.nxg_lead = src.name  # the Lead this quotation is made from
         _set_party_from_lead(src, target)
         if src.get("company") and target.meta.has_field("company"):
             target.company = src.company

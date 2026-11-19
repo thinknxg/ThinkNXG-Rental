@@ -22,6 +22,8 @@ def _clean(title):
 def lead_of_quotation(quotation):
 	"""The Lead a quotation was made from: the Lead it is addressed to, the Lead of its Customer, or
 	the Lead of its Prospect when the Prospect has exactly one (with several it cannot be told apart)."""
+	if quotation.get("nxg_lead"):  # stored when the quotation was made from a Lead
+		return quotation.get("nxg_lead")
 	party_type, party = quotation.get("quotation_to"), quotation.get("party_name")
 	if not party:
 		return None
@@ -118,7 +120,7 @@ def link_site_project(site):
 	if not site.get("nxg_quotation"):
 		return
 	quotation = frappe.db.get_value("Quotation", site.nxg_quotation,
-		["name", "quotation_to", "party_name", "company", LINK] + ([TITLE] if frappe.get_meta("Quotation").has_field(TITLE) else []), as_dict=True)
+		["name", "quotation_to", "party_name", "company", LINK] + [f for f in (TITLE, "nxg_lead") if frappe.get_meta("Quotation").has_field(f)], as_dict=True)
 	if not quotation:
 		return
 	lead_name = lead_of_quotation(quotation)
@@ -144,3 +146,13 @@ def carry_to_quotation(lead, quotation):
 	for field in (TITLE, LINK):
 		if quotation.meta.has_field(field) and lead.get(field) and not quotation.get(field):
 			quotation.set(field, lead.get(field))
+
+
+def set_quotation_lead(doc, method=None):
+	"""Quotation validate: fill Lead when it is empty, from the party: the Lead itself, the Lead of the Customer, or the
+	only Lead of the Prospect. Quotations made from a Lead get it at creation (services/deal_flow.py). Never replaced."""
+	if not doc.meta.has_field("nxg_lead") or doc.get("nxg_lead"):
+		return
+	lead = lead_of_quotation(doc)
+	if lead:
+		doc.nxg_lead = lead
