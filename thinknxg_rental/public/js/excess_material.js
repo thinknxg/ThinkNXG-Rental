@@ -71,12 +71,15 @@ frappe.provide("thinknxg_rental");
 			const state = m.reconciled
 				? `<div class="alert alert-success">${esc(__("Reconciled: everything delivered is accounted for and no excess is left."))}</div>`
 				: `<div class="alert alert-warning"><b>${esc(__("Not reconciled"))}</b><ul class="mb-0">${m.issues.map((i) => `<li>${esc(i)}</li>`).join("")}</ul></div>`;
+			const closure = (m.closure_issues || []).length
+				? `<div class="alert alert-danger"><b>${esc(__("Inspection and damage settlement pending"))}</b><ul class="mb-0">${m.closure_issues.map((i) => `<li>${esc(i)}</li>`).join("")}</ul><div class="small">${esc(__("These must be completed before the contract can close; a reconciliation exception does not cover them."))}</div></div>`
+				: "";
 			const exc = m.exception
 				? `<div class="alert alert-info">${esc(__("Exception approved by {0} on {1}: {2}", [m.exception.reconciliation_exception_by,
 					frappe.datetime.str_to_user(m.exception.reconciliation_exception_on), m.exception.reconciliation_exception_reason]))}</div>`
 				: "";
 			const d = new frappe.ui.Dialog({ title: __("Material Reconciliation - {0}", [frm.doc.name]), size: "extra-large" });
-			d.$body.html(`${state}${exc}<h6>${esc(__("Delivered Material"))}</h6>${items}<h6 class="mt-4">${esc(__("Excess Material"))}</h6>${ex}`);
+			d.$body.html(`${closure}${state}${exc}<h6>${esc(__("Delivered Material"))}</h6>${items}<h6 class="mt-4">${esc(__("Excess Material"))}</h6>${ex}`);
 			if (!m.reconciled && !m.exception && frappe.user.has_role(["Rental Manager", "System Manager"])) {
 				d.set_primary_action(__("Approve Exception"), () => {
 					d.hide();

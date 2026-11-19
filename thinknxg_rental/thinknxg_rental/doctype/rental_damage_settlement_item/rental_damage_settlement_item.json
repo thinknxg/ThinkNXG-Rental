@@ -16,7 +16,8 @@
   "liability_percent",
   "salvage_value",
   "amount",
-  "remarks"
+  "remarks",
+  "recorded_loss_qty"
  ],
  "fields": [
   {
@@ -110,10 +111,18 @@
    "fieldname": "remarks",
    "fieldtype": "Data",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "recorded_loss_qty",
+   "fieldtype": "Float",
+   "label": "Loss Recorded Here",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Lost units that were still at site (not recorded as lost on the off-hire note): recorded as lost when this settlement was submitted, so their rental stops at the off-hire note's last billable day"
   }
  ],
  "links": [],
- "modified": "2026-11-16 09:00:00.000000",
+ "modified": "2026-11-19 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Damage Settlement Item",

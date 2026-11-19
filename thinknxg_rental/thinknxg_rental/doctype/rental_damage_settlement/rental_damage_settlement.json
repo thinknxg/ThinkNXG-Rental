@@ -14,6 +14,7 @@
   "posting_date",
   "status",
   "sales_invoice",
+  "loss_stock_entry",
   "sb_88",
   "items",
   "sb_89",
@@ -113,6 +114,15 @@
    "no_copy": 1
   },
   {
+   "fieldname": "loss_stock_entry",
+   "fieldtype": "Link",
+   "label": "Loss Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1,
+   "depends_on": "loss_stock_entry"
+  },
+  {
    "fieldname": "sb_88",
    "fieldtype": "Section Break",
    "label": "Damage and Loss"
@@ -194,7 +204,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-07 07:45:14.571290",
+ "modified": "2026-11-19 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Damage Settlement",

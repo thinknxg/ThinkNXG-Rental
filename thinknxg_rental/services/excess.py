@@ -444,11 +444,16 @@ def project_validate(doc, method=None):
 	if before and before.status == "Completed":
 		return
 	problems = []
+	from thinknxg_rental.services import closure
+
 	for rc in frappe.get_all("Rental Contract", filters={"project": doc.name, "docstatus": 1, "status": ["!=", "Cancelled"]}, pluck="name"):
 		result = reconcile(rc)
 		set_contract_status(rc, result)
-		if not result["reconciled"] and not result["exception"]:
-			problems.append((rc, result["issues"]))
+		issues = [] if result["exception"] else list(result["issues"])
+		# inspection and damage settlement are never covered by an exception (services/closure.py)
+		issues += closure.pending(rc)
+		if issues:
+			problems.append((rc, issues))
 	if problems:
 		html = "".join(
 			f"<p><b>{rc}</b></p><ul>" + "".join(f"<li>{frappe.utils.escape_html(i)}</li>" for i in issues) + "</ul>"

@@ -65,6 +65,29 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.6.2 - contract closure needs inspection and damage settlement
+
+- **Closure is enforced on the server** (`services/closure.py`, called from `Rental Contract.close_contract`, so
+  desk, Command Center and API calls are all checked, and from Project completion). A contract cannot close
+  while any of its submitted off-hire notes has:
+  - a return inspection pending (draft or not created);
+  - lost units (off-hire note) or repairable / beyond-repair units (return inspection) not covered by a
+    submitted Rental Damage Settlement;
+  - a settlement not completed (not invoiced, unless its total is zero, e.g. liability waived);
+  - or the contract has a draft settlement.
+  The error lists every pending item by document. A reconciliation exception does not bypass these checks.
+- **Desk:** the contract shows a "Cannot close yet" alert with the same list, the Close Contract button explains
+  what is pending, and the reconciliation dialog lists closure issues.
+- **Rental stops for settled losses:** lost units settled on a Damage Settlement but not recorded on the
+  off-hire note used to stay at site and be billed to the current date. On submit the settlement now records
+  them as a Loss (ledger and Material Issue from the site warehouse), effective the day after the note's last
+  billable date, so billing stops there. Cancelling the settlement reverses it. The settlement is refused if the
+  contract is already billed past that date.
+- **Settlement quantities are checked** against the off-hire note and its inspection (including the note's other
+  settlements), and a settlement cannot be made while the inspection is pending.
+- Historical contracts that are already completed are unchanged. Open contracts with settlements that are
+  pending (not invoiced) must complete them before closing.
+
 ### Changes in 2.6.1 - repository audit: desk and portals in step, thinkNXG branding
 
 - **Command Center (staff portal):**
