@@ -6,7 +6,7 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils import cint, flt, getdate, nowdate
 
 from thinknxg_rental.services.warehouses import available_own_qty, default_own_warehouse
-from thinknxg_rental.services import billing, damage_charges, excess, ledger
+from thinknxg_rental.services import billing, closure, damage_charges, excess, ledger
 from thinknxg_rental.services.utils import check_duplicate_items, get_contract_source, get_rental_rate
 
 SOURCE_TYPES = {"Hire Order": "Item Rental", "Hire Order Contract": "Job Type Contract"}
@@ -157,6 +157,9 @@ class RentalContract(Document):
 			)
 			if standing:
 				frappe.throw(_("Record the dismantle date on {0} before closing this contract.").format(", ".join(standing)))
+		# every return inspected, every lost and damaged item settled (services/closure.py): not bypassed by
+		# a reconciliation exception, as settlement is what stops the open charges
+		closure.check_can_close(self.name)
 		# delivered = returned + lost + adjusted, excess settled, nothing left in draft (services/excess.py)
 		excess.check_can_close(self.name)
 		billing.generate_billing(self.name)
@@ -183,7 +186,15 @@ class RentalContract(Document):
 		self.check_permission("read")
 		result = excess.reconcile(self.name)
 		excess.set_contract_status(self.name, result)
+		# inspection and damage settlement: shown with the reconciliation, never covered by an exception
+		result["closure_issues"] = closure.pending(self.name)
 		return result
+
+	@frappe.whitelist()
+	def get_closure_blockers(self):
+		"""Pending inspections and damage settlements that stop Close Contract (the form shows them)."""
+		self.check_permission("read")
+		return closure.pending(self.name)
 
 	@frappe.whitelist()
 	def approve_reconciliation_exception(self, reason: str):

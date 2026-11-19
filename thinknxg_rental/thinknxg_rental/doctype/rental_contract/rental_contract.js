@@ -102,7 +102,28 @@ frappe.ui.form.on("Rental Contract", {
                         if (!frm.doc.reconciliation_exception && frappe.user.has_role(["Rental Manager", "System Manager"])) {
                                 frm.add_custom_button(__("Approve Reconciliation Exception"), () => thinknxg_rental.approve_exception(frm), __("Actions"));
                         }
+                        // closing needs every return inspected and every lost / damaged item settled; the server
+                        // enforces it (services/closure.py), the form only says what is still pending
+                        frm.call("get_closure_blockers").then((r) => {
+                                frm.__closure_blockers = r.message || [];
+                                if (frm.__closure_blockers.length) {
+                                        frm.dashboard.set_headline_alert(
+                                                `<b>${__("Cannot close yet")}</b>: ${frm.__closure_blockers.map((i) => frappe.utils.escape_html(i)).join("; ")}`,
+                                                "orange"
+                                        );
+                                }
+                        });
                         frm.add_custom_button(__("Close Contract"), () => {
+                                const pending = frm.__closure_blockers || [];
+                                if (pending.length) {
+                                        frappe.msgprint({
+                                                title: __("Inspection and Damage Settlement Pending"),
+                                                indicator: "orange",
+                                                message: __("This contract can be closed once these are done:") +
+                                                        `<ul>${pending.map((i) => `<li>${frappe.utils.escape_html(i)}</li>`).join("")}</ul>`,
+                                        });
+                                        return;
+                                }
                                 frappe.confirm(__("Raise the final rental bill and mark this contract Completed?"), () =>
                                         frm.call("close_contract").then(() => frm.reload_doc())
                                 );
