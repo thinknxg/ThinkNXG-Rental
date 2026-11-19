@@ -56,8 +56,8 @@ def get_custom_fields():
 			dict(fieldname="nxg_tender_finalization_date", label="Tender Finalization Date", fieldtype="Date", insert_after="nxg_tender_final_submission_date"),
 			dict(fieldname="nxg_owner_sb", label="Lead Owner Details", fieldtype="Section Break", insert_after="nxg_tender_finalization_date"),
 			dict(fieldname="nxg_owner_salutation", label="Salutation", fieldtype="Link", options="Salutation", insert_after="nxg_owner_sb"),
-			dict(fieldname="nxg_owner_first_name", label="First Name", fieldtype="Data", insert_after="nxg_owner_salutation", read_only=1, fetch_from="lead_owner.first_name"),
-			dict(fieldname="nxg_owner_last_name", label="Last Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=1, fetch_from="lead_owner.last_name"),
+			dict(fieldname="nxg_owner_first_name", label="First Name", fieldtype="Data", insert_after="nxg_owner_salutation", read_only=0, fetch_from="lead_owner.first_name", fetch_if_empty=1),
+			dict(fieldname="nxg_owner_last_name", label="Last Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=0, fetch_from="lead_owner.last_name", fetch_if_empty=1),
 			dict(fieldname="nxg_owner_job_title", label="Job Title", fieldtype="Data", insert_after="nxg_owner_last_name"),
 			dict(fieldname="nxg_owner_cb", label="", fieldtype="Column Break", insert_after="nxg_owner_job_title"),
 			dict(fieldname="nxg_owner_gender", label="Gender", fieldtype="Link", options="Gender", insert_after="nxg_owner_cb", read_only=1, fetch_from="lead_owner.gender", hidden=1),
@@ -309,7 +309,7 @@ def ensure_lead_extras():
 	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 	create_custom_fields({"Lead": [
 		dict(fieldname="nxg_lead_date", label="Date", fieldtype="Date", insert_after="fax"),
-		dict(fieldname="nxg_owner_middle_name", label="Middle Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=1, fetch_from="lead_owner.middle_name"),
+		dict(fieldname="nxg_owner_middle_name", label="Middle Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=0, fetch_from="lead_owner.middle_name", fetch_if_empty=1),
 	]}, update=True)
 	make_property_setter("Lead", "contact_info_tab", "hidden", "1", "Check", validate_fields_for_doctype=False)
 
