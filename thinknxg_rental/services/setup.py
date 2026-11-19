@@ -268,14 +268,14 @@ def after_install():
 
 # Lead layout: the order the sections appear in. Anything not listed keeps its place after these.
 LEAD_LAYOUT = [
-	"organization_section", "naming_series", "customer", "company_name", "column_break_31", "territory", "fax",
+	"organization_section", "naming_series", "customer", "company_name", "column_break_31", "territory", "fax", "nxg_lead_date",
 	"address_section", "address_html", "column_break_38", "city", "state", "country", "column_break2", "contact_html",
-	"nxg_contact_sb", "salutation", "first_name", "middle_name", "last_name", "column_break_1", "lead_name", "job_title",
-	"contact_info_tab", "email_id", "website", "column_break_20", "mobile_no", "whatsapp_no", "column_break_16", "phone", "phone_ext",
+	"nxg_contact_sb", "salutation", "first_name", "middle_name", "last_name", "column_break_1", "lead_name", "job_title", "email_id", "website",
+	"column_break_20", "mobile_no", "whatsapp_no", "column_break_16", "phone", "phone_ext", "contact_info_tab",
 	"nxg_project_sb", "deal_type", "project_title", "nxg_rental_site_profile", "project",
 	"nxg_project_cb", "status", "utm_source", "nxg_project_contact_name", "nxg_project_contact_job_title", "nxg_project_contact_email",
 	"nxg_tender_sb", "lead_owner", "nxg_tender_assignee", "nxg_tender_cb", "nxg_tender_final_submission_date", "nxg_tender_finalization_date",
-	"nxg_owner_sb", "nxg_owner_salutation", "nxg_owner_first_name", "nxg_owner_last_name", "nxg_owner_job_title",
+	"nxg_owner_sb", "nxg_owner_salutation", "nxg_owner_first_name", "nxg_owner_middle_name", "nxg_owner_last_name", "nxg_owner_job_title",
 	"nxg_owner_cb", "nxg_owner_email", "nxg_owner_phone", "nxg_owner_ext", "nxg_owner_mobile",
 	# hidden fields stay in the last section
 	"gender", "type", "request_type", "nxg_owner_gender", "nxg_branches", "nxg_project_contact_gender",
@@ -301,6 +301,17 @@ def arrange_lead_layout():
 	current = [f.fieldname for f in frappe.get_meta("Lead").fields]
 	make_property_setter("Lead", None, "field_order", json.dumps(lead_order(current)), "Data", for_doctype=True, validate_fields_for_doctype=False)
 	frappe.clear_cache(doctype="Lead")
+
+
+def ensure_lead_extras():
+	"""Lead: a Date under Fax in Organization Details, a Middle Name in Lead Owner Details (fetched from the User), and the
+	Contact Info heading hidden: its fields now sit in the Contact Person section (see LEAD_LAYOUT)."""
+	from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+	create_custom_fields({"Lead": [
+		dict(fieldname="nxg_lead_date", label="Date", fieldtype="Date", insert_after="fax"),
+		dict(fieldname="nxg_owner_middle_name", label="Middle Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=1, fetch_from="lead_owner.middle_name"),
+	]}, update=True)
+	make_property_setter("Lead", "contact_info_tab", "hidden", "1", "Check", validate_fields_for_doctype=False)
 
 
 def ensure_quotation_lead():
@@ -387,6 +398,7 @@ def after_migrate():
 		make_property_setter(doctype, "project", "hidden", "1", "Check", validate_fields_for_doctype=False)
 	ensure_site_profile()
 	ensure_quotation_lead()
+	ensure_lead_extras()
 	arrange_lead_layout()
 	setup_uoms()
 	ensure_settings_defaults()
