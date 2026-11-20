@@ -268,10 +268,12 @@ def after_install():
 
 # Lead layout: the order the sections appear in. Anything not listed keeps its place after these.
 LEAD_LAYOUT = [
-	"organization_section", "naming_series", "customer", "company_name", "column_break_31", "territory", "fax", "nxg_lead_date",
+	"organization_section", "naming_series", "customer", "company_name", "column_break_31", "nxg_lead_date", "territory", "fax",
 	"address_section", "address_html", "column_break_38", "city", "state", "country", "column_break2", "contact_html",
-	"nxg_contact_sb", "salutation", "first_name", "middle_name", "last_name", "column_break_1", "lead_name", "job_title", "email_id", "website",
-	"column_break_20", "mobile_no", "whatsapp_no", "column_break_16", "phone", "phone_ext", "contact_info_tab",
+	"nxg_contact_sb", "salutation", "job_title", "whatsapp_no",
+	"column_break_1", "first_name", "mobile_no", "email_id",
+	"column_break_20", "middle_name", "phone", "website",
+	"column_break_16", "last_name", "phone_ext", "lead_name", "contact_info_tab",
 	"nxg_project_sb", "deal_type", "project_title", "nxg_rental_site_profile", "project",
 	"nxg_project_cb", "status", "utm_source", "nxg_project_contact_name", "nxg_project_contact_job_title", "nxg_project_contact_email",
 	"nxg_tender_sb", "lead_owner", "nxg_tender_assignee", "nxg_tender_cb", "nxg_tender_final_submission_date", "nxg_tender_finalization_date",
