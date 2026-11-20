@@ -742,3 +742,78 @@ frappe.ui.form.on("Quotation Item", {
     qty(frm, cdt, cdn) { nxg_item_cost_total(frm, cdt, cdn); },
     nxg_purchase_cost(frm, cdt, cdn) { nxg_item_cost_total(frm, cdt, cdn); },
 });
+
+
+// ---------------------------------------------------------------------------------------------
+// Items table: "Full view". A button above the table, or a click on its column-title row, opens
+// the same grid over the whole screen so every column fits; Esc or Close returns to the form.
+// Only the look changes: the rows are still the standard grid, so saving, totals and hooks are untouched.
+// ---------------------------------------------------------------------------------------------
+function nxg_full_view(frm) {
+    const control = frm.fields_dict.items;
+    if (!control || !control.wrapper || frm._nxg_full_view_ready) return;
+    frm._nxg_full_view_ready = true;
+    const wrap = control.wrapper;
+    const grid = control.grid;
+
+    if (!document.getElementById("nxg-full-style")) {
+        const st = document.createElement("style");
+        st.id = "nxg-full-style";
+        st.textContent = `
+            .nxg-full { position: fixed !important; inset: 0; z-index: 1040; background: var(--fg-color, #fff); padding: 10px 14px; overflow: auto; }
+            .nxg-full .nxg-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+            .nxg-full .form-grid { width: 100% !important; }
+            .nxg-full .grid-heading-row { height: auto !important; }
+            .nxg-full .grid-heading-row .data-row { height: auto !important; align-items: flex-end; }
+            .nxg-full .grid-heading-row .static-area { white-space: normal !important; overflow: visible !important; line-height: 1.2; word-break: break-word; }
+            .nxg-open-btn { margin-bottom: 6px; }
+        `;
+        document.head.appendChild(st);
+    }
+
+    function close() {
+        wrap.classList.remove("nxg-full");
+        const bar = wrap.querySelector(".nxg-bar");
+        if (bar) bar.remove();
+        document.removeEventListener("keydown", on_key);
+    }
+    function on_key(e) {
+        if (e.key === "Escape") close();
+    }
+    function open() {
+        if (wrap.classList.contains("nxg-full")) return;
+        wrap.classList.add("nxg-full");
+        const bar = document.createElement("div");
+        bar.className = "nxg-bar";
+        const title = document.createElement("span");
+        title.textContent = (frm.doc.name || __("New Quotation")) + " - " + __("Items");
+        const done = document.createElement("button");
+        done.className = "btn btn-sm btn-default";
+        done.textContent = __("Close (Esc)");
+        done.onclick = close;
+        bar.appendChild(title);
+        bar.appendChild(done);
+        wrap.prepend(bar);
+        document.addEventListener("keydown", on_key);
+        if (grid && grid.refresh) grid.refresh();
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "btn btn-xs btn-default nxg-open-btn";
+    btn.textContent = __("Full view");
+    btn.onclick = open;
+    wrap.before(btn);
+
+    // a click on the column-title row opens it too; the data rows stay editable as usual
+    wrap.addEventListener("click", (e) => {
+        if (wrap.classList.contains("nxg-full")) return;
+        const head = e.target.closest(".grid-heading-row");
+        if (head && !e.target.closest("input, .grid-col-resize-handle")) open();
+    });
+}
+
+frappe.ui.form.on("Quotation", {
+    refresh(frm) {
+        nxg_full_view(frm);
+    },
+});
