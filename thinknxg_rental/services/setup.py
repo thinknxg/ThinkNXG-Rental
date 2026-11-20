@@ -60,11 +60,13 @@ def get_custom_fields():
 			dict(fieldname="nxg_owner_last_name", label="Last Name", fieldtype="Data", insert_after="nxg_owner_first_name", read_only=0, fetch_from="lead_owner.last_name", fetch_if_empty=1),
 			dict(fieldname="nxg_owner_job_title", label="Job Title", fieldtype="Data", insert_after="nxg_owner_last_name"),
 			dict(fieldname="nxg_owner_cb", label="", fieldtype="Column Break", insert_after="nxg_owner_job_title"),
+			dict(fieldname="nxg_owner_cb2", label="", fieldtype="Column Break", insert_after="nxg_owner_cb"),
+			dict(fieldname="nxg_owner_cb3", label="", fieldtype="Column Break", insert_after="nxg_owner_cb2"),
 			dict(fieldname="nxg_owner_gender", label="Gender", fieldtype="Link", options="Gender", insert_after="nxg_owner_cb", read_only=1, fetch_from="lead_owner.gender", hidden=1),
 			dict(fieldname="nxg_owner_email", label="Email", fieldtype="Data", options="Email", insert_after="nxg_owner_gender", read_only=1, fetch_from="lead_owner.email"),
-			dict(fieldname="nxg_owner_phone", label="Tel. Number", fieldtype="Data", insert_after="nxg_owner_email", read_only=1, fetch_from="lead_owner.phone"),
+			dict(fieldname="nxg_owner_phone", label="Tel. Number", fieldtype="Data", insert_after="nxg_owner_email", read_only=1, fetch_from="lead_owner.phone", hidden=1),
 			dict(fieldname="nxg_owner_ext", label="Extension", fieldtype="Data", insert_after="nxg_owner_phone"),
-			dict(fieldname="nxg_owner_mobile", label="Mobile", fieldtype="Data", insert_after="nxg_owner_ext", read_only=1, fetch_from="lead_owner.mobile_no"),
+			dict(fieldname="nxg_owner_mobile", label="Mobile", fieldtype="Data", insert_after="nxg_owner_ext", read_only=1, fetch_from="lead_owner.mobile_no", hidden=1),
 		],
 		"Quotation": [
 			# ERPNext's Quotation has no Project or Cost Center; same names as on Sales Order so the
@@ -277,10 +279,12 @@ LEAD_LAYOUT = [
 	"nxg_project_sb", "deal_type", "project_title", "nxg_rental_site_profile", "project",
 	"nxg_project_cb", "status", "utm_source", "nxg_project_contact_name", "nxg_project_contact_job_title", "nxg_project_contact_email",
 	"nxg_tender_sb", "lead_owner", "nxg_tender_assignee", "nxg_tender_cb", "nxg_tender_final_submission_date", "nxg_tender_finalization_date",
-	"nxg_owner_sb", "nxg_owner_salutation", "nxg_owner_first_name", "nxg_owner_middle_name", "nxg_owner_last_name", "nxg_owner_job_title",
-	"nxg_owner_cb", "nxg_owner_email", "nxg_owner_phone", "nxg_owner_ext", "nxg_owner_mobile",
+	"nxg_owner_sb", "nxg_owner_salutation", "nxg_owner_job_title",
+	"nxg_owner_cb", "nxg_owner_first_name", "nxg_owner_email",
+	"nxg_owner_cb2", "nxg_owner_middle_name", "nxg_owner_ext",
+	"nxg_owner_cb3", "nxg_owner_last_name",
 	# hidden fields stay in the last section
-	"gender", "type", "request_type", "nxg_owner_gender", "nxg_branches", "nxg_project_contact_gender",
+	"gender", "type", "request_type", "nxg_owner_gender", "nxg_owner_phone", "nxg_owner_mobile", "nxg_branches", "nxg_project_contact_gender",
 	"nxg_required_from", "nxg_expected_return_date", "nxg_hire_period_days",
 ]
 LEAD_OBSOLETE = ("nxg_project_contact_sb", "nxg_project_contact_cb", "nxg_hire_period_sb", "nxg_hire_period_cb")
