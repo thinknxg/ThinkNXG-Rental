@@ -1,0 +1,33 @@
+{#- Receipt / voucher of a Rental Contract Payment (deposit or advance). -#}
+{%- set prec = 3 if doc.currency == "OMR" else 2 -%}
+{%- macro m(v) -%}{{ frappe.utils.fmt_money(v or 0, prec, doc.currency) }}{%- endmacro -%}
+{%- set p = frappe.db.get_value("Rental Company Profile", {"company": doc.company}, ["vat_registration_label", "vat_registration_number"], as_dict=True) or {} -%}
+{%- set receipt = doc.transaction_type in ("Deposit Collection", "Advance Collection") -%}
+{%- set title = "RECEIPT" if receipt else ("REFUND VOUCHER" if "Refund" in doc.transaction_type else "ADJUSTMENT VOUCHER") -%}
+<div class="rcp">
+  <table class="rcp-head"><tr>
+    <td><div class="rcp-co">{{ doc.company }}</div>{% if p.vat_registration_number %}<div class="rcp-small">{{ p.vat_registration_label or "VAT Registration Number" }}: {{ p.vat_registration_number }}</div>{% endif %}</td>
+    <td class="r"><div class="rcp-title">{{ title }}</div><div class="rcp-small">{{ doc.transaction_type }}</div></td>
+  </tr></table>
+  {% if doc.docstatus != 1 %}<div class="rcp-warn">{{ "CANCELLED" if doc.docstatus == 2 else "NOT POSTED (" ~ doc.status ~ ")" }}</div>{% endif %}
+  <table class="rcp-kv">
+    <tr><td>Receipt / Voucher No.</td><td><b>{{ doc.name }}</b></td><td>Date</td><td>{{ frappe.utils.formatdate(doc.posting_date) }}</td></tr>
+    <tr><td>Customer</td><td>{{ doc.customer_name or doc.customer }}</td><td>{{ "Rental Contract" if doc.rental_contract else ("Hire Order" if doc.hire_order else "Pro Forma Invoice") }}</td><td>{{ doc.rental_contract or doc.hire_order or doc.pro_forma_invoice or "" }}</td></tr>
+    <tr><td>Transaction Type</td><td>{{ doc.transaction_type }}</td><td>Currency</td><td>{{ doc.currency }}</td></tr>
+    {% if doc.mode_of_payment %}<tr><td>Payment Method</td><td>{{ doc.mode_of_payment }}</td><td>Bank / Cash Account</td><td>{{ doc.account }}</td></tr>
+    <tr><td>Transaction Reference</td><td>{{ doc.reference_no or "" }}</td><td>Reference Date</td><td>{{ frappe.utils.formatdate(doc.reference_date) if doc.reference_date else "" }}</td></tr>{% endif %}
+    {% if doc.sales_invoice %}<tr><td>Against Invoice</td><td>{{ doc.sales_invoice }}</td><td>{% if doc.deduction_reason %}Reason{% endif %}</td><td>{{ doc.deduction_reason or "" }}</td></tr>{% endif %}
+  </table>
+  <table class="rcp-amount"><tr><td>{{ "Security Deposit" if doc.transaction_type.startswith("Deposit") else "Advance" }} Amount</td><td class="r">{{ m(doc.amount) }}</td></tr>
+    {% if doc.vat_amount %}<tr class="rcp-vat"><td>of which VAT accounted ({{ doc.vat_rate }}%)</td><td class="r">{{ m(doc.vat_amount) }}</td></tr>{% endif %}
+  </table>
+  <div class="rcp-small">Amount in words: {{ frappe.utils.money_in_words(doc.amount, doc.currency) }}</div>
+  {% if doc.remarks %}<div class="rcp-small" style="margin-top:4px">Remarks: {{ doc.remarks }}</div>{% endif %}
+  {% if doc.transaction_type == "Deposit Collection" %}<div class="rcp-note">Refundable security deposit, held against the rental material and refundable subject to the return of the material and approved deductions. It is not a payment for rental.</div>{% endif %}
+  {% if doc.transaction_type == "Advance Collection" %}<div class="rcp-note">Advance towards rental charges, to be adjusted against the VAT tax invoice(s) of this contract.</div>{% endif %}
+  <table class="rcp-sign"><tr>
+    <td>Created by: {{ frappe.db.get_value("User", doc.owner, "full_name") or doc.owner }}</td>
+    <td>{% if doc.approved_by %}Approved by: {{ frappe.db.get_value("User", doc.approved_by, "full_name") or doc.approved_by }}{% endif %}</td>
+    <td class="r"><div class="rcp-line">Authorised Signatory</div></td>
+  </tr></table>
+</div>

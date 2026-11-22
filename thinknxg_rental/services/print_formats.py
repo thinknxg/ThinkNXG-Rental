@@ -8,6 +8,8 @@ import frappe
 
 FORMATS = (
     {"name": "Hire Order Contract", "doc_type": "Hire Order Contract", "file": "hire_order_contract"},
+    {"name": "Rental Pro Forma Invoice", "doc_type": "Rental Pro Forma Invoice", "file": "rental_pro_forma_invoice", "default": 1},
+    {"name": "Rental Contract Payment Receipt", "doc_type": "Rental Contract Payment", "file": "rental_contract_payment", "default": 1},
 )
 
 
@@ -36,6 +38,10 @@ def _sync_one(fmt):
         doc.save(ignore_permissions=True)
     else:
         frappe.get_doc({"doctype": "Print Format", "name": fmt["name"], **values}).insert(ignore_permissions=True)
+    if fmt.get("default") and not frappe.db.get_value("Property Setter", {"doc_type": fmt["doc_type"], "property": "default_print_format"}):
+        from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+
+        make_property_setter(fmt["doc_type"], None, "default_print_format", fmt["name"], "Data", for_doctype=True)
 
 
 def sync():

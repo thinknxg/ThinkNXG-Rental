@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "creation": "2026-11-22 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "charge_category",
+  "supply_scope",
+  "customer_vat_status",
+  "cb_1",
+  "vat_treatment",
+  "vat_rate",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "charge_category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Charge Category",
+   "options": "Rental\nTransportation\nLoading\nUnloading\nInstallation\nDismantling\nHandling\nDamage and Loss\nOther Service\nSecurity Deposit\nAdvance Payment",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "default": "Any",
+   "description": "Domestic: the material is used in the profile's country (or, with no site country, the customer is there).",
+   "fieldname": "supply_scope",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Supply",
+   "options": "Any\nDomestic\nCross-Border"
+  },
+  {
+   "columns": 2,
+   "default": "Any",
+   "fieldname": "customer_vat_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Customer VAT Registration",
+   "options": "Any\nRegistered\nNot Registered"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "default": "Standard",
+   "fieldname": "vat_treatment",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "VAT Treatment",
+   "options": "Standard\nZero-Rated\nExempt\nOut of Scope",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "description": "Used for Standard. Empty: the profile's standard rate.",
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "VAT Rate"
+  },
+  {
+   "columns": 2,
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Basis / Remarks"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-22 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental VAT Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

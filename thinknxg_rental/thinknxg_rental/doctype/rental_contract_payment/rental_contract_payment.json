@@ -1,0 +1,439 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "creation": "2026-11-22 12:00:00.000000",
+ "modified": "2026-11-22 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "module": "thinkNXG Rental",
+ "name": "Rental Contract Payment",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "links": [],
+ "title_field": "customer_name",
+ "show_title_field_in_link": 0,
+ "track_changes": 1,
+ "search_fields": "customer_name,rental_contract,transaction_type",
+ "description": "Security deposit and advance transactions of a rental contract: collections, refunds, deductions and advance adjustments. Each posts a Journal Entry to the company's liability accounts.",
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "RCP-.YYYY.-",
+   "default": "RCP-.YYYY.-",
+   "reqd": 1,
+   "print_hide": 1
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "label": "Transaction Type",
+   "options": "Deposit Collection\nDeposit Refund\nDeposit Deduction\nAdvance Collection\nAdvance Adjustment\nAdvance Refund",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract",
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "description": "Collections before the contract exists can be made against the Hire Order or Pro Forma Invoice; they move to the contract when it is submitted."
+  },
+  {
+   "fieldname": "hire_order",
+   "fieldtype": "Link",
+   "label": "Hire Order",
+   "options": "Hire Order",
+   "search_index": 1
+  },
+  {
+   "fieldname": "pro_forma_invoice",
+   "fieldtype": "Link",
+   "label": "Pro Forma Invoice",
+   "options": "Rental Pro Forma Invoice",
+   "search_index": 1
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1,
+   "fetch_from": "customer.customer_name"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nPending Approval\nPosted\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "sb_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment",
+   "depends_on": "eval:['Deposit Collection','Deposit Refund','Advance Collection','Advance Refund'].includes(doc.transaction_type)"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment",
+   "mandatory_depends_on": "eval:['Deposit Collection','Deposit Refund','Advance Collection','Advance Refund'].includes(doc.transaction_type)"
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Link",
+   "label": "Bank / Cash Account",
+   "options": "Account",
+   "mandatory_depends_on": "eval:['Deposit Collection','Deposit Refund','Advance Collection','Advance Refund'].includes(doc.transaction_type)",
+   "description": "Filled from the Mode of Payment for the company."
+  },
+  {
+   "fieldname": "cb_2",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Transaction / Cheque Reference"
+  },
+  {
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Reference Date"
+  },
+  {
+   "fieldname": "sb_invoice",
+   "fieldtype": "Section Break",
+   "label": "Against Invoice",
+   "depends_on": "eval:['Deposit Deduction','Advance Adjustment'].includes(doc.transaction_type)"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "mandatory_depends_on": "eval:['Deposit Deduction','Advance Adjustment'].includes(doc.transaction_type)",
+   "description": "Submitted invoice of the same customer. An advance is adjusted against the rental or tax invoice; a deposit deduction settles an approved damage, loss or unpaid charge."
+  },
+  {
+   "fieldname": "invoice_outstanding",
+   "fieldtype": "Currency",
+   "label": "Invoice Outstanding",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_3",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "deduction_reason",
+   "fieldtype": "Select",
+   "label": "Deduction Reason",
+   "options": "\nDamage\nMissing Material\nUnpaid Rental\nOther",
+   "depends_on": "eval:doc.transaction_type=='Deposit Deduction'",
+   "mandatory_depends_on": "eval:doc.transaction_type=='Deposit Deduction'"
+  },
+  {
+   "fieldname": "damage_settlement",
+   "fieldtype": "Link",
+   "label": "Damage Settlement",
+   "options": "Rental Damage Settlement",
+   "depends_on": "eval:doc.transaction_type=='Deposit Deduction'"
+  },
+  {
+   "fieldname": "sb_balance",
+   "fieldtype": "Section Break",
+   "label": "Balance"
+  },
+  {
+   "fieldname": "balance_before",
+   "fieldtype": "Currency",
+   "label": "Balance Before",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Deposit balance held, outstanding deposit or available advance, as the transaction type affects."
+  },
+  {
+   "fieldname": "balance_after",
+   "fieldtype": "Currency",
+   "label": "Balance After",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_4",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT Rate on Advance",
+   "read_only": 1,
+   "no_copy": 1,
+   "depends_on": "vat_amount"
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT Accounted",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "depends_on": "vat_amount",
+   "description": "VAT contained in an advance, credited to output VAT on receipt and reversed on adjustment or refund (Company Profile setting)."
+  },
+  {
+   "fieldname": "sb_accounting",
+   "fieldtype": "Section Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "liability_account",
+   "fieldtype": "Link",
+   "label": "Liability Account",
+   "options": "Account",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "label": "Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "cb_5",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "sb_more",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Data",
+   "label": "Request ID",
+   "hidden": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "unique": 1,
+   "print_hide": 1,
+   "description": "Set by the collection dialog so a retried or double-clicked request posts once."
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Rental Contract Payment",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "field_order": [
+  "naming_series",
+  "transaction_type",
+  "company",
+  "rental_contract",
+  "hire_order",
+  "pro_forma_invoice",
+  "cb_1",
+  "posting_date",
+  "customer",
+  "customer_name",
+  "status",
+  "currency",
+  "amount",
+  "sb_payment",
+  "mode_of_payment",
+  "account",
+  "cb_2",
+  "reference_no",
+  "reference_date",
+  "sb_invoice",
+  "sales_invoice",
+  "invoice_outstanding",
+  "cb_3",
+  "deduction_reason",
+  "damage_settlement",
+  "sb_balance",
+  "balance_before",
+  "balance_after",
+  "cb_4",
+  "vat_rate",
+  "vat_amount",
+  "sb_accounting",
+  "liability_account",
+  "journal_entry",
+  "cb_5",
+  "approved_by",
+  "approved_on",
+  "sb_more",
+  "remarks",
+  "request_id",
+  "amended_from"
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "cancel": 1,
+   "amend": 1,
+   "submit": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "cancel": 1,
+   "amend": 1,
+   "submit": 1
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1
+  },
+  {
+   "role": "Rental Manager",
+   "read": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  },
+  {
+   "role": "Rental User",
+   "read": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1
+  }
+ ]
+}

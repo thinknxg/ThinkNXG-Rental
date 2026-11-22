@@ -65,6 +65,34 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.7.0 - pro forma invoice, UAE / Oman VAT, security deposits and advances
+
+- **Rental Company Profile** (one per company):
+  - VAT country (Oman or UAE), currency (OMR, 3 decimals / AED, 2), VAT registration number (TRN / VATIN) and number series;
+  - VAT treatment rules per charge category, supply (domestic / cross-border) and customer VAT status, reviewed by finance;
+  - the liability accounts for customer security deposits and rental advances.
+- **Rental Pro Forma Invoice:**
+  - made from a Hire Order or Rental Contract;
+  - material lines priced by day, week, month or custom period, with minimum days and pro-rata or round-up periods;
+  - additional charges, a discount, and the refundable security deposit in its own section;
+  - a VAT summary in AED or OMR;
+  - statuses from Draft to Converted, with a status history; email and WhatsApp sharing; expiry;
+  - A4 print marked "not a VAT Tax Invoice";
+  - conversion to one Sales Invoice in the tax invoice series, with VAT worked out again. Rental invoiced this way is credited on later rental invoices.
+- **Rental Contract Payment** (deposit and advance collections, refunds, deductions and advance adjustments):
+  - each posts a balanced Journal Entry to the liability accounts (never income) and prints a receipt;
+  - refunds and deductions need approval;
+  - retried requests post once, and postings on one contract are serialised.
+  - The contract shows required, collected, outstanding, refunded, adjusted and available amounts and the statuses, all worked out from posted transactions.
+  - A rental invoice can take the contract's advance (Adjust Advance, or automatically).
+- **Command Center screens:**
+  - Pro Forma Invoices and Deposits & Advances, with their own sidebar group, list tabs and approval badges;
+  - the nine reports, with one total row per currency;
+  - deposit and advance actions on the contract, a pro forma invoice from the hire order or contract, and Adjust Advance on rental invoices;
+  - amounts shown with their currency's decimals (OMR 3, AED 2).
+- **Nine deposit and advance reports.**
+- See [docs/PRO_FORMA_AND_DEPOSITS.md](docs/PRO_FORMA_AND_DEPOSITS.md).
+
 ### Changes in 2.6.2 - contract closure needs inspection and damage settlement
 
 - **Closure is enforced on the server** (`services/closure.py`, called from `Rental Contract.close_contract`, so

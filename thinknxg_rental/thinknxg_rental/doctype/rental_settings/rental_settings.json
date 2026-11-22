@@ -8,10 +8,6 @@
   "cb_1",
   "enforce_reservation_on_dispatch",
   "inspection_required",
-  "sb_wh_own",
-  "own_rental_warehouses",
-  "sb_wh_cross",
-  "cross_hire_warehouses",
   "sb_2",
   "rental_yard_warehouse",
   "cross_hire_yard_warehouse",
@@ -20,8 +16,6 @@
   "inspection_warehouse",
   "repair_warehouse",
   "scrap_warehouse",
-  "lost_warehouse",
-  "excess_warehouse",
   "sb_4",
   "rental_charge_item",
   "damage_recovery_item",
@@ -45,7 +39,21 @@
   "portal_allow_requests",
   "cb_10",
   "portal_contact_email",
-  "portal_contact_phone"
+  "portal_contact_phone",
+  "lost_warehouse",
+  "excess_warehouse",
+  "sb_wh_own",
+  "own_rental_warehouses",
+  "sb_wh_cross",
+  "cross_hire_warehouses",
+  "sb_pro_forma",
+  "pro_forma_validity_days",
+  "pro_forma_rounding",
+  "pro_forma_terms",
+  "cb_pro_forma",
+  "service_charge_item",
+  "auto_adjust_advance",
+  "approve_deposit_refunds"
  ],
  "fields": [
   {
@@ -287,10 +295,61 @@
    "fieldtype": "Table",
    "label": "Cross Hire Warehouses",
    "options": "Rental Warehouse"
+  },
+  {
+   "fieldname": "sb_pro_forma",
+   "fieldtype": "Section Break",
+   "label": "Pro Forma Invoice, Deposits and Advances"
+  },
+  {
+   "fieldname": "pro_forma_validity_days",
+   "fieldtype": "Int",
+   "label": "Pro Forma Valid For (Days)",
+   "default": "15"
+  },
+  {
+   "fieldname": "pro_forma_rounding",
+   "fieldtype": "Select",
+   "label": "Partial Rental Period",
+   "options": "Pro Rata\nRound Up to Whole Period",
+   "default": "Pro Rata",
+   "description": "How a part week or part month is charged on a pro forma invoice. Pro Rata: by the day (weekly / 7, monthly / 30 or the calendar month, as Month Basis)."
+  },
+  {
+   "fieldname": "pro_forma_terms",
+   "fieldtype": "Link",
+   "label": "Pro Forma Terms",
+   "options": "Terms and Conditions"
+  },
+  {
+   "fieldname": "cb_pro_forma",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "service_charge_item",
+   "fieldtype": "Link",
+   "label": "Service Charge Item",
+   "options": "Item",
+   "description": "Non-stock item for transport, loading, installation and other charges on the tax invoice when the charge row names no item."
+  },
+  {
+   "fieldname": "auto_adjust_advance",
+   "fieldtype": "Check",
+   "label": "Adjust Advances on Rental Invoices",
+   "default": "0",
+   "description": "When a rental or tax invoice of a contract is submitted, adjust the contract's available advance against it automatically."
+  },
+  {
+   "fieldname": "approve_deposit_refunds",
+   "fieldtype": "Check",
+   "label": "Refunds and Deductions Need Approval",
+   "default": "1",
+   "description": "Deposit refunds, deposit deductions and advance refunds are posted only by an Accounts Manager or Rental Manager."
   }
  ],
  "links": [],
- "modified": "2026-11-15 10:00:00.000000",
+ "modified": "2026-11-22 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Settings",

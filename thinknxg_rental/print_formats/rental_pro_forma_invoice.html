@@ -1,0 +1,143 @@
+{#- Pro Forma Invoice (A4). Company details from the Company and its Rental Company Profile; logo from the Company or the letter head. -#}
+{%- set p = frappe.db.get_value("Rental Company Profile", doc.company_profile, ["vat_registration_label", "vat_registration_number", "not_tax_invoice_statement", "payment_instructions", "country"], as_dict=True) or {} -%}
+{%- set co = frappe.db.get_value("Company", doc.company, ["company_logo", "phone_no", "email", "website"], as_dict=True) or {} -%}
+{%- set co_addr = frappe.db.get_value("Dynamic Link", {"link_doctype": "Company", "link_name": doc.company, "parenttype": "Address"}, "parent") -%}
+{%- set prec = 3 if doc.currency == "OMR" else 2 -%}
+{%- macro m(v) -%}{{ frappe.utils.fmt_money(v or 0, prec, doc.currency) }}{%- endmacro -%}
+{%- macro q(v) -%}{{ (v | int) if (v or 0) == (v or 0) | int else frappe.utils.flt(v, 3) }}{%- endmacro -%}
+{%- macro addr(v) -%}{{ (v or "") | replace("\n", "<br>") | replace("<br><br>", "<br>") }}{%- endmacro -%}
+{%- macro n(v) -%}{{ frappe.utils.fmt_money(v or 0, prec) }}{%- endmacro -%}
+{%- set label = p.vat_registration_label or "VAT Registration Number" -%}
+<div class="pfi">
+  <table class="pfi-head">
+    <tr>
+      <td class="pfi-co">
+        {% if co.company_logo %}<img class="pfi-logo" src="{{ co.company_logo }}">{% endif %}
+        <div class="pfi-co-name">{{ doc.company }}</div>
+        {% if co_addr %}<div class="pfi-small">{{ frappe.db.get_value("Address", co_addr, ["address_line1", "address_line2", "city", "country"], as_dict=True) | dictsort | map(attribute=1) | select | join(", ") }}</div>{% endif %}
+        <div class="pfi-small">{{ label }}: <b>{{ p.vat_registration_number or "" }}</b></div>
+        <div class="pfi-small">{% if co.phone_no %}Tel {{ co.phone_no }} {% endif %}{% if co.email %}&middot; {{ co.email }} {% endif %}{% if co.website %}&middot; {{ co.website }}{% endif %}</div>
+      </td>
+      <td class="pfi-title-cell">
+        <div class="pfi-title">PRO FORMA INVOICE</div>
+        <table class="pfi-kv">
+          <tr><td>Pro Forma No.</td><td><b>{{ doc.name }}</b></td></tr>
+          <tr><td>Date</td><td>{{ frappe.utils.formatdate(doc.posting_date) }}</td></tr>
+          <tr><td>Valid Until</td><td>{{ frappe.utils.formatdate(doc.valid_until) }}</td></tr>
+          {% if doc.customer_reference %}<tr><td>Customer Ref.</td><td>{{ doc.customer_reference }}</td></tr>{% endif %}
+          {% if doc.hire_order %}<tr><td>Rental Order</td><td>{{ doc.hire_order }}</td></tr>{% endif %}
+          {% if doc.quotation %}<tr><td>Quotation</td><td>{{ doc.quotation }}</td></tr>{% endif %}
+          <tr><td>Currency</td><td>{{ doc.currency }}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <div class="pfi-note">{{ p.not_tax_invoice_statement or "This is a preliminary commercial document issued for confirmation of rental requirements and estimated charges. This document is not a VAT Tax Invoice." }}</div>
+
+  <table class="pfi-parties">
+    <tr>
+      <td>
+        <div class="pfi-h">Bill To</div>
+        <div><b>{{ doc.customer_name or doc.customer }}</b></div>
+        <div class="pfi-small">{{ addr(doc.address_display) }}</div>
+        {% if doc.customer_vat_number %}<div class="pfi-small">{{ label }}: {{ doc.customer_vat_number }}</div>{% endif %}
+        {% if doc.contact_display %}<div class="pfi-small">Attn: {{ doc.contact_display }}{% if doc.contact_mobile %} &middot; {{ doc.contact_mobile }}{% endif %}{% if doc.contact_email %} &middot; {{ doc.contact_email }}{% endif %}</div>{% endif %}
+      </td>
+      <td>
+        <div class="pfi-h">Delivery / Project Site</div>
+        {% if doc.project %}<div><b>{{ frappe.db.get_value("Project", doc.project, "project_name") or doc.project }}</b></div>{% endif %}
+        <div class="pfi-small">{{ addr(doc.site_address_display) }}</div>
+        <div class="pfi-small">Place of Supply: {{ doc.place_of_supply or "" }}</div>
+        {% if doc.payment_terms_template %}<div class="pfi-small">Payment Terms: {{ doc.payment_terms_template }}</div>{% endif %}
+        {% if doc.rental_start_date %}<div class="pfi-small">Rental Period: {{ frappe.utils.formatdate(doc.rental_start_date) }} to {{ frappe.utils.formatdate(doc.rental_end_date) }} ({{ doc.rental_days }} days)</div>{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <div class="pfi-sec">Rental Material</div>
+  <table class="pfi-grid">
+    <thead><tr><th style="width:5%">Sl.</th><th style="width:13%">Material Code</th><th>Material Description</th><th style="width:7%">Unit</th>
+      <th style="width:7%">Qty</th><th style="width:11%">Rental Rate</th><th style="width:16%">Rental Period</th><th style="width:7%">VAT</th><th style="width:12%">Amount</th></tr></thead>
+    <tbody>
+    {% for d in doc.items %}
+      <tr><td class="c">{{ loop.index }}</td><td>{{ d.item_code }}</td><td>{{ d.item_name }}</td><td class="c">{{ d.uom or "" }}{% if d.pricing_unit and d.pricing_unit != "Unit" %} ({{ d.pricing_unit }}){% endif %}</td>
+        <td class="r">{{ q(d.qty) }}</td><td class="r">{{ n(d.rate) }} / {{ {"Daily": "day", "Weekly": "week", "Monthly": "month"}.get(d.rate_basis) or (d.period_days ~ " days") }}</td>
+        <td>{{ frappe.utils.formatdate(d.rental_from) }} to {{ frappe.utils.formatdate(d.rental_to) }}<br><span class="pfi-small">{{ d.rental_days }} days = {{ d.period_label }}</span></td>
+        <td class="c">{{ (d.vat_rate|int ~ "%") if d.vat_treatment == "Standard" else d.vat_treatment }}</td><td class="r">{{ n(d.amount) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% if doc.charges %}
+  <div class="pfi-sec">Additional Charges</div>
+  <table class="pfi-grid">
+    <thead><tr><th style="width:5%">Sl.</th><th>Charge</th><th style="width:9%">Qty</th><th style="width:13%">Rate</th><th style="width:9%">VAT</th><th style="width:13%">Amount</th></tr></thead>
+    <tbody>
+    {% for d in doc.charges %}
+      <tr><td class="c">{{ loop.index }}</td><td>{{ d.charge_type }}{% if d.description and d.description != d.charge_type %}: {{ d.description }}{% endif %}</td>
+        <td class="r">{{ q(d.qty) }}</td><td class="r">{{ n(d.rate) }}</td><td class="c">{{ (d.vat_rate|int ~ "%") if d.vat_treatment == "Standard" else d.vat_treatment }}</td><td class="r">{{ n(d.amount) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if doc.deposits %}
+  <div class="pfi-sec">Refundable Security Deposit <span class="pfi-small">(kept separate from rental charges; not rental income)</span></div>
+  <table class="pfi-grid">
+    <thead><tr><th style="width:5%">Sl.</th><th>Description</th><th style="width:12%">Quantity / Basis</th><th style="width:13%">Deposit Rate</th><th style="width:16%">Status</th><th style="width:13%">Amount</th></tr></thead>
+    <tbody>
+    {% for d in doc.deposits %}
+      <tr><td class="c">{{ loop.index }}</td><td>{{ d.description }}</td><td class="r">{{ q(d.basis_qty) }}</td><td class="r">{{ n(d.rate) }}</td><td>{{ d.deposit_type }}</td><td class="r">{{ n(d.amount) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <table class="pfi-bottom">
+    <tr>
+      <td class="pfi-vat">
+        <div class="pfi-h">VAT Summary ({{ p.country or doc.vat_country }})</div>
+        <table class="pfi-sum">
+          <tr><td>Taxable Amount</td><td class="r">{{ m(doc.taxable_amount) }}</td></tr>
+          {% set std = doc.items | selectattr("vat_treatment", "equalto", "Standard") | map(attribute="vat_rate") | list + doc.charges | selectattr("vat_treatment", "equalto", "Standard") | map(attribute="vat_rate") | list %}
+          <tr><td>VAT @ {{ (std | unique | map("int") | join("% / ")) or "5" }}%</td><td class="r">{{ m(doc.total_vat) }}</td></tr>
+          <tr><td>Zero-Rated Amount</td><td class="r">{{ m(doc.zero_rated_amount) }}</td></tr>
+          <tr><td>Exempt Amount</td><td class="r">{{ m(doc.exempt_amount) }}</td></tr>
+          {% if doc.out_of_scope_amount %}<tr><td>Out of Scope Amount</td><td class="r">{{ m(doc.out_of_scope_amount) }}</td></tr>{% endif %}
+          <tr><td>Total VAT</td><td class="r">{{ m(doc.total_vat) }}</td></tr>
+          <tr class="b"><td>Total Amount Including VAT</td><td class="r">{{ m(doc.total_including_vat) }}</td></tr>
+        </table>
+      </td>
+      <td class="pfi-totals">
+        <table class="pfi-sum">
+          <tr><td>Total Rental Charges</td><td class="r">{{ m(doc.total_rental) }}</td></tr>
+          <tr><td>Transportation Charges</td><td class="r">{{ m(doc.total_transport) }}</td></tr>
+          <tr><td>Other Service Charges</td><td class="r">{{ m(doc.total_other_services) }}</td></tr>
+          <tr><td>Subtotal</td><td class="r">{{ m(doc.subtotal) }}</td></tr>
+          <tr><td>Discount</td><td class="r">{{ m(doc.total_discount) }}</td></tr>
+          <tr><td>Net Rental and Service Charges</td><td class="r">{{ m(doc.net_total) }}</td></tr>
+          <tr><td>Total VAT</td><td class="r">{{ m(doc.total_vat) }}</td></tr>
+          <tr class="b"><td>Charges Including VAT</td><td class="r">{{ m(doc.total_including_vat) }}</td></tr>
+          <tr><td>Less: Advance Received</td><td class="r">{{ m(doc.advance_received) }}</td></tr>
+          <tr><td>Refundable Security Deposit</td><td class="r">{{ m((doc.total_deposit or 0) + (doc.deposit_vat or 0)) }}</td></tr>
+          {% if doc.deposit_received %}<tr><td>Less: Deposit Received</td><td class="r">{{ m(doc.deposit_received) }}</td></tr>{% endif %}
+          <tr class="g"><td>Grand Total Payable</td><td class="r">{{ m(doc.grand_total_payable) }}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <div class="pfi-words"><b>Amount in words:</b> {{ doc.in_words or "" }}</div>
+
+  {% if p.payment_instructions %}<div class="pfi-block"><div class="pfi-h">Payment Instructions</div>{{ p.payment_instructions | replace("\n", "<br>") }}</div>{% endif %}
+  {% if doc.terms %}<div class="pfi-block pfi-terms"><div class="pfi-h">Terms and Conditions</div>{{ doc.terms }}</div>{% endif %}
+
+  <table class="pfi-sign">
+    <tr>
+      <td><div class="pfi-h">Customer Acceptance</div><div class="pfi-small">We accept the rental requirements and estimated charges above.</div>
+        <div class="pfi-line">Name, signature and company stamp</div><div class="pfi-line">Date</div></td>
+      <td class="r"><div class="pfi-h">For {{ doc.company }}</div><div style="height:46px"></div><div class="pfi-line">Authorised Signatory</div></td>
+    </tr>
+  </table>
+  <div class="pfi-foot">{{ p.not_tax_invoice_statement or "" }}</div>
+</div>

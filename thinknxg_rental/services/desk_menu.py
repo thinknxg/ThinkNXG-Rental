@@ -34,6 +34,7 @@ MENU = [
 	dict(label="Hire Orders", items=[
 		dict(entry="hire-order", doctype="Hire Order"),
 		dict(entry="hire-order-contract", doctype="Hire Order Contract"),
+		dict(entry="pro-forma-invoice", doctype="Rental Pro Forma Invoice", label="Pro Forma Invoice"),
 		dict(entry="jcr", doctype="Job Completion Report"),
 		dict(doctype="JCR Billing Schedule"),
 	]),
@@ -58,6 +59,20 @@ MENU = [
 		dict(doctype="Rental Billing Schedule"),
 		dict(entry="sales-order", doctype="Sales Order"),
 		dict(entry="delivery-note", doctype="Delivery Note", label="Sales Delivery Note"),
+	]),
+	# security deposits and advances posted to the company's liability accounts (services/deposits.py)
+	dict(label="Deposits & Advances", items=[
+		dict(entry="contract-payment", doctype="Rental Contract Payment", label="Deposit / Advance Transaction"),
+		dict(doctype="Rental Contract Payment", label="Pending Approval", filters={"status": "Pending Approval"}),
+		dict(report="Contract-wise Security Deposit"),
+		dict(report="Customer-wise Security Deposit"),
+		dict(report="Outstanding Security Deposit"),
+		dict(report="Security Deposit Refund Report"),
+		dict(report="Security Deposit Liability Ledger"),
+		dict(report="Customer Advance Report"),
+		dict(report="Unutilized Advance Report"),
+		dict(report="Advance Adjustment Report"),
+		dict(report="Customer Advance Liability Ledger"),
 	]),
 	# Excess material: received over and above what is at site, then returned, settled, abandoned or
 	# converted (services/excess.py)
@@ -93,6 +108,7 @@ MENU = [
 	]),
 	dict(label="Setup", items=[
 		dict(doctype="Rental Settings"),
+		dict(doctype="Rental Company Profile", label="Company Profile (VAT, Accounts)"),
 		dict(doctype="Rental Item Profile"),
 		dict(doctype="Job Type"),
 		dict(doctype="Rental Rate Card"),

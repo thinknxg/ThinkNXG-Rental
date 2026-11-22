@@ -1,0 +1,778 @@
+{
+ "actions": [],
+ "allow_import": 0,
+ "creation": "2026-11-22 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "company",
+  "customer",
+  "customer_name",
+  "hire_order",
+  "rental_contract",
+  "quotation",
+  "cb_head",
+  "posting_date",
+  "valid_until",
+  "status",
+  "customer_reference",
+  "sales_invoice",
+  "sb_vat",
+  "company_profile",
+  "vat_country",
+  "currency",
+  "company_vat_number",
+  "cb_vat",
+  "supply_scope",
+  "override_supply_scope",
+  "place_of_supply",
+  "vat_review_note",
+  "sb_customer",
+  "customer_address",
+  "address_display",
+  "customer_country",
+  "customer_vat_number",
+  "cb_customer",
+  "contact_person",
+  "contact_display",
+  "contact_mobile",
+  "contact_email",
+  "sb_site",
+  "rental_site",
+  "project",
+  "site_address_display",
+  "cb_site",
+  "equipment_country",
+  "payment_terms_template",
+  "rental_start_date",
+  "rental_end_date",
+  "rental_days",
+  "sb_items",
+  "items",
+  "sb_charges",
+  "charges",
+  "sb_discount",
+  "discount_percentage",
+  "cb_discount",
+  "discount_amount",
+  "sb_deposits",
+  "deposits",
+  "sb_summary",
+  "total_rental",
+  "total_transport",
+  "total_other_services",
+  "subtotal",
+  "total_discount",
+  "net_total",
+  "cb_sum1",
+  "taxable_amount",
+  "zero_rated_amount",
+  "exempt_amount",
+  "out_of_scope_amount",
+  "total_vat",
+  "total_including_vat",
+  "cb_sum2",
+  "total_deposit",
+  "deposit_vat",
+  "advance_received",
+  "advance_vat_included",
+  "deposit_received",
+  "grand_total_payable",
+  "in_words",
+  "sb_terms",
+  "terms_template",
+  "terms",
+  "remarks",
+  "sb_progress",
+  "approved_by",
+  "approved_on",
+  "sent_on",
+  "sent_via",
+  "cb_progress",
+  "accepted_on",
+  "accepted_by",
+  "acceptance_remarks",
+  "sb_log",
+  "status_log",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "label": "Series",
+   "hidden": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1,
+   "description": "From the company profile."
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hire_order",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Hire Order",
+   "options": "Hire Order"
+  },
+  {
+   "fieldname": "rental_contract",
+   "fieldtype": "Link",
+   "label": "Rental Contract",
+   "options": "Rental Contract"
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation Reference",
+   "options": "Quotation"
+  },
+  {
+   "fieldname": "cb_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "PI Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Draft\nSubmitted for Approval\nApproved\nSent to Customer\nCustomer Accepted\nAdvance Received\nConverted to Sales Invoice\nExpired\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_reference",
+   "fieldtype": "Data",
+   "label": "Customer Reference No."
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "no_copy": 1,
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "collapsible": 0,
+   "fieldname": "sb_vat",
+   "fieldtype": "Section Break",
+   "label": "VAT"
+  },
+  {
+   "fieldname": "company_profile",
+   "fieldtype": "Link",
+   "label": "Company Profile",
+   "options": "Rental Company Profile",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_country",
+   "fieldtype": "Data",
+   "label": "VAT Country",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company_vat_number",
+   "fieldtype": "Data",
+   "label": "Company VAT Registration No.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_vat",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Worked out from where the material is used, the customer's country and the company's VAT country.",
+   "fieldname": "supply_scope",
+   "fieldtype": "Select",
+   "label": "Supply",
+   "options": "Domestic\nCross-Border",
+   "read_only_depends_on": "eval:!doc.override_supply_scope"
+  },
+  {
+   "fieldname": "override_supply_scope",
+   "fieldtype": "Check",
+   "label": "Set Supply by Hand"
+  },
+  {
+   "fieldname": "place_of_supply",
+   "fieldtype": "Data",
+   "label": "Place of Supply"
+  },
+  {
+   "fieldname": "vat_review_note",
+   "fieldtype": "Small Text",
+   "label": "VAT Notes",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_customer",
+   "fieldtype": "Section Break",
+   "label": "Customer"
+  },
+  {
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Billing Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Small Text",
+   "label": "Billing Address Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_country",
+   "fieldtype": "Link",
+   "label": "Customer Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "customer_vat_number",
+   "fieldtype": "Data",
+   "label": "Customer VAT Registration No."
+  },
+  {
+   "fieldname": "cb_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "contact_display",
+   "fieldtype": "Data",
+   "label": "Contact Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_mobile",
+   "fieldtype": "Data",
+   "label": "Mobile No.",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "sb_site",
+   "fieldtype": "Section Break",
+   "label": "Project / Site"
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Rental Site",
+   "options": "Rental Site"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "site_address_display",
+   "fieldtype": "Small Text",
+   "label": "Delivery / Site Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_site",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Where the rental material will be used. Empty: the site address country, else the company's country.",
+   "fieldname": "equipment_country",
+   "fieldtype": "Link",
+   "label": "Material Used In (Country)",
+   "options": "Country"
+  },
+  {
+   "fieldname": "payment_terms_template",
+   "fieldtype": "Link",
+   "label": "Payment Terms",
+   "options": "Payment Terms Template"
+  },
+  {
+   "fieldname": "rental_start_date",
+   "fieldtype": "Date",
+   "label": "Rental Start Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_end_date",
+   "fieldtype": "Date",
+   "label": "Expected Rental End Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_days",
+   "fieldtype": "Int",
+   "label": "Rental Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_items",
+   "fieldtype": "Section Break",
+   "label": "Rental Material"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Rental Material",
+   "options": "Rental Pro Forma Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_charges",
+   "fieldtype": "Section Break",
+   "label": "Additional Charges"
+  },
+  {
+   "fieldname": "charges",
+   "fieldtype": "Table",
+   "label": "Additional Charges",
+   "options": "Rental Pro Forma Charge"
+  },
+  {
+   "fieldname": "sb_discount",
+   "fieldtype": "Section Break",
+   "label": "Discount"
+  },
+  {
+   "fieldname": "discount_percentage",
+   "fieldtype": "Percent",
+   "label": "Discount %"
+  },
+  {
+   "fieldname": "cb_discount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "On rental and service charges, before VAT. Percentage wins when both are set.",
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount",
+   "options": "currency"
+  },
+  {
+   "description": "Kept apart from rental revenue: never part of the taxable rental and service charges.",
+   "fieldname": "sb_deposits",
+   "fieldtype": "Section Break",
+   "label": "Refundable Security Deposit"
+  },
+  {
+   "fieldname": "deposits",
+   "fieldtype": "Table",
+   "label": "Security Deposits",
+   "options": "Rental Pro Forma Deposit"
+  },
+  {
+   "fieldname": "sb_summary",
+   "fieldtype": "Section Break",
+   "label": "Summary"
+  },
+  {
+   "fieldname": "total_rental",
+   "fieldtype": "Currency",
+   "label": "Total Rental Charges",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_transport",
+   "fieldtype": "Currency",
+   "label": "Transportation Charges",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_other_services",
+   "fieldtype": "Currency",
+   "label": "Other Service Charges",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "subtotal",
+   "fieldtype": "Currency",
+   "label": "Subtotal",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_discount",
+   "fieldtype": "Currency",
+   "label": "Discount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_total",
+   "fieldtype": "Currency",
+   "label": "Net Charges",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_sum1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "taxable_amount",
+   "fieldtype": "Currency",
+   "label": "Taxable Amount (Standard Rated)",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "zero_rated_amount",
+   "fieldtype": "Currency",
+   "label": "Zero-Rated Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exempt_amount",
+   "fieldtype": "Currency",
+   "label": "Exempt Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "out_of_scope_amount",
+   "fieldtype": "Currency",
+   "label": "Out of Scope Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_vat",
+   "fieldtype": "Currency",
+   "label": "Total VAT",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_including_vat",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount Including VAT",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_sum2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_deposit",
+   "fieldtype": "Currency",
+   "label": "Refundable Security Deposit",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "deposit_vat",
+   "fieldtype": "Currency",
+   "label": "VAT on Deposit",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "advance_received",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Received",
+   "no_copy": 1,
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "advance_vat_included",
+   "fieldtype": "Currency",
+   "label": "VAT Included in Advance",
+   "no_copy": 1,
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "deposit_received",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Received",
+   "no_copy": 1,
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "bold": 1,
+   "fieldname": "grand_total_payable",
+   "fieldtype": "Currency",
+   "label": "Grand Total Payable",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "in_words",
+   "fieldtype": "Small Text",
+   "label": "Amount Payable in Words",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_terms",
+   "fieldtype": "Section Break",
+   "label": "Terms"
+  },
+  {
+   "fieldname": "terms_template",
+   "fieldtype": "Link",
+   "label": "Terms Template",
+   "options": "Terms and Conditions"
+  },
+  {
+   "fieldname": "terms",
+   "fieldtype": "Text Editor",
+   "label": "Terms and Conditions"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sb_progress",
+   "fieldtype": "Section Break",
+   "label": "Approval and Customer"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "sent_on",
+   "fieldtype": "Datetime",
+   "label": "Sent On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "sent_via",
+   "fieldtype": "Data",
+   "label": "Sent Via",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_progress",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "accepted_on",
+   "fieldtype": "Datetime",
+   "label": "Customer Accepted On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "accepted_by",
+   "fieldtype": "Data",
+   "label": "Accepted By (Customer)",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "acceptance_remarks",
+   "fieldtype": "Small Text",
+   "label": "Acceptance Remarks",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "sb_log",
+   "fieldtype": "Section Break",
+   "label": "Status History"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "status_log",
+   "fieldtype": "Table",
+   "label": "Status History",
+   "no_copy": 1,
+   "options": "Rental Pro Forma Status Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Rental Pro Forma Invoice",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-22 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Pro Forma Invoice",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Rental Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User"
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Rental User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "customer_name,hire_order,status",
+ "show_title_field_in_link": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "customer_name",
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field"
+}

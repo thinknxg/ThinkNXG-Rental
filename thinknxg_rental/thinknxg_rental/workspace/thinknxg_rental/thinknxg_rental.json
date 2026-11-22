@@ -1,7 +1,7 @@
 {
  "app": "thinknxg_rental",
  "charts": [],
- "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"menu\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"thinkNXG Rental Menu\", \"col\": 12}}, {\"id\": \"sp0\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Lead\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Quotation\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Sales Invoice\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"sc8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Orders\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Contracts\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & Billing\", \"col\": 4}}, {\"id\": \"excessmatl1\", \"type\": \"card\", \"data\": {\"card_name\": \"Excess Material\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd6\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Formwork &amp; Scaffolding Rental</b></span>\", \"col\": 12}}, {\"id\": \"menu\", \"type\": \"custom_block\", \"data\": {\"custom_block_name\": \"thinkNXG Rental Menu\", \"col\": 12}}, {\"id\": \"sp0\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sc0\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Lead\", \"col\": 4}}, {\"id\": \"sc1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Quotation\", \"col\": 4}}, {\"id\": \"sc2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Hire Order Contract\", \"col\": 4}}, {\"id\": \"sc3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Rental Contract\", \"col\": 4}}, {\"id\": \"sc4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Delivery Order\", \"col\": 4}}, {\"id\": \"sc5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Job Completion Report\", \"col\": 4}}, {\"id\": \"sc6\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Sales Invoice\", \"col\": 4}}, {\"id\": \"sc7\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Material at Site\", \"col\": 4}}, {\"id\": \"sc8\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Admin Portal\", \"col\": 4}}, {\"id\": \"sp1\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"cd0\", \"type\": \"card\", \"data\": {\"card_name\": \"Sales\", \"col\": 4}}, {\"id\": \"cd1\", \"type\": \"card\", \"data\": {\"card_name\": \"Hire Orders\", \"col\": 4}}, {\"id\": \"cd2\", \"type\": \"card\", \"data\": {\"card_name\": \"Contracts\", \"col\": 4}}, {\"id\": \"cd3\", \"type\": \"card\", \"data\": {\"card_name\": \"Cross Hire\", \"col\": 4}}, {\"id\": \"cd4\", \"type\": \"card\", \"data\": {\"card_name\": \"Returns & Billing\", \"col\": 4}}, {\"id\": \"card_deposits\", \"type\": \"card\", \"data\": {\"card_name\": \"Deposits & Advances\", \"col\": 4}}, {\"id\": \"excessmatl1\", \"type\": \"card\", \"data\": {\"card_name\": \"Excess Material\", \"col\": 4}}, {\"id\": \"cd5\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"cd6\", \"type\": \"card\", \"data\": {\"card_name\": \"Setup\", \"col\": 4}}]",
  "creation": "2026-10-06 10:00:00.000000",
  "custom_blocks": [
   {
@@ -80,7 +80,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Hire Orders",
-   "link_count": 4,
+   "link_count": 5,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -100,6 +100,16 @@
    "label": "Hire Order Contract",
    "link_count": 0,
    "link_to": "Hire Order Contract",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Pro Forma Invoice",
+   "link_count": 0,
+   "link_to": "Rental Pro Forma Invoice",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -301,6 +311,114 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Deposits & Advances",
+   "link_count": 10,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Deposit / Advance Transaction",
+   "link_count": 0,
+   "link_to": "Rental Contract Payment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Contract-wise Security Deposit",
+   "link_count": 0,
+   "link_to": "Contract-wise Security Deposit",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Customer-wise Security Deposit",
+   "link_count": 0,
+   "link_to": "Customer-wise Security Deposit",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Outstanding Security Deposit",
+   "link_count": 0,
+   "link_to": "Outstanding Security Deposit",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Security Deposit Refund Report",
+   "link_count": 0,
+   "link_to": "Security Deposit Refund Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Security Deposit Liability Ledger",
+   "link_count": 0,
+   "link_to": "Security Deposit Liability Ledger",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Customer Advance Report",
+   "link_count": 0,
+   "link_to": "Customer Advance Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Unutilized Advance Report",
+   "link_count": 0,
+   "link_to": "Unutilized Advance Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Advance Adjustment Report",
+   "link_count": 0,
+   "link_to": "Advance Adjustment Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Customer Advance Liability Ledger",
+   "link_count": 0,
+   "link_to": "Customer Advance Liability Ledger",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Excess Material",
    "link_count": 5,
    "onboard": 0,
@@ -468,7 +586,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Setup",
-   "link_count": 6,
+   "link_count": 7,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -478,6 +596,16 @@
    "label": "Rental Settings",
    "link_count": 0,
    "link_to": "Rental Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Company Profile (VAT, Accounts)",
+   "link_count": 0,
+   "link_to": "Rental Company Profile",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -533,7 +661,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-11-19 10:00:00.000000",
+ "modified": "2026-11-22 12:30:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",

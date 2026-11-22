@@ -203,6 +203,17 @@ def get_custom_fields():
 				read_only=1, no_copy=1, insert_after="nxg_rental_damage_settlement", depends_on="nxg_jcr"),
 			dict(fieldname="nxg_jcr_billing_schedule", label="JCR Billing Schedule", fieldtype="Link",
 				options="JCR Billing Schedule", read_only=1, no_copy=1, insert_after="nxg_jcr", depends_on="nxg_jcr"),
+			# tax invoice made from a pro forma invoice, and the rental already invoiced that way credited on later
+			# rental invoices of the contract (rental_pro_forma_invoice.py)
+			dict(fieldname="nxg_pro_forma_invoice", label="Pro Forma Invoice", fieldtype="Link", options="Rental Pro Forma Invoice",
+				read_only=1, no_copy=1, insert_after="nxg_jcr_billing_schedule", depends_on="nxg_pro_forma_invoice"),
+			dict(fieldname="nxg_prepaid_credit", label="Rental Invoiced in Advance (Credited)", fieldtype="Currency", options="currency",
+				read_only=1, no_copy=1, insert_after="nxg_pro_forma_invoice", depends_on="nxg_prepaid_credit",
+				description="Rental already charged on the tax invoice made from the pro forma invoice; given as a discount here."),
+		],
+		"Journal Entry": [
+			dict(fieldname="nxg_rental_contract_payment", label="Rental Contract Payment", fieldtype="Link",
+				options="Rental Contract Payment", read_only=1, no_copy=1, insert_after="title", depends_on="nxg_rental_contract_payment"),
 		],
 		"Sales Invoice Item": [
 			dict(fieldname="nxg_hire_item", label="Hire Equipment", fieldtype="Link", options="Item", read_only=1,
@@ -409,6 +420,7 @@ def after_migrate():
 	setup_uoms()
 	ensure_settings_defaults()
 	ensure_extra_warehouses()
+	ensure_pro_forma_setup()
 	desk_menu.sync()
 	frappe.clear_cache()
 
@@ -422,6 +434,34 @@ def ensure_settings_defaults():
 	for df in frappe.get_meta("Rental Settings").fields:
 		if df.default and df.fieldname not in stored and df.fieldtype not in ("Section Break", "Column Break", "Tab Break"):
 			frappe.db.set_single_value("Rental Settings", df.fieldname, df.default)
+
+
+DEPOSIT_REPORTS = ("Contract-wise Security Deposit", "Customer-wise Security Deposit", "Outstanding Security Deposit",
+	"Security Deposit Refund Report", "Security Deposit Liability Ledger", "Customer Advance Report", "Unutilized Advance Report",
+	"Advance Adjustment Report", "Customer Advance Liability Ledger")
+
+
+def ensure_pro_forma_setup():
+	"""Upgrade to 2.7: service charge item, pro forma terms and a company profile for the settings company."""
+	# the deposit reports add one total row per currency themselves; a framework total would add AED to OMR
+	# (a Report's add_total_row is kept as the site has it when the report is imported, so it is set here)
+	for name in DEPOSIT_REPORTS:
+		if frappe.db.get_value("Report", name, "add_total_row"):
+			frappe.db.set_value("Report", name, "add_total_row", 0, update_modified=False)
+	company = frappe.db.get_single_value("Rental Settings", "company")
+	if not company:
+		return
+	try:
+		if not frappe.db.get_single_value("Rental Settings", "pro_forma_terms"):
+			frappe.db.set_single_value("Rental Settings", "pro_forma_terms", ensure_pro_forma_terms())
+		if not frappe.db.get_single_value("Rental Settings", "service_charge_item"):
+			group = frappe.db.exists("Item Group", "Rental Services")
+			if group:
+				frappe.db.set_single_value("Rental Settings", "service_charge_item",
+					ensure_service_item("RENTAL-SERVICE-CHARGES", "Rental Service Charges", group, "Charge", 1, 0, False))
+		ensure_company_profile(company)
+	except Exception:
+		frappe.log_error(title="thinkNXG Rental: pro forma setup failed", message=frappe.get_traceback())
 
 
 def ensure_extra_warehouses():
@@ -551,10 +591,80 @@ def setup_company(company: str | None = None):
 		"cross_hire_charge_item": ("CROSS-HIRE-CHARGES", "Cross Hire Charges", "Unit-Day", 0, 1, True),
 		"damage_recovery_item": ("RENTAL-DAMAGE-RECOVERY", "Rental Damage Recovery", "Charge", 1, 0, False),
 		"loss_recovery_item": ("RENTAL-LOSS-RECOVERY", "Rental Loss Recovery", "Charge", 1, 0, False),
+		"service_charge_item": ("RENTAL-SERVICE-CHARGES", "Rental Service Charges", "Charge", 1, 0, False),
 	}
 	for field, (code, name, uom, sales, purchase, period) in items.items():
 		if not settings.get(field):
 			settings.set(field, ensure_service_item(code, name, group, uom, sales, purchase, period))
+	if not settings.pro_forma_terms:
+		settings.pro_forma_terms = ensure_pro_forma_terms()
 	settings.flags.ignore_permissions = True
 	settings.save()
+	ensure_company_profile(company)
 	return settings.as_dict()
+
+
+PRO_FORMA_TERMS = """<ol>
+<li>Rental charges are calculated on the agreed rental period.</li>
+<li>Additional rental charges apply for rental beyond the agreed period.</li>
+<li>Transportation and handling charges are as agreed.</li>
+<li>The security deposit is refundable on return of the material, less applicable deductions.</li>
+<li>Damaged or missing material is charged as agreed.</li>
+<li>Rental rates and billing periods are subject to the agreed commercial terms.</li>
+<li>VAT tax invoices are issued as required by the applicable VAT law.</li>
+<li>Applicable VAT and statutory requirements prevail.</li>
+</ol>"""
+
+
+def ensure_pro_forma_terms():
+	name = "Rental Pro Forma Terms"
+	if not frappe.db.exists("Terms and Conditions", name):
+		doc = frappe.get_doc({"doctype": "Terms and Conditions", "title": name, "terms": PRO_FORMA_TERMS, "selling": 1})
+		doc.flags.ignore_permissions = True
+		doc.insert()
+	return name
+
+
+def ensure_company_profile(company):
+	"""A Rental Company Profile for a company registered in Oman or the UAE, with its liability accounts."""
+	from thinknxg_rental.services import vat
+
+	try:
+		name = frappe.db.get_value(vat.PROFILE, {"company": company}) or vat.ensure_default_profile(company)
+		if name:
+			doc = frappe.get_doc(vat.PROFILE, name)
+			if not doc.security_deposit_account or not doc.customer_advance_account:
+				ensure_liability_accounts(doc)
+				doc.flags.ignore_permissions = True
+				doc.save()
+		return name
+	except Exception:
+		frappe.log_error(title=f"thinkNXG Rental: company profile for {company} not created", message=frappe.get_traceback())
+
+
+def ensure_liability_accounts(profile):
+	"""Customer Security Deposits and Customer Rental Advances: Liability, type Receivable (so the customer is the
+	party on every entry), under the company's Current Liabilities group."""
+	company = profile.company
+	abbr = frappe.get_cached_value("Company", company, "abbr")
+	parent = (frappe.db.get_value("Account", {"company": company, "is_group": 1, "root_type": "Liability",
+		"account_name": ["in", ("Current Liabilities", "Current Liability")]}, "name")
+		or frappe.db.get_value("Account", {"company": company, "is_group": 1, "root_type": "Liability"}, "name", order_by="lft desc"))
+	if not parent:
+		frappe.throw(_("Company {0} has no liability account group").format(company))
+	for field, label in (("security_deposit_account", "Customer Security Deposits"), ("customer_advance_account", "Customer Rental Advances")):
+		if profile.get(field):
+			continue
+		name = frappe.db.get_value("Account", {"company": company, "account_name": label, "is_group": 0}, "name")
+		if not name:
+			acc = frappe.get_doc({"doctype": "Account", "account_name": label, "company": company, "parent_account": parent,
+				"root_type": "Liability", "account_type": "Receivable", "is_group": 0,
+				"account_currency": frappe.get_cached_value("Company", company, "default_currency")})
+			acc.flags.ignore_permissions = True
+			acc.insert()
+			name = acc.name
+		profile.set(field, name)
+	if not profile.output_vat_account:
+		profile.output_vat_account = frappe.db.get_value("Account", {"company": company, "is_group": 0, "root_type": "Liability",
+			"account_type": "Tax", "account_name": ["like", "%VAT%"]}, "name")
+	return abbr

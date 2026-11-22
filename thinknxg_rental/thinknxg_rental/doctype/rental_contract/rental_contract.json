@@ -6,6 +6,7 @@
  "field_order": [
   "naming_series",
   "company",
+  "currency",
   "source_type",
   "source_document",
   "contract_type",
@@ -36,8 +37,19 @@
   "total_billed_amount",
   "sb_37",
   "security_deposit",
-  "advance_amount",
+  "deposit_collected",
+  "deposit_outstanding",
+  "deposit_refunded",
+  "deposit_adjusted",
+  "deposit_balance",
+  "deposit_status",
   "cb_38",
+  "advance_amount",
+  "advance_received",
+  "advance_utilized",
+  "advance_refunded",
+  "advance_available",
+  "advance_status",
   "deposit_received",
   "deposit_reference",
   "sb_39",
@@ -79,6 +91,15 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "hidden": 1,
+   "fetch_from": "company.default_currency"
   },
   {
    "fieldname": "source_type",
@@ -288,33 +309,146 @@
   {
    "fieldname": "sb_37",
    "fieldtype": "Section Break",
-   "label": "Deposit"
+   "label": "Security Deposit and Advance",
+   "collapsible": 0
   },
   {
    "fieldname": "security_deposit",
    "fieldtype": "Currency",
-   "label": "Security Deposit Required"
+   "label": "Security Deposit Required",
+   "allow_on_submit": 1,
+   "options": "currency"
   },
   {
-   "fieldname": "advance_amount",
+   "fieldname": "deposit_collected",
    "fieldtype": "Currency",
-   "label": "Advance Amount"
+   "label": "Security Deposit Collected",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_outstanding",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Outstanding",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_refunded",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Refunded",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_adjusted",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Adjusted",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_balance",
+   "fieldtype": "Currency",
+   "label": "Security Deposit Refundable Balance",
+   "options": "currency",
+   "bold": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "deposit_status",
+   "fieldtype": "Select",
+   "label": "Security Deposit Status",
+   "options": "\nNot Collected\nPartially Collected\nFully Collected\nPartially Refunded\nSettled",
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
   },
   {
    "fieldname": "cb_38",
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "advance_amount",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Required",
+   "allow_on_submit": 1,
+   "options": "currency"
+  },
+  {
+   "fieldname": "advance_received",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Received",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "advance_utilized",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Utilized",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "advance_refunded",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Refunded",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "advance_available",
+   "fieldtype": "Currency",
+   "label": "Advance Amount Available",
+   "options": "currency",
+   "bold": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "advance_status",
+   "fieldtype": "Select",
+   "label": "Advance Payment Status",
+   "options": "\nNot Received\nPartially Received\nFully Received\nPartially Utilized\nFully Utilized\nPartially Refunded",
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
    "fieldname": "deposit_received",
    "fieldtype": "Currency",
-   "label": "Deposit Received",
-   "allow_on_submit": 1
+   "label": "Deposit Recorded Manually",
+   "allow_on_submit": 1,
+   "read_only": 1,
+   "depends_on": "deposit_received",
+   "description": "Recorded before deposits were posted to the accounts. Collect the deposit with Collect Deposit so it reaches the ledger."
   },
   {
    "fieldname": "deposit_reference",
    "fieldtype": "Data",
-   "label": "Deposit Receipt Reference",
-   "allow_on_submit": 1
+   "label": "Manual Deposit Reference",
+   "allow_on_submit": 1,
+   "read_only": 1,
+   "depends_on": "deposit_reference"
   },
   {
    "fieldname": "sb_39",
@@ -503,9 +637,17 @@
   {
    "link_doctype": "Sales Invoice",
    "link_fieldname": "nxg_rental_contract"
+  },
+  {
+   "link_doctype": "Rental Contract Payment",
+   "link_fieldname": "rental_contract"
+  },
+  {
+   "link_doctype": "Rental Pro Forma Invoice",
+   "link_fieldname": "rental_contract"
   }
  ],
- "modified": "2026-11-18 09:00:00.000000",
+ "modified": "2026-11-22 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "Rental Contract",

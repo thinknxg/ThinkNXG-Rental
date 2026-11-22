@@ -92,3 +92,12 @@ frappe.ui.form.on("Hire Order", {
         }
     },
 });
+
+// Pro Forma Invoice and money received before the contract exists (rental_pro_forma_invoice.py, services/deposits.py)
+frappe.ui.form.on("Hire Order", {
+	refresh(frm) {
+		if (frm.doc.docstatus === 2 || frm.is_new()) return;
+		frm.add_custom_button(__("Pro Forma Invoice"), () => frappe.model.open_mapped_doc({
+			method: "thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.make_from_hire_order", frm }), __("Create"));
+	},
+});
