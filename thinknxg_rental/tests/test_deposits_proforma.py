@@ -386,9 +386,18 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			boot = form("rental-contract", c.name)
 			self.assertIn("Collect Deposit", labels(boot))
 			self.assertNotIn("Refund Deposit", labels(boot))  # nothing held yet
-			r = run(boot, "Collect Deposit", amount=800, mode_of_payment="Cash", remarks="At signing")
+			# every deposit and advance panel asks for the posting date (today by default), right after the amount
+			for action in boot["next"]:
+				if action["label"] in ("Collect Deposit", "Collect Advance"):
+					self.assertEqual([f["fieldname"] for f in action["ask"]][:2], ["amount", "posting_date"])
+					self.assertEqual((action["ask"][1]["default"], action["ask"][1]["reqd"]), (nowdate(), 1))
+			yesterday = add_days(nowdate(), -1)
+			r = run(boot, "Collect Deposit", amount=800, posting_date=yesterday, mode_of_payment="Cash", remarks="At signing")
 			self.assertIn("type=contract-payment", r["url"])
-			run(form("rental-contract", c.name), "Collect Advance", amount=600, mode_of_payment="Cash")
+			run(form("rental-contract", c.name), "Collect Advance", amount=600, posting_date=yesterday, mode_of_payment="Cash")
+			for p in frappe.get_all(deposits.DOCTYPE, filters={"rental_contract": c.name}, fields=["posting_date", "journal_entry"]):
+				self.assertEqual(str(p.posting_date), yesterday)
+				self.assertEqual(str(frappe.db.get_value("Journal Entry", p.journal_entry, "posting_date")), yesterday)
 			row = frappe.db.get_value("Rental Contract", c.name, ["deposit_collected", "advance_available"], as_dict=True)
 			self.assertEqual((row.deposit_collected, row.advance_available), (800, 600))
 			boot = form("rental-contract", c.name)
@@ -396,7 +405,7 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			related = {g["label"]: g for g in boot["related"]}
 			self.assertEqual(len(related["Deposits and advances"]["rows"]), 2)
 			# a refund by a Rental Manager is approved and posted at once
-			run(boot, "Refund Deposit", amount=300, mode_of_payment="Cash")
+			run(boot, "Refund Deposit", amount=300, posting_date=nowdate(), mode_of_payment="Cash")
 			self.assertEqual(frappe.db.get_value("Rental Contract", c.name, "deposit_balance"), 500)
 		finally:
 			frappe.set_user("Administrator")
@@ -407,7 +416,7 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			boot = form("sales-invoice", si.name)
 			a = next(x for x in boot["next"] if x["label"] == "Adjust Advance")
 			self.assertEqual(a["ask"][0]["default"], 400)
-			run(boot, "Adjust Advance", amount=400)
+			run(boot, "Adjust Advance", amount=400, posting_date=nowdate())
 			self.assertEqual(flt(frappe.db.get_value("Sales Invoice", si.name, "outstanding_amount")), flt(si.grand_total) - 400)
 			self.assertNotIn("Adjust Advance", labels(form("sales-invoice", si.name)))
 			# a transaction entered directly in its own form, then posted with Submit
@@ -433,7 +442,7 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			self.assertIn("Share on WhatsApp", [p["label"] for p in boot["prints"]])
 			run(boot, "Mark as Sent", via="WhatsApp")
 			run(form(key, pi_name), "Customer Accepted", accepted_by="Site engineer")
-			r = run(form(key, pi_name), "Collect Advance", amount=100, mode_of_payment="Cash")
+			r = run(form(key, pi_name), "Collect Advance", amount=100, posting_date=nowdate(), mode_of_payment="Cash")
 			self.assertIn("type=contract-payment", r["url"])
 			self.assertEqual(frappe.db.get_value(pf.DOCTYPE, pi_name, "status"), "Advance Received")
 			skey, sinv = create(form(key, pi_name), "Create Tax Invoice")

@@ -41,17 +41,19 @@ pro_forma_advance = _action(D.A_COLLECT, "pro_forma_invoice")
 pro_forma_deposit = _action(D.D_COLLECT, "pro_forma_invoice")
 
 
-def adjust_advance_on_invoice(sales_invoice, amount):
+def adjust_advance_on_invoice(sales_invoice, amount, posting_date=None):
 	"""Adjust Advance on a rental invoice: the invoice's contract gives the advance."""
 	contract = frappe.db.get_value("Sales Invoice", sales_invoice, "nxg_rental_contract")
 	if not contract:
 		frappe.throw(_("Sales Invoice {0} is not a rental contract invoice").format(sales_invoice))
-	return _post(D.A_ADJUST, "rental_contract", contract, {"sales_invoice": sales_invoice, "amount": amount})
+	return _post(D.A_ADJUST, "rental_contract", contract, {"sales_invoice": sales_invoice, "amount": amount, "posting_date": posting_date})
 
 
 # ------------------------------------------------------------------ ask panels
 def _money(label, default=None):
-	return {"fieldname": "amount", "label": label, "fieldtype": "Currency", "reqd": 1, "default": flt(default) or None}
+	"""Amount and posting date: the first two fields of every deposit and advance panel."""
+	return [{"fieldname": "amount", "label": label, "fieldtype": "Currency", "reqd": 1, "default": flt(default) or None},
+		{"fieldname": "posting_date", "label": "Posting date", "fieldtype": "Date", "reqd": 1, "default": nowdate()}]
 
 
 def _cash(default_mode="Cash"):
@@ -73,44 +75,44 @@ REMARKS = {"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text"
 
 
 def ask_collect_deposit(d):
-	return [_money("Deposit received now", d.get("deposit_outstanding")), *_cash(), REMARKS]
+	return [*_money("Deposit received now", d.get("deposit_outstanding")), *_cash(), REMARKS]
 
 
 def ask_refund_deposit(d):
-	return [_money("Refund amount", d.get("deposit_balance")), *_cash(), REMARKS]
+	return [*_money("Refund amount", d.get("deposit_balance")), *_cash(), REMARKS]
 
 
 def ask_deduct_deposit(d):
-	return [_money("Deduction amount"), _invoice(),
+	return [*_money("Deduction amount"), _invoice(),
 		{"fieldname": "deduction_reason", "label": "Deduction reason", "fieldtype": "Select", "reqd": 1, "choices": DEDUCTION_REASONS},
 		{"fieldname": "damage_settlement", "label": "Damage settlement", "fieldtype": "Link", "options": "Rental Damage Settlement",
 			"filters": {"rental_contract": d.get("name"), "docstatus": 1}}, REMARKS]
 
 
 def ask_collect_advance(d):
-	return [_money("Advance received now", max(flt(d.get("advance_amount")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
+	return [*_money("Advance received now", max(flt(d.get("advance_amount")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
 
 
 def ask_adjust_advance(d):
-	return [_money("Advance to adjust", d.get("advance_available")), _invoice(), REMARKS]
+	return [*_money("Advance to adjust", d.get("advance_available")), _invoice(), REMARKS]
 
 
 def ask_refund_advance(d):
-	return [_money("Refund amount", d.get("advance_available")), *_cash(), REMARKS]
+	return [*_money("Refund amount", d.get("advance_available")), *_cash(), REMARKS]
 
 
 def ask_pro_forma_advance(d):
-	return [_money("Advance received now", max(flt(d.get("total_including_vat")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
+	return [*_money("Advance received now", max(flt(d.get("total_including_vat")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
 
 
 def ask_pro_forma_deposit(d):
-	return [_money("Deposit received now", max(flt(d.get("total_deposit")) + flt(d.get("deposit_vat")) - flt(d.get("deposit_received")), 0)),
+	return [*_money("Deposit received now", max(flt(d.get("total_deposit")) + flt(d.get("deposit_vat")) - flt(d.get("deposit_received")), 0)),
 		*_cash(), REMARKS]
 
 
 def ask_invoice_advance(d):
 	info = D.adjustable_advance(d.name) or {}
-	return [_money(_("Advance to adjust (available {0})").format(frappe.format(info.get("advance_available"), {"fieldtype": "Currency",
+	return [*_money(_("Advance to adjust (available {0})").format(frappe.format(info.get("advance_available"), {"fieldtype": "Currency",
 		"options": d.get("currency")})), info.get("suggested"))]
 
 
