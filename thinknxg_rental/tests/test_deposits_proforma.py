@@ -452,3 +452,35 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			self.assertEqual(log[:5], ["Draft", "Submitted for Approval", "Approved", "Sent to Customer", "Customer Accepted"])
 		finally:
 			frappe.set_user("Administrator")
+
+	def test_advance_on_contract_reaches_its_pro_forma(self):
+		"""Money collected on the contract or hire order is shown on its one open pro forma invoice."""
+		c = self.rc(deposit=0, advance=0)
+		ho = frappe.db.get_value("Rental Contract", c.name, "hire_order")
+		doc = frappe.get_doc(pf.make_from_rental_contract(c.name))
+		doc.insert()
+		doc.submit()
+		a = self.pay("Advance Collection", 70, rental_contract=c.name)
+		self.assertEqual(a.pro_forma_invoice, doc.name)
+		self.pay("Advance Collection", 30, hire_order=ho)
+		self.pay("Deposit Collection", 40, rental_contract=c.name)
+		pi = frappe.get_doc(pf.DOCTYPE, doc.name)
+		self.assertEqual((pi.status, pi.advance_received, pi.deposit_received), ("Advance Received", 100, 40))
+		# deposit received never reduces the rental and charges payable
+		self.assertEqual(pi.grand_total_payable, flt(pi.total_including_vat - 100 + max(pi.total_deposit - 40, 0), 3))
+		self.assertEqual(self.balances(c.name).advance_available, 100)  # still the contract's advance too
+		# two open pro forma invoices: which one is not guessed
+		other = frappe.get_doc(pf.make_from_rental_contract(c.name))
+		other.insert()
+		other.submit()
+		self.assertFalse(self.pay("Advance Collection", 10, rental_contract=c.name).pro_forma_invoice)
+		# collections posted before this change are linked by the upgrade patch
+		from thinknxg_rental.patches.v2_7 import link_pro_forma_payments
+
+		other.cancel()
+		frappe.db.set_value(deposits.DOCTYPE, a.name, "pro_forma_invoice", None)
+		pf.refresh_payments(doc.name)
+		self.assertEqual(frappe.db.get_value(pf.DOCTYPE, doc.name, "advance_received"), 30)
+		link_pro_forma_payments.execute()
+		self.assertEqual(frappe.db.get_value(deposits.DOCTYPE, a.name, "pro_forma_invoice"), doc.name)
+		self.assertEqual(frappe.db.get_value(pf.DOCTYPE, doc.name, "advance_received"), 110)  # the 10 has its one pro forma now too

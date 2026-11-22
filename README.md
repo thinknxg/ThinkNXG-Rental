@@ -65,6 +65,11 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.7.1
+
+- A deposit or advance collected on a contract or hire order now shows as received on its pro forma invoice, when that contract or hire order has exactly one open pro forma invoice. Collections already posted are linked on upgrade (patch `v2_7.link_pro_forma_payments`).
+- The Command Center's deposit and advance panels ask for the posting date.
+
 ### Changes in 2.7.0 - pro forma invoice, UAE / Oman VAT, security deposits and advances
 
 - **Rental Company Profile** (one per company):
