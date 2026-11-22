@@ -107,7 +107,7 @@ Filters: company, country, customer, contract, date range and status.
 
 **Actions on other forms:**
 
-- **Rental Contract:** Collect Deposit, Refund Deposit, Adjust Deposit, Collect Advance, Adjust Advance Against Invoice, Refund Advance and New Pro Forma Invoice. Each opens its receipt. A refund by a user who cannot approve it waits as Pending Approval. The form also lists its deposit and advance transactions and its pro forma invoices.
+- **Rental Contract:** Collect Deposit, Refund Deposit, Adjust Deposit, Collect Advance, Adjust Advance Against Invoice, Refund Advance and New Pro Forma Invoice. Each panel asks for the amount and the posting date (today by default, can be backdated within open accounting periods), then opens its receipt. A refund by a user who cannot approve it waits as Pending Approval. The form also lists its deposit and advance transactions and its pro forma invoices.
 - **Hire Order:** New Pro Forma Invoice.
 - **Sales Invoice:** Adjust Advance, shown when the invoice's contract has advance available. It suggests the smaller of the advance and the outstanding amount.
 
