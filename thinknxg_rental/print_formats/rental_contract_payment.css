@@ -1,0 +1,14 @@
+.rcp { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #1b1b1b; }
+.rcp table { width: 100%; border-collapse: collapse; }
+.rcp .r { text-align: right; }
+.rcp-small { font-size: 8pt; color: #555; }
+.rcp-co { font-size: 12pt; font-weight: 700; }
+.rcp-title { font-size: 16pt; font-weight: 700; color: #0b3d5c; letter-spacing: 1px; }
+.rcp-head { border-bottom: 2px solid #0b3d5c; margin-bottom: 8px; } .rcp-head td { padding-bottom: 4px; }
+.rcp-warn { border: 1px solid #b42318; color: #b42318; text-align: center; font-weight: 700; padding: 3px; margin-bottom: 6px; }
+.rcp-kv td { border: 1px solid #ddd; padding: 3px 5px; } .rcp-kv td:nth-child(odd) { color: #555; width: 20%; }
+.rcp-amount { margin: 8px 0 4px; } .rcp-amount td { padding: 4px 6px; font-size: 11pt; font-weight: 700; background: #f3f6f9; }
+.rcp-note { margin-top: 8px; padding: 4px 6px; border-left: 3px solid #0b3d5c; background: #f8fafc; font-size: 8pt; }
+.rcp-sign { margin-top: 30px; } .rcp-sign td { width: 33%; font-size: 8pt; vertical-align: bottom; }
+.rcp-line { border-top: 1px solid #555; padding-top: 2px; width: 80%; margin-left: auto; }
+.rcp-amount tr.rcp-vat td { font-size: 8.5pt; font-weight: 400; color: #555; padding-top: 0; }

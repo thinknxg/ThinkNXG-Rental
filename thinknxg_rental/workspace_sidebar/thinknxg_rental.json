@@ -123,6 +123,17 @@
    "indent": 0,
    "keep_closed": 0,
    "show_arrow": 0,
+   "label": "Pro Forma Invoice",
+   "link_type": "DocType",
+   "type": "Link",
+   "link_to": "Rental Pro Forma Invoice"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
    "label": "Job Completion Report",
    "link_type": "DocType",
    "type": "Link",
@@ -337,6 +348,127 @@
    "link_type": "DocType",
    "type": "Link",
    "link_to": "Delivery Note"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "indent": 1,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "icon": "wallet",
+   "label": "Deposits & Advances",
+   "link_type": "DocType",
+   "type": "Section Break"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Deposit / Advance Transaction",
+   "link_type": "DocType",
+   "type": "Link",
+   "link_to": "Rental Contract Payment"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Contract-wise Security Deposit",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Contract-wise Security Deposit"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Customer-wise Security Deposit",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Customer-wise Security Deposit"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Outstanding Security Deposit",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Outstanding Security Deposit"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Security Deposit Refund Report",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Security Deposit Refund Report"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Security Deposit Liability Ledger",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Security Deposit Liability Ledger"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Customer Advance Report",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Customer Advance Report"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Unutilized Advance Report",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Unutilized Advance Report"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Advance Adjustment Report",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Advance Adjustment Report"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
+   "label": "Customer Advance Liability Ledger",
+   "link_type": "Report",
+   "type": "Link",
+   "link_to": "Customer Advance Liability Ledger"
   },
   {
    "child": 0,
@@ -652,6 +784,17 @@
    "indent": 0,
    "keep_closed": 0,
    "show_arrow": 0,
+   "label": "Company Profile (VAT, Accounts)",
+   "link_type": "DocType",
+   "type": "Link",
+   "link_to": "Rental Company Profile"
+  },
+  {
+   "child": 1,
+   "collapsible": 1,
+   "indent": 0,
+   "keep_closed": 0,
+   "show_arrow": 0,
    "label": "Rental Item Profile",
    "link_type": "DocType",
    "type": "Link",
@@ -702,7 +845,7 @@
    "link_to": "Rental Website Settings"
   }
  ],
- "modified": "2026-11-19 10:00:00.000000",
+ "modified": "2026-11-22 12:30:00.000000",
  "modified_by": "Administrator",
  "module": "thinkNXG Rental",
  "name": "thinkNXG Rental",

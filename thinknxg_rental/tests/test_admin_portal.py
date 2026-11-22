@@ -189,8 +189,9 @@ class TestAdminPortal(IntegrationTestCase):
 		self.assertIn(rc_name, [r["name"] for r in form("hire-order", ho_name)["related"][0]["rows"]])
 
 		# deposit on the submitted contract
-		run(rc, "Record Deposit", deposit_received=5000, deposit_reference="CHQ-1")
-		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc_name, "deposit_received")), 5000)
+		required = flt(frappe.db.get_value("Rental Contract", rc_name, "security_deposit"))
+		run(rc, "Record Deposit", deposit_received=min(required, 5000) or 5000, deposit_reference="CHQ-1", mode_of_payment="Cash")
+		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc_name, "deposit_collected")), min(required, 5000) or 5000)
 
 		# reservation (optional) then delivery of part of the order
 		key, res = create(rc, "Material Reservation")

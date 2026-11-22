@@ -43,7 +43,9 @@ _N = "thinknxg_rental.services.customer_notify."  # customer portal notification
 
 doc_events = {
 	# customer portal notifications (services/customer_notify.py)
-	"Rental Contract": {"on_submit": _N + "rental_contract_submitted"},
+	"Rental Contract": {"on_submit": [_N + "rental_contract_submitted", "thinknxg_rental.events.deposits.contract_submitted"]},
+	# a Journal Entry that posts a Rental Contract Payment is cancelled only through it (services/deposits.py)
+	"Journal Entry": {"before_cancel": "thinknxg_rental.services.deposits.journal_entry_before_cancel"},
 	"Hire Delivery Order": {"on_submit": _N + "delivery_submitted"},
 	"Hire Off-Hire Note": {"on_submit": _N + "off_hire_submitted"},
 	"Rental Return Inspection": {"on_submit": _N + "inspection_submitted"},
@@ -105,9 +107,11 @@ doc_events = {
 		    "thinknxg_rental.events.sales_invoice.validate",
 		    "thinknxg_rental.events.default_terms.apply",
 		],
-		"on_submit": ["thinknxg_rental.events.sales_invoice.on_submit", _N + "sales_invoice_submitted"],
-		"before_cancel": "thinknxg_rental.events.sales_invoice.unlink",
-		"on_trash": "thinknxg_rental.events.sales_invoice.unlink",
+		"on_submit": ["thinknxg_rental.events.sales_invoice.on_submit", _N + "sales_invoice_submitted",
+			"thinknxg_rental.events.deposits.sales_invoice_submitted"],
+		"before_cancel": ["thinknxg_rental.services.deposits.sales_invoice_before_cancel", "thinknxg_rental.events.sales_invoice.unlink",
+			"thinknxg_rental.events.deposits.sales_invoice_removed"],
+		"on_trash": ["thinknxg_rental.events.sales_invoice.unlink", "thinknxg_rental.events.deposits.sales_invoice_removed"],
 		"on_cancel": "thinknxg_rental.events.sales_invoice.on_cancel",
 	},
 }
@@ -121,13 +125,13 @@ doctype_js = {
 	"Quotation": "public/js/quotation_deal.js",
 	"Purchase Order": "public/js/purchase_order.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
-	"Sales Invoice": "public/js/sales_invoice.js",
+	"Sales Invoice": ["public/js/sales_invoice.js", "public/js/contract_payments.js"],
 	# forms whose setup uses thinknxg_rental.rental_warehouses(): the helper travels with the form
 	"Rental Material Reservation": "public/js/rental_warehouses.js",
 	"Hire Delivery Order": "public/js/rental_warehouses.js",
 	"Hire Off-Hire Note": ["public/js/rental_warehouses.js", "public/js/excess_material.js"],
 	# excess material, returns and adjustments: shared dialogs travel with each form
-	"Rental Contract": "public/js/excess_material.js",
+	"Rental Contract": ["public/js/excess_material.js", "public/js/contract_payments.js"],
 	"Excess Material Register": "public/js/excess_material.js",
 	"Excess Material Return Note": "public/js/excess_material.js",
 	"Dismantling Entry": "public/js/excess_material.js",
@@ -161,5 +165,6 @@ scheduler_events = {
 		"thinknxg_rental.services.billing.run_daily_billing",
 		"thinknxg_rental.services.jcr_billing.run_daily_jcr_billing",
 		"thinknxg_rental.services.customer_notify.rental_expiry_reminders",
+		"thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.expire",
 	],
 }

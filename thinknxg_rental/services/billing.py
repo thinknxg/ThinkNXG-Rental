@@ -192,6 +192,15 @@ def make_sales_invoice(schedule: str):
 				"nxg_hire_qty": line.qty,
 			},
 		)
+	# rental already charged on a tax invoice made from a pro forma invoice is credited, so it is not charged twice
+	from thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice import prepaid_rental
+
+	credit = min(prepaid_rental(contract.name), sum(flt(line.billable_units) * flt(line.rate) for line in doc.items))
+	if credit > 0:
+		si.apply_discount_on = "Net Total"
+		si.discount_amount = credit
+		si.nxg_prepaid_credit = credit
+		si.remarks += " " + _("Less rental invoiced in advance on the pro forma tax invoice.")
 	append_taxes(si, "Sales Taxes and Charges Template", contract.taxes_and_charges)
 	si.flags.ignore_permissions = True
 	with as_system():

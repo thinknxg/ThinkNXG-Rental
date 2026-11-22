@@ -449,7 +449,7 @@ ENTRY_TYPES = {
 			"contract_date", "start_date", "end_date", "billing_cycle",
 			{"fieldname": "billing_interval_days", "show_if": {"billing_cycle": ["Custom"]}}, "align_to_calendar_month",
 			"minimum_hire_days", "grace_days",
-			"security_deposit", "advance_amount", "deposit_received", "deposit_reference", "payment_terms_template", "taxes_and_charges",
+			"security_deposit", "advance_amount", "deposit_collected", "deposit_balance", "deposit_status", "advance_received", "advance_available", "advance_status", "payment_terms_template", "taxes_and_charges",
 			{"fieldname": "last_billed_upto", "ro": 1}, {"fieldname": "next_billing_date", "ro": 1}, {"fieldname": "total_billed_amount", "ro": 1},
 			{"fieldname": "remarks", "wide": 1},
 		],
@@ -501,8 +501,11 @@ ENTRY_TYPES = {
 					{"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1}], done="{0}: end date extended."),
 			dict(label="Record Deposit", fn="thinknxg_rental.portal.entry.record_deposit", source_arg="rental_contract",
 				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Cancelled",
-				ask=lambda d: [{"fieldname": "deposit_received", "label": "Deposit received", "fieldtype": "Currency", "reqd": 1, "default": d.deposit_received or None},
-					{"fieldname": "deposit_reference", "label": "Deposit reference", "fieldtype": "Data", "default": d.deposit_reference}], done="{0}: deposit recorded."),
+				ask=lambda d: [{"fieldname": "deposit_received", "label": "Deposit received now", "fieldtype": "Currency", "reqd": 1,
+						"default": flt(d.get("deposit_outstanding")) or None},
+					{"fieldname": "mode_of_payment", "label": "Mode of payment", "fieldtype": "Link", "options": "Mode of Payment", "reqd": 1, "default": "Cash"},
+					{"fieldname": "deposit_reference", "label": "Transaction / cheque reference", "fieldtype": "Data"}],
+				done="{0}: deposit receipt posted."),
 			dict(label="Close Contract", call="close_contract", when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]},
 				when_fn=lambda d: flt(d.total_at_site_qty) <= 0 and flt(d.total_dispatched_qty) > 0,
 				confirm="Final-bill this contract and mark it Completed?", done="{0} is completed."),
@@ -1352,18 +1355,17 @@ def get_cross_hire_return_items(cross_hire_order: str):
 
 
 @frappe.whitelist(methods=["POST"])
-def record_deposit(rental_contract: str, deposit_received: float, deposit_reference: str | None = None):
-	"""Deposit received and its reference, which may change on a submitted contract (allow on submit)."""
+def record_deposit(rental_contract: str, deposit_received: float, deposit_reference: str | None = None, mode_of_payment: str | None = None):
+	"""A security deposit receipt (Deposit Collection, posted to the deposit liability account; services/deposits.py)."""
+	from thinknxg_rental.services import deposits
+
 	doc = frappe.get_doc("Rental Contract", rental_contract)
-	doc.check_permission("write")
+	doc.check_permission("read")
 	if doc.docstatus != 1:
-		frappe.throw(_("Save the deposit on the draft form, or submit the contract first."))
-	if flt(deposit_received) < 0:
-		frappe.throw(_("Deposit received cannot be negative"))
-	doc.deposit_received = flt(deposit_received)
-	doc.deposit_reference = deposit_reference
-	doc.save()
-	return doc.name
+		frappe.throw(_("Submit the contract first."))
+	payment = deposits.make({"transaction_type": deposits.D_COLLECT, "rental_contract": rental_contract, "amount": flt(deposit_received),
+		"mode_of_payment": mode_of_payment or "Cash", "reference_no": deposit_reference, "posting_date": frappe.utils.nowdate()})
+	return payment.name
 
 
 def _open_job_lines(doc):

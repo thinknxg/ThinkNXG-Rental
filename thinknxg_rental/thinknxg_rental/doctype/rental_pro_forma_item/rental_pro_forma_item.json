@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "creation": "2026-11-22 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "item_name",
+  "description",
+  "uom",
+  "pricing_unit",
+  "qty",
+  "cb_1",
+  "rate_basis",
+  "period_days",
+  "rate",
+  "rental_from",
+  "rental_to",
+  "minimum_days",
+  "cb_2",
+  "rental_days",
+  "billable_periods",
+  "period_label",
+  "amount",
+  "sb_vat",
+  "vat_treatment",
+  "vat_rate",
+  "vat_amount",
+  "treatment_overridden",
+  "hire_order_item"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Material Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Material Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "UOM"
+  },
+  {
+   "default": "Unit",
+   "fieldname": "pricing_unit",
+   "fieldtype": "Select",
+   "label": "Priced Per",
+   "options": "Unit\nPiece\nSet"
+  },
+  {
+   "columns": 1,
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "default": "Monthly",
+   "fieldname": "rate_basis",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Rate Basis",
+   "options": "Daily\nWeekly\nMonthly\nCustom"
+  },
+  {
+   "depends_on": "eval:doc.rate_basis=='Custom'",
+   "description": "Custom basis: the rate is per this many days.",
+   "fieldname": "period_days",
+   "fieldtype": "Int",
+   "label": "Days per Period"
+  },
+  {
+   "columns": 1,
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Rental Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "rental_from",
+   "fieldtype": "Date",
+   "label": "Rental Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rental_to",
+   "fieldtype": "Date",
+   "label": "Expected Rental End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "minimum_days",
+   "fieldtype": "Int",
+   "label": "Minimum Rental Days"
+  },
+  {
+   "fieldname": "cb_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rental_days",
+   "fieldtype": "Int",
+   "label": "Rental Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "billable_periods",
+   "fieldtype": "Float",
+   "label": "Rental Periods",
+   "precision": "4",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "period_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rental Period",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_vat",
+   "fieldtype": "Section Break",
+   "label": "VAT"
+  },
+  {
+   "columns": 1,
+   "fieldname": "vat_treatment",
+   "fieldtype": "Select",
+   "in_list_view": 0,
+   "label": "VAT Treatment",
+   "options": "Standard\nZero-Rated\nExempt\nOut of Scope"
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT Rate"
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "description": "Keep this VAT treatment instead of the VAT profile's rule. Approval then needs an Accounts Manager.",
+   "fieldname": "treatment_overridden",
+   "fieldtype": "Check",
+   "label": "Treatment Set by Hand"
+  },
+  {
+   "fieldname": "hire_order_item",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Hire Order Item",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-22 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Pro Forma Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,302 @@
+{
+ "actions": [],
+ "autoname": "field:company",
+ "creation": "2026-11-22 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "country",
+  "currency",
+  "disabled",
+  "cb_1",
+  "vat_registration_label",
+  "vat_registration_number",
+  "standard_vat_rate",
+  "sb_series",
+  "proforma_naming_series",
+  "cb_2",
+  "tax_invoice_naming_series",
+  "sb_templates",
+  "sales_taxes_template",
+  "zero_rated_item_tax_template",
+  "cb_3",
+  "exempt_item_tax_template",
+  "out_of_scope_item_tax_template",
+  "sb_rules",
+  "rules",
+  "sb_accounts",
+  "security_deposit_account",
+  "customer_advance_account",
+  "cb_acc",
+  "vat_on_advances",
+  "output_vat_account",
+  "sb_print",
+  "not_tax_invoice_statement",
+  "payment_instructions",
+  "sb_review",
+  "reviewed_by",
+  "reviewed_on",
+  "cb_4",
+  "review_note"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "description": "The country the company is registered for VAT in. Each country has its own profile, currency and series.",
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "VAT Country",
+   "options": "Oman\nUnited Arab Emirates",
+   "reqd": 1
+  },
+  {
+   "description": "OMR (3 decimals) for Oman, AED (2 decimals) for the UAE.",
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Printed beside the number, e.g. TRN (UAE) or VATIN (Oman).",
+   "fieldname": "vat_registration_label",
+   "fieldtype": "Data",
+   "label": "VAT Number Label"
+  },
+  {
+   "fieldname": "vat_registration_number",
+   "fieldtype": "Data",
+   "label": "Company VAT Registration Number",
+   "reqd": 1
+  },
+  {
+   "default": "5",
+   "fieldname": "standard_vat_rate",
+   "fieldtype": "Percent",
+   "label": "Standard VAT Rate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sb_series",
+   "fieldtype": "Section Break",
+   "label": "Numbering"
+  },
+  {
+   "description": "e.g. PI-OM-.YYYY.-.##### \u2014 numbers of this company's pro forma invoices.",
+   "fieldname": "proforma_naming_series",
+   "fieldtype": "Data",
+   "label": "Pro Forma Invoice Series",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cb_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Sales Invoice series used when a pro forma invoice is converted, e.g. SINV-OM-.YYYY.-.#####. It must be one of the Sales Invoice series. Empty: the Sales Invoice default.",
+   "fieldname": "tax_invoice_naming_series",
+   "fieldtype": "Data",
+   "label": "Tax Invoice Series"
+  },
+  {
+   "description": "Used on the Sales Invoice made from a pro forma invoice, where the VAT is worked out again on the invoice date.",
+   "fieldname": "sb_templates",
+   "fieldtype": "Section Break",
+   "label": "Tax Invoice Templates"
+  },
+  {
+   "description": "The VAT template of standard-rated lines.",
+   "fieldname": "sales_taxes_template",
+   "fieldtype": "Link",
+   "label": "Sales Taxes and Charges Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "zero_rated_item_tax_template",
+   "fieldtype": "Link",
+   "label": "Zero-Rated Item Tax Template",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "cb_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "exempt_item_tax_template",
+   "fieldtype": "Link",
+   "label": "Exempt Item Tax Template",
+   "options": "Item Tax Template"
+  },
+  {
+   "fieldname": "out_of_scope_item_tax_template",
+   "fieldtype": "Link",
+   "label": "Out of Scope Item Tax Template",
+   "options": "Item Tax Template"
+  },
+  {
+   "description": "Rules are matched by charge category, supply and the customer's VAT registration; the most specific match wins. A category without a rule is standard-rated, except Security Deposit, which is Out of Scope. Have finance review the rules for each country.",
+   "fieldname": "sb_rules",
+   "fieldtype": "Section Break",
+   "label": "VAT Treatment Rules"
+  },
+  {
+   "fieldname": "rules",
+   "fieldtype": "Table",
+   "label": "Rules",
+   "options": "Rental VAT Rule"
+  },
+  {
+   "fieldname": "sb_accounts",
+   "fieldtype": "Section Break",
+   "label": "Deposit and Advance Accounts",
+   "description": "Liability accounts (type Receivable, under Liabilities) so each customer's deposits and advances stay on the customer's ledger and never become income. Filled by Set Up Accounts."
+  },
+  {
+   "fieldname": "security_deposit_account",
+   "fieldtype": "Link",
+   "label": "Customer Security Deposit Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "customer_advance_account",
+   "fieldtype": "Link",
+   "label": "Customer Advance Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "cb_acc",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "vat_on_advances",
+   "fieldtype": "Check",
+   "label": "Account VAT on Advances Received",
+   "description": "When the Advance Payment rule is standard-rated, the VAT contained in each advance is credited to the Output VAT Account on receipt and reversed when the advance is adjusted against the tax invoice. Leave off until finance confirms the tax point."
+  },
+  {
+   "fieldname": "output_vat_account",
+   "fieldtype": "Link",
+   "label": "Output VAT Account",
+   "options": "Account",
+   "depends_on": "vat_on_advances",
+   "mandatory_depends_on": "vat_on_advances"
+  },
+  {
+   "fieldname": "sb_print",
+   "fieldtype": "Section Break",
+   "label": "Pro Forma Invoice Print"
+  },
+  {
+   "fieldname": "not_tax_invoice_statement",
+   "fieldtype": "Small Text",
+   "label": "Not a Tax Invoice Statement",
+   "reqd": 1
+  },
+  {
+   "description": "Bank details and how to pay, printed on the pro forma invoice.",
+   "fieldname": "payment_instructions",
+   "fieldtype": "Small Text",
+   "label": "Payment Instructions"
+  },
+  {
+   "fieldname": "sb_review",
+   "fieldtype": "Section Break",
+   "label": "Finance Review"
+  },
+  {
+   "fieldname": "reviewed_by",
+   "fieldtype": "Link",
+   "label": "Reviewed By",
+   "no_copy": 1,
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_on",
+   "fieldtype": "Datetime",
+   "label": "Reviewed On",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "review_note",
+   "fieldtype": "Small Text",
+   "label": "Review Note",
+   "no_copy": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-11-22 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "thinkNXG Rental",
+ "name": "Rental Company Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Rental Manager"
+  },
+  {
+   "read": 1,
+   "role": "Rental User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1,
+ "description": "One per company: its VAT country, currency, VAT registration, number series, VAT treatment rules and the liability accounts for security deposits and advances."
+}
