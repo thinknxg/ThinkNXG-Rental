@@ -237,15 +237,44 @@ def _set_party(doc):
 		doc.hire_order, doc.rental_contract = src.hire_order, src.rental_contract
 	else:
 		frappe.throw(_("Choose the Rental Contract (or the Hire Order or Pro Forma Invoice before the contract exists)"))
+	if not doc.pro_forma_invoice and doc.transaction_type in (D_COLLECT, A_COLLECT) and doc.is_new():
+		# collected on the contract or hire order: it is the money its open pro forma invoice asked for
+		doc.pro_forma_invoice = open_pro_forma(src.customer, doc.rental_contract, doc.hire_order)
 	if doc.pro_forma_invoice:
-		pi = frappe.db.get_value("Rental Pro Forma Invoice", doc.pro_forma_invoice, ["customer", "company"], as_dict=True)
+		pi = frappe.db.get_value("Rental Pro Forma Invoice", doc.pro_forma_invoice, ["customer", "company", "rental_contract", "hire_order"], as_dict=True)
 		if (pi.customer, pi.company) != (src.customer, src.company):
 			frappe.throw(_("Pro Forma Invoice {0} is for another customer or company").format(doc.pro_forma_invoice))
+		if doc.rental_contract and pi.rental_contract and pi.rental_contract != doc.rental_contract:
+			frappe.throw(_("Pro Forma Invoice {0} belongs to contract {1}").format(doc.pro_forma_invoice, pi.rental_contract))
 	if doc.customer and doc.customer != src.customer:
 		frappe.throw(_("{0} belongs to customer {1}, not {2}").format(doc.rental_contract or doc.hire_order or doc.pro_forma_invoice,
 			src.customer, doc.customer))
 	doc.customer, doc.company = src.customer, src.company
 	doc.customer_name = frappe.db.get_value("Customer", doc.customer, "customer_name")
+
+
+OPEN_PRO_FORMA = ("Approved", "Sent to Customer", "Customer Accepted", "Advance Received")
+
+
+def open_pro_forma(customer, rental_contract=None, hire_order=None, statuses=OPEN_PRO_FORMA, on_or_after=None):
+	"""The one open pro forma invoice of a contract (or its hire order); None when there is none or several."""
+	cond = []
+	args = {"customer": customer, "statuses": tuple(statuses)}
+	if rental_contract:
+		cond.append("rental_contract = %(rc)s")
+		args["rc"] = rental_contract
+	if hire_order:
+		cond.append("(hire_order = %(ho)s and ifnull(rental_contract, '') in ('', %(rc_or_blank)s))")
+		args.update(ho=hire_order, rc_or_blank=rental_contract or "")
+	if not cond:
+		return None
+	date = ""
+	if on_or_after:
+		date = " and posting_date <= %(date)s"
+		args["date"] = on_or_after
+	names = frappe.db.sql_list(f"""select name from `tabRental Pro Forma Invoice`
+		where docstatus = 1 and customer = %(customer)s and status in %(statuses)s and ({' or '.join(cond)}){date}""", args)
+	return names[0] if len(names) == 1 else None
 
 
 def _validate_invoice(doc):

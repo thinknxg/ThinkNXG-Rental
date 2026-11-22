@@ -61,6 +61,7 @@ Every movement is a **Rental Contract Payment**. It has its own receipt or vouch
 
 - **Contract balances:** collected, outstanding, refunded, adjusted, balance and the statuses are worked out from posted transactions only. The required amounts stay editable on the submitted contract.
 - **Hire Order or Pro Forma Invoice:** money can be collected against either before the contract exists. It moves to the contract when the contract is submitted.
+- **Shown on the pro forma invoice:** a deposit or advance collected on a contract or hire order is linked to its pro forma invoice when there is exactly one open one (Approved, Sent to Customer, Customer Accepted or Advance Received). That pro forma invoice then shows it as received. With several open pro forma invoices, choose the one on the receipt.
 - **Limits:**
   - collections up to the outstanding requirement;
   - refunds and deductions up to the deposit held;
