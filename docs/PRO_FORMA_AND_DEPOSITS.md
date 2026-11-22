@@ -91,3 +91,24 @@ Every movement is a **Rental Contract Payment**. It has its own receipt or vouch
 - Customer Advance Liability Ledger
 
 Filters: company, country, customer, contract, date range and status.
+
+## Command Center (/rental/admin)
+
+**Sidebar group "Pro forma, deposits & advances":**
+
+- **Pro Forma Invoices:** tabs Open, Awaiting approval, Drafts, Converted, Expired and All, with a badge for invoices waiting for approval. The form has the same fields, material, charges, deposit, VAT summary and status history as the desk. Submit is the approval. Actions on the form:
+  - Submit for Approval;
+  - Email to Customer, Mark as Sent, and Share on WhatsApp beside Print;
+  - Customer Accepted;
+  - Collect Advance and Collect Security Deposit;
+  - Create Tax Invoice, which opens the drafted Sales Invoice.
+- **Deposits & Advances:** every Rental Contract Payment, with tabs Deposits, Advances, Pending approval, Drafts and All, and a badge for pending approvals. The form shows the receipt, its balances and its Journal Entry, and has a Print button. Submit posts it.
+- **The nine reports:** company filter defaulting to the Rental Settings company. Each row shows its own currency, with one total row per currency.
+
+**Actions on other forms:**
+
+- **Rental Contract:** Collect Deposit, Refund Deposit, Adjust Deposit, Collect Advance, Adjust Advance Against Invoice, Refund Advance and New Pro Forma Invoice. Each opens its receipt. A refund by a user who cannot approve it waits as Pending Approval. The form also lists its deposit and advance transactions and its pro forma invoices.
+- **Hire Order:** New Pro Forma Invoice.
+- **Sales Invoice:** Adjust Advance, shown when the invoice's contract has advance available. It suggests the smaller of the advance and the outstanding amount.
+
+Amounts throughout the Command Center are shown with their currency's decimals: OMR 3, AED 2.

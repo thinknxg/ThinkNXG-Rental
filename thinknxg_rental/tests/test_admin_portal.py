@@ -190,7 +190,7 @@ class TestAdminPortal(IntegrationTestCase):
 
 		# deposit on the submitted contract
 		required = flt(frappe.db.get_value("Rental Contract", rc_name, "security_deposit"))
-		run(rc, "Record Deposit", deposit_received=min(required, 5000) or 5000, deposit_reference="CHQ-1", mode_of_payment="Cash")
+		run(rc, "Collect Deposit", amount=min(required, 5000) or 5000, reference_no="CHQ-1", mode_of_payment="Cash")
 		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc_name, "deposit_collected")), min(required, 5000) or 5000)
 
 		# reservation (optional) then delivery of part of the order

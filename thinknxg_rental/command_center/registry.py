@@ -95,6 +95,18 @@ VIEWS = {
 	"excess/abandonment": dict(kind="entry", entry="excess-abandonment", date_field="posting_date", party="customer",
 		tabs=[("Awaiting approval", {"docstatus": 0}), ("Approved", {"docstatus": 1}), ("All", {})]),
 	"excess/conversion": dict(kind="entry", entry="excess-conversion", date_field="posting_date", party="customer"),
+	# pro forma invoices and the money held for customers (services/deposits.py): documents in the shared form
+	"finance/pro-forma": dict(kind="entry", entry="pro-forma-invoice", date_field="posting_date", party="customer",
+		columns=[("hire_order", "Hire order"), ("grand_total_payable", "Payable")],
+		tabs=[("Open", {"docstatus": 1, "status": ["in", ["Approved", "Sent to Customer", "Customer Accepted", "Advance Received"]]}),
+			("Awaiting approval", {"docstatus": 0, "status": "Submitted for Approval"}), ("Drafts", {"docstatus": 0, "status": "Draft"}),
+			("Converted", {"status": "Converted to Sales Invoice"}), ("Expired", {"status": "Expired"}), ("All", {})]),
+	"finance/deposits": dict(kind="entry", entry="contract-payment", date_field="posting_date", party="customer",
+		columns=[("rental_contract", "Contract"), ("mode_of_payment", "Paid by"), ("sales_invoice", "Against invoice")],
+		tabs=[("Deposits", {"docstatus": 1, "transaction_type": ["in", ["Deposit Collection", "Deposit Refund", "Deposit Deduction"]]}),
+			("Advances", {"docstatus": 1, "transaction_type": ["in", ["Advance Collection", "Advance Adjustment", "Advance Refund"]]}),
+			("Pending approval", {"docstatus": 0, "status": "Pending Approval"}),
+			("Drafts", {"docstatus": 0}), ("All", {})]),
 }
 
 # ----------------------------------------------------------------------------- sidebar
@@ -153,6 +165,19 @@ NAV = [
 		("outstanding", "Outstanding Payments", "wallet", "outstanding"),
 		("reports/damage-loss", "Damage & Loss Recovery", "hammer", "report"),
 	]),
+	("deposits", "Pro forma, deposits & advances", [
+		("finance/pro-forma", "Pro Forma Invoices", "receipt-text", "list"),
+		("finance/deposits", "Deposits & Advances", "piggy-bank", "list"),
+		("reports/deposits-by-contract", "Deposits by Contract", "file-check", "report"),
+		("reports/deposits-by-customer", "Deposits by Customer", "building-2", "report"),
+		("reports/deposits-outstanding", "Outstanding Deposits", "hourglass", "report"),
+		("reports/deposit-refunds", "Deposit Refunds", "undo-2", "report"),
+		("reports/deposit-ledger", "Deposit Liability Ledger", "book-open", "report"),
+		("reports/advances", "Customer Advances", "wallet", "report"),
+		("reports/advances-unutilized", "Unutilized Advances", "coins", "report"),
+		("reports/advance-adjustments", "Advance Adjustments", "arrow-right-left", "report"),
+		("reports/advance-ledger", "Advance Liability Ledger", "book-open-check", "report"),
+	]),
 	("reports", "Reports & analytics", [
 		("utilization", "Rental Utilization", "gauge", "utilization"),
 		("reports/material-at-site", "Material at Site", "map", "report"),
@@ -187,6 +212,15 @@ REPORTS = {
 	"reports/customer-excess": "Customer-wise Excess Material",
 	"reports/project-reconciliation": "Project-wise Material Reconciliation",
 	"reports/outstanding-materials": "Outstanding Customer Materials",
+	"reports/deposits-by-contract": "Contract-wise Security Deposit",
+	"reports/deposits-by-customer": "Customer-wise Security Deposit",
+	"reports/deposits-outstanding": "Outstanding Security Deposit",
+	"reports/deposit-refunds": "Security Deposit Refund Report",
+	"reports/deposit-ledger": "Security Deposit Liability Ledger",
+	"reports/advances": "Customer Advance Report",
+	"reports/advances-unutilized": "Unutilized Advance Report",
+	"reports/advance-adjustments": "Advance Adjustment Report",
+	"reports/advance-ledger": "Customer Advance Liability Ledger",
 }
 
 # The filters each report page offers (the same fields as the report's own filters in the desk).
@@ -223,10 +257,37 @@ REPORT_FILTERS = {
 		_f("status", "Status", "Select", ["", "Active", "On Hire", "Off Hired", "Completed"]), _f("show_zero", "Show contracts with no invoices", "Check")],
 }
 
+# deposit and advance reports (services/deposit_reports.py): the same filters as in the desk
+_DEP_STATUS = ["", "Not Collected", "Partially Collected", "Fully Collected", "Partially Refunded", "Settled"]
+_ADV_STATUS = ["", "Not Received", "Partially Received", "Fully Received", "Partially Utilized", "Fully Utilized", "Partially Refunded"]
+
+
+def _money_filters(status_label=None, status=None):
+	out = [_f("company", "Company", "Link", "Company", "$company"), _f("country", "Country", "Select", ["", "Oman", "United Arab Emirates"]),
+		_f("customer", "Customer", "Link", "Customer"), _f("rental_contract", "Rental contract", "Link", "Rental Contract"),
+		_f("from_date", "From", "Date"), _f("to_date", "To", "Date", default="$today")]
+	if status:
+		out.append(_f("status", status_label, "Select", status))
+	return out
+
+
+REPORT_FILTERS.update({
+	"Contract-wise Security Deposit": _money_filters("Deposit status", _DEP_STATUS),
+	"Customer-wise Security Deposit": _money_filters("Deposit status", _DEP_STATUS),
+	"Outstanding Security Deposit": _money_filters("Deposit status", _DEP_STATUS),
+	"Security Deposit Refund Report": _money_filters("Transaction", ["", "Deposit Refund", "Deposit Deduction"]),
+	"Security Deposit Liability Ledger": _money_filters("Transaction", ["", "Deposit Collection", "Deposit Refund", "Deposit Deduction"]),
+	"Customer Advance Report": _money_filters("Advance status", _ADV_STATUS),
+	"Unutilized Advance Report": _money_filters("Advance status", _ADV_STATUS),
+	"Advance Adjustment Report": _money_filters(),
+	"Customer Advance Liability Ledger": _money_filters("Transaction", ["", "Advance Collection", "Advance Adjustment", "Advance Refund"]),
+})
+
 QUICK_CREATE = [
 	("lead", "sales/leads"), ("quotation", "sales/quotations"), ("rental-site", "sites"), ("hire-order", "hire-orders"),
 	("hire-order-contract", "hire-contracts"), ("rental-contract", "contracts"), ("delivery-order", "deliveries"),
 	("off-hire-note", "off-hire"), ("material-reservation", "reservations"), ("cross-hire-order", "cross-hire"),
+	("pro-forma-invoice", "finance/pro-forma"), ("contract-payment", "finance/deposits"),
 ]
 
 # Old admin portal addresses, so bookmarks and desk links keep working.
@@ -239,6 +300,8 @@ BADGES = {
 	"settlements": ("Rental Damage Settlement", {"docstatus": 1, "status": "To Invoice"}),
 	"deliveries": ("Hire Delivery Order", {"docstatus": 0}),
 	"jcr-billing": ("JCR Billing Schedule", {"status": "Pending"}),
+	"finance/pro-forma": ("Rental Pro Forma Invoice", {"docstatus": 0, "status": "Submitted for Approval"}),
+	"finance/deposits": ("Rental Contract Payment", {"docstatus": 0, "status": "Pending Approval"}),
 }
 
 

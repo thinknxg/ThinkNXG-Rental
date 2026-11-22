@@ -166,8 +166,22 @@
 			const s = n.toLocaleString(lang, { notation: "compact", maximumFractionDigits: 1 });
 			return c ? c + " " + s : s;
 		}
-		const s = n.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+		const d = cc.decimals(c);
+		const s = n.toLocaleString(lang, { minimumFractionDigits: d, maximumFractionDigits: d });
 		return c ? c + " " + s : s;
+	};
+	// decimals of an amount in a currency: OMR, BHD, KWD 3; AED, SAR, USD 2 (the browser's ISO 4217 data)
+	const decimalsOf = {};
+	cc.decimals = (c) => {
+		if (!c) return 2;
+		if (decimalsOf[c] === undefined) {
+			try {
+				decimalsOf[c] = new Intl.NumberFormat("en", { style: "currency", currency: c }).resolvedOptions().maximumFractionDigits;
+			} catch (e) {
+				decimalsOf[c] = 2;
+			}
+		}
+		return decimalsOf[c];
 	};
 	cc.compact = (v) => Number(v || 0).toLocaleString(lang, { notation: "compact", maximumFractionDigits: 1 });
 	const fmtPattern = (boot.date_format || "dd-mm-yyyy").toLowerCase();

@@ -34,7 +34,7 @@ MENU = [
 	dict(label="Hire Orders", items=[
 		dict(entry="hire-order", doctype="Hire Order"),
 		dict(entry="hire-order-contract", doctype="Hire Order Contract"),
-		dict(doctype="Rental Pro Forma Invoice", label="Pro Forma Invoice"),
+		dict(entry="pro-forma-invoice", doctype="Rental Pro Forma Invoice", label="Pro Forma Invoice"),
 		dict(entry="jcr", doctype="Job Completion Report"),
 		dict(doctype="JCR Billing Schedule"),
 	]),
@@ -62,7 +62,7 @@ MENU = [
 	]),
 	# security deposits and advances posted to the company's liability accounts (services/deposits.py)
 	dict(label="Deposits & Advances", items=[
-		dict(doctype="Rental Contract Payment", label="Deposit / Advance Transaction"),
+		dict(entry="contract-payment", doctype="Rental Contract Payment", label="Deposit / Advance Transaction"),
 		dict(doctype="Rental Contract Payment", label="Pending Approval", filters={"status": "Pending Approval"}),
 		dict(report="Contract-wise Security Deposit"),
 		dict(report="Customer-wise Security Deposit"),

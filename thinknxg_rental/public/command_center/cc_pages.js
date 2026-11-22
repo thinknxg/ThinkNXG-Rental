@@ -444,7 +444,7 @@
 						r.report_summary.map((s) => el("div", { class: "cc-kpi", style: "min-height:0" }, el("dt", { text: s.label }), el("dd", { style: "font-size:24px", text: cc.fmt(s.value, s.datatype) })))) : null,
 					rows.length ? el("div", { class: "cc-tablewrap" }, el("table", { class: "cc-table cc-table--nowrap" },
 						el("thead", {}, el("tr", {}, cols.map((c) => el("th", { class: cc.NUM.includes(c.fieldtype) ? "cc-num" : null, text: c.label })))),
-						el("tbody", {}, rows.slice(0, 1000).map((x) => el("tr", {}, cols.map((c) => el("td", { class: cc.NUM.includes(c.fieldtype) ? "cc-num" : null }, reportCell(c, x[c.fieldname])))))))) : cc.empty(__("No rows"), __("Nothing matches these filters.")),
+						el("tbody", {}, rows.slice(0, 1000).map((x) => el("tr", {}, cols.map((c) => el("td", { class: cc.NUM.includes(c.fieldtype) ? "cc-num" : null }, reportCell(c, x[c.fieldname], x)))))))) : cc.empty(__("No rows"), __("Nothing matches these filters.")),
 					rows.length > 1000 ? el("p", { class: "cc-muted", style: "padding:0 14px", text: __("Showing the first 1,000 of {0} rows. Export or open the report in the desk for all of them.", [rows.length]) }) : null);
 			} catch (e) {
 				out.replaceChildren(el("div", { class: "cc-error", style: "margin:14px", text: e.message }));
@@ -459,7 +459,7 @@
 		const [fieldtype, options] = (type || "Data").split("/");
 		return { label, fieldname: label.toLowerCase().replace(/[^a-z0-9]+/g, "_"), fieldtype, options };
 	}
-	function reportCell(c, v) {
+	function reportCell(c, v, row) {
 		if (v === null || v === undefined || v === "") return "";
 		if (c.fieldtype === "Link" && c.options && !/^total$/i.test(String(v))) {
 			const routes = { "Rental Contract": "contracts", Customer: "customers", "Cross Hire Order": "cross-hire", "Rental Site": "sites", Item: "inventory?item=" };
@@ -467,6 +467,7 @@
 			if (r) return cc.link(r.endsWith("=") ? r + encodeURIComponent(v) : r + "/" + encodeURIComponent(v), String(v));
 		}
 		if (c.fieldtype === "Dynamic Link") return String(v);
+		if (c.fieldtype === "Currency" && c.options && row && row[c.options]) return cc.money(v, row[c.options]);
 		return cc.fmt(v, c.fieldtype);
 	}
 

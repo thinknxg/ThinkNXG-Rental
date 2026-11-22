@@ -85,7 +85,11 @@ contract end, as chosen on the Hire Order Contract.
   - retried requests post once, and postings on one contract are serialised.
   - The contract shows required, collected, outstanding, refunded, adjusted and available amounts and the statuses, all worked out from posted transactions.
   - A rental invoice can take the contract's advance (Adjust Advance, or automatically).
-  - The Command Center's Record Deposit now posts a deposit receipt.
+- **Command Center screens:**
+  - Pro Forma Invoices and Deposits & Advances, with their own sidebar group, list tabs and approval badges;
+  - the nine reports, with one total row per currency;
+  - deposit and advance actions on the contract, a pro forma invoice from the hire order or contract, and Adjust Advance on rental invoices;
+  - amounts shown with their currency's decimals (OMR 3, AED 2).
 - **Nine deposit and advance reports.**
 - See [docs/PRO_FORMA_AND_DEPOSITS.md](docs/PRO_FORMA_AND_DEPOSITS.md).
 

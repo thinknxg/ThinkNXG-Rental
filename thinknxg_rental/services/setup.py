@@ -436,8 +436,18 @@ def ensure_settings_defaults():
 			frappe.db.set_single_value("Rental Settings", df.fieldname, df.default)
 
 
+DEPOSIT_REPORTS = ("Contract-wise Security Deposit", "Customer-wise Security Deposit", "Outstanding Security Deposit",
+	"Security Deposit Refund Report", "Security Deposit Liability Ledger", "Customer Advance Report", "Unutilized Advance Report",
+	"Advance Adjustment Report", "Customer Advance Liability Ledger")
+
+
 def ensure_pro_forma_setup():
 	"""Upgrade to 2.7: service charge item, pro forma terms and a company profile for the settings company."""
+	# the deposit reports add one total row per currency themselves; a framework total would add AED to OMR
+	# (a Report's add_total_row is kept as the site has it when the report is imported, so it is set here)
+	for name in DEPOSIT_REPORTS:
+		if frappe.db.get_value("Report", name, "add_total_row"):
+			frappe.db.set_value("Report", name, "add_total_row", 0, update_modified=False)
 	company = frappe.db.get_single_value("Rental Settings", "company")
 	if not company:
 		return

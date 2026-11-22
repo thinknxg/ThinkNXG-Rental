@@ -161,6 +161,10 @@ def lock(doc):
 
 
 def source_balances(doc):
+	# money asked for by a pro forma invoice is limited by that pro forma invoice, even once its contract exists;
+	# what is held (refunds, deductions, adjustments) is the contract's, wherever it was collected
+	if doc.pro_forma_invoice and doc.transaction_type in (D_COLLECT, A_COLLECT):
+		return balances(pro_forma_invoice=doc.pro_forma_invoice)
 	if doc.rental_contract:
 		return balances(rental_contract=doc.rental_contract)
 	if doc.hire_order:

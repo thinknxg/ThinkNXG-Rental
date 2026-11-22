@@ -91,6 +91,20 @@ RETURN_WH = _wh_filter("own", "cross", "inspection")
 
 SITE = {"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}
 
+# Deposits, advances and pro forma invoices (portal/finance.py): the action functions and their ask panels
+_FIN = "thinknxg_rental.portal.finance."
+
+
+def _fin():
+	from thinknxg_rental.portal import finance
+
+	return finance
+
+
+def _FIN_ASK(name):
+	return lambda d: getattr(_fin(), "ask_" + name)(d)
+
+
 # Header field: "fieldname" or {fieldname, filters ("$field" = value of that field on the form),
 # show_if {field: [values]}, fetch {target: source field on the linked record}, wide}.
 # Item column: the same, plus w (relative width; the columns share the full table width), ro and clears.
@@ -283,6 +297,9 @@ ENTRY_TYPES = {
 				when={"docstatus": [1], "status": ["Open", "Contracted"]}, when_fn=lambda d: flt(d.total_shortfall_qty) > 0),
 			dict(label="Cross Hire Order", target="cross-hire-order", prefill={"rental_contract": lambda d: _source_contract(d)},
 				when={"docstatus": [1]}, when_fn=lambda d: flt(d.total_shortfall_qty) > 0 and _source_contract(d)),
+			dict(label="New Pro Forma Invoice", target="pro-forma-invoice",
+				method="thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.make_from_hire_order",
+				when={"docstatus": [0, 1], "status": ["Draft", "Open", "Contracted"]}),
 		],
 		related=[
 			dict(label="Rental Contracts", rows=lambda d: linked("Rental Contract", {"source_document": d.name, "docstatus": ["<", 2]},
@@ -499,13 +516,22 @@ ENTRY_TYPES = {
 			dict(label="Extend Contract", call="extend_contract", when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]},
 				ask=lambda d: [{"fieldname": "new_end_date", "label": "New end date", "fieldtype": "Date", "reqd": 1},
 					{"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1}], done="{0}: end date extended."),
-			dict(label="Record Deposit", fn="thinknxg_rental.portal.entry.record_deposit", source_arg="rental_contract",
-				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Cancelled",
-				ask=lambda d: [{"fieldname": "deposit_received", "label": "Deposit received now", "fieldtype": "Currency", "reqd": 1,
-						"default": flt(d.get("deposit_outstanding")) or None},
-					{"fieldname": "mode_of_payment", "label": "Mode of payment", "fieldtype": "Link", "options": "Mode of Payment", "reqd": 1, "default": "Cash"},
-					{"fieldname": "deposit_reference", "label": "Transaction / cheque reference", "fieldtype": "Data"}],
-				done="{0}: deposit receipt posted."),
+			# security deposit and advance (portal/finance.py, services/deposits.py): each opens its receipt
+			dict(label="Collect Deposit", fn=_FIN + "collect_deposit", source_arg="rental_contract", opens="contract-payment", perm="read",
+				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Cancelled", ask=_FIN_ASK("collect_deposit")),
+			dict(label="Refund Deposit", fn=_FIN + "refund_deposit", source_arg="rental_contract", opens="contract-payment", perm="read",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.get("deposit_balance")) > 0, ask=_FIN_ASK("refund_deposit")),
+			dict(label="Adjust Deposit", fn=_FIN + "deduct_deposit", source_arg="rental_contract", opens="contract-payment", perm="read",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.get("deposit_balance")) > 0, ask=_FIN_ASK("deduct_deposit")),
+			dict(label="Collect Advance", fn=_FIN + "collect_advance", source_arg="rental_contract", opens="contract-payment", perm="read",
+				when={"docstatus": [1]}, when_fn=lambda d: d.status != "Cancelled", ask=_FIN_ASK("collect_advance")),
+			dict(label="Adjust Advance Against Invoice", fn=_FIN + "adjust_advance", source_arg="rental_contract", opens="contract-payment",
+				perm="read", when={"docstatus": [1]}, when_fn=lambda d: flt(d.get("advance_available")) > 0, ask=_FIN_ASK("adjust_advance")),
+			dict(label="Refund Advance", fn=_FIN + "refund_advance", source_arg="rental_contract", opens="contract-payment", perm="read",
+				when={"docstatus": [1]}, when_fn=lambda d: flt(d.get("advance_available")) > 0, ask=_FIN_ASK("refund_advance")),
+			dict(label="New Pro Forma Invoice", target="pro-forma-invoice",
+				method="thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.make_from_rental_contract",
+				when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]}),
 			dict(label="Close Contract", call="close_contract", when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]},
 				when_fn=lambda d: flt(d.total_at_site_qty) <= 0 and flt(d.total_dispatched_qty) > 0,
 				confirm="Final-bill this contract and mark it Completed?", done="{0} is completed."),
@@ -542,6 +568,14 @@ ENTRY_TYPES = {
 				["posting_date", "grand_total", "outstanding_amount", "status"], "sales-invoice", order_by="posting_date desc"),
 				columns=[("name", "Sales Invoice", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"),
 					("outstanding_amount", "Outstanding", "Currency"), ("status", "Status", "Data")]),
+			dict(label="Deposits and advances", rows=lambda d: linked("Rental Contract Payment", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["posting_date", "transaction_type", "amount", "sales_invoice", "status"], "contract-payment", order_by="posting_date desc"),
+				columns=[("name", "Receipt / voucher", "Data"), ("posting_date", "Date", "Date"), ("transaction_type", "Transaction", "Data"),
+					("amount", "Amount", "Currency"), ("sales_invoice", "Against invoice", "Data"), ("status", "Status", "Data")]),
+			dict(label="Pro Forma Invoices", rows=lambda d: linked("Rental Pro Forma Invoice", {"rental_contract": d.name, "docstatus": ["<", 2]},
+				["posting_date", "valid_until", "total_including_vat", "status"], "pro-forma-invoice"),
+				columns=[("name", "Pro Forma Invoice", "Data"), ("posting_date", "Date", "Date"), ("valid_until", "Valid until", "Date"),
+					("total_including_vat", "Incl. VAT", "Currency"), ("status", "Status", "Data")]),
 		],
 	),
 	"delivery-order": dict(
@@ -868,6 +902,10 @@ ENTRY_TYPES = {
 			TAX_TABLE,
 		],
 		totals=["net_total", "total_taxes_and_charges", "grand_total", "outstanding_amount"],
+		next=[
+			dict(label="Adjust Advance", fn=_FIN + "adjust_advance_on_invoice", source_arg="sales_invoice", opens="contract-payment", perm="read",
+				when_fn=lambda d: _fin().invoice_has_advance(d), ask=_FIN_ASK("invoice_advance")),
+		],
 	),
 	"off-hire-note": dict(
 		doctype="Hire Off-Hire Note",
@@ -1177,6 +1215,148 @@ ENTRY_TYPES["excess-conversion"] = dict(
 		]),
 	],
 	totals=["total_conversion_qty", "total_target_qty", "total_value"],
+)
+
+# Pro Forma Invoice (rental_pro_forma_invoice.py): Submit is the approval; sharing, acceptance, money received and the
+# tax invoice are actions on the approved document.
+_PF = "thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice."
+_PF_OPEN = ["Approved", "Sent to Customer", "Customer Accepted", "Advance Received"]
+ENTRY_TYPES["pro-forma-invoice"] = dict(
+	menu="more",
+	doctype="Rental Pro Forma Invoice",
+	print=True,
+	label="Pro Forma Invoice",
+	plural="Pro Forma Invoices",
+	title_field="customer_name",
+	search_fields=["customer_name", "customer", "hire_order", "rental_contract", "customer_reference"],
+	list_columns=[("customer_name", "Customer"), ("posting_date", "Date"), ("valid_until", "Valid until"), ("total_including_vat", "Incl. VAT"),
+		("status", "Status")],
+	header=[
+		_CUSTOMER, {"fieldname": "customer_name", "ro": 1}, "company", "posting_date", "valid_until", {"fieldname": "status", "ro": 1},
+		{"fieldname": "hire_order", "filters": {"customer": "$customer", "docstatus": ["!=", 2]}},
+		{"fieldname": "rental_contract", "filters": {"customer": "$customer", "docstatus": 1}},
+		{"fieldname": "quotation", "filters": {"party_name": "$customer"}}, "customer_reference",
+		{"fieldname": "customer_address", "filters": {"link_doctype": "Customer", "link_name": "$customer"}},
+		{"fieldname": "contact_person", "filters": {"link_doctype": "Customer", "link_name": "$customer"}},
+		{"fieldname": "rental_site", "filters": {"customer": "$customer", "disabled": 0}, "fetch": {"project": "project"}}, PROJECT,
+		"payment_terms_template", "equipment_country", "customer_country", "customer_vat_number",
+		"override_supply_scope", "supply_scope", {"fieldname": "place_of_supply", "ro": 1},
+		{"fieldname": "currency", "ro": 1}, {"fieldname": "company_vat_number", "ro": 1}, {"fieldname": "vat_review_note", "ro": 1, "wide": 1},
+		"discount_percentage", "discount_amount", {"fieldname": "sales_invoice", "ro": 1}, {"fieldname": "remarks", "wide": 1},
+	],
+	tables=[
+		dict(fieldname="items", columns=[
+			{"fieldname": "item_code", "w": 2.2, "filters": STOCK_ITEM, "fetch": {"item_name": "item_name", "uom": "stock_uom"}},
+			{"fieldname": "item_name", "w": 2.4, "ro": 1},
+			{"fieldname": "uom", "w": 0.9, "ro": 1},
+			{"fieldname": "qty", "w": 1},
+			{"fieldname": "rate_basis", "w": 1.2},
+			{"fieldname": "period_days", "w": 1, "label": "Custom days"},
+			{"fieldname": "rate", "w": 1.2},
+			{"fieldname": "rental_from", "w": 1.4},
+			{"fieldname": "rental_to", "w": 1.4},
+			{"fieldname": "minimum_days", "w": 1},
+			{"fieldname": "period_label", "w": 1.6, "ro": 1},
+			{"fieldname": "amount", "w": 1.3, "ro": 1},
+			{"fieldname": "vat_treatment", "w": 1.3},
+			{"fieldname": "treatment_overridden", "w": 0.9, "label": "Keep VAT"},
+		]),
+		dict(fieldname="charges", columns=[
+			{"fieldname": "charge_type", "w": 1.8},
+			{"fieldname": "description", "w": 3},
+			{"fieldname": "qty", "w": 1},
+			{"fieldname": "rate", "w": 1.3},
+			{"fieldname": "amount", "w": 1.3, "ro": 1},
+			{"fieldname": "vat_treatment", "w": 1.4},
+			{"fieldname": "treatment_overridden", "w": 0.9, "label": "Keep VAT"},
+		]),
+		dict(fieldname="deposits", columns=[
+			{"fieldname": "description", "w": 3.4},
+			{"fieldname": "basis_qty", "w": 1.2},
+			{"fieldname": "rate", "w": 1.4},
+			{"fieldname": "deposit_type", "w": 2},
+			{"fieldname": "amount", "w": 1.4, "ro": 1},
+		]),
+		dict(fieldname="status_log", readonly=1, columns=[
+			{"fieldname": "status", "w": 2},
+			{"fieldname": "changed_on", "w": 2},
+			{"fieldname": "changed_by", "w": 2.4},
+			{"fieldname": "remarks", "w": 4},
+		]),
+	],
+	totals=["total_rental", "total_transport", "total_other_services", "subtotal", "total_discount", "net_total", "taxable_amount",
+		"zero_rated_amount", "exempt_amount", "total_vat", "total_including_vat", "total_deposit", "advance_received", "deposit_received",
+		"grand_total_payable"],
+	share_links=lambda d: [(_("Share on WhatsApp"), _fin().whatsapp_url(d))] if d.docstatus == 1 and d.status in _PF_OPEN else [],
+	next=[
+		dict(label="Submit for Approval", call="submit_for_approval", when={"docstatus": [0], "status": ["Draft"]}, done="{0}: waiting for approval."),
+		dict(label="Email to Customer", call="send_email", perm="email", when={"docstatus": [1], "status": _PF_OPEN},
+			ask=lambda d: [{"fieldname": "recipients", "label": "To", "fieldtype": "Data", "reqd": 1, "default": d.contact_email},
+				{"fieldname": "subject", "label": "Subject", "fieldtype": "Data", "default": _("Pro Forma Invoice {0}").format(d.name)},
+				{"fieldname": "message", "label": "Message", "fieldtype": "Small Text", "wide": 1}], done="{0}: emailed to the customer."),
+		dict(label="Mark as Sent", call="mark_sent", when={"docstatus": [1], "status": _PF_OPEN},
+			ask=[{"fieldname": "via", "label": "Sent by", "fieldtype": "Select", "reqd": 1, "choices": ["PDF", "WhatsApp", "Email", "By hand"], "default": "PDF"}],
+			done="{0}: marked as sent."),
+		dict(label="Customer Accepted", call="mark_accepted", when={"docstatus": [1], "status": ["Approved", "Sent to Customer"]},
+			ask=lambda d: [{"fieldname": "accepted_by", "label": "Accepted by", "fieldtype": "Data", "default": d.contact_display},
+				{"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1}], done="{0}: accepted by the customer."),
+		dict(label="Collect Advance", fn=_FIN + "pro_forma_advance", source_arg="pro_forma_invoice", opens="contract-payment", perm="read",
+			when={"docstatus": [1], "status": _PF_OPEN}, ask=_FIN_ASK("pro_forma_advance")),
+		dict(label="Collect Security Deposit", fn=_FIN + "pro_forma_deposit", source_arg="pro_forma_invoice", opens="contract-payment", perm="read",
+			when={"docstatus": [1], "status": _PF_OPEN}, when_fn=lambda d: flt(d.total_deposit) > 0, ask=_FIN_ASK("pro_forma_deposit")),
+		dict(label="Create Tax Invoice", target="sales-invoice", method=_PF + "make_sales_invoice", creates="source_name",
+			when={"docstatus": [1], "status": _PF_OPEN}, when_fn=lambda d: not d.sales_invoice),
+	],
+	related=[
+		dict(label="Deposits and advances", rows=lambda d: linked("Rental Contract Payment", {"pro_forma_invoice": d.name, "docstatus": ["<", 2]},
+			["posting_date", "transaction_type", "amount", "status"], "contract-payment", order_by="posting_date desc"),
+			columns=[("name", "Receipt / voucher", "Data"), ("posting_date", "Date", "Date"), ("transaction_type", "Transaction", "Data"),
+				("amount", "Amount", "Currency"), ("status", "Status", "Data")]),
+		dict(label="Tax invoice", rows=lambda d: linked("Sales Invoice", {"nxg_pro_forma_invoice": d.name, "docstatus": ["<", 2]},
+			["posting_date", "grand_total", "outstanding_amount", "status"], "sales-invoice"),
+			columns=[("name", "Sales Invoice", "Data"), ("posting_date", "Date", "Date"), ("grand_total", "Total", "Currency"),
+				("outstanding_amount", "Outstanding", "Currency"), ("status", "Status", "Data")]),
+	],
+)
+
+# Deposit and advance transactions (services/deposits.py): Submit posts the Journal Entry; a refund or deduction
+# saved by a user who cannot approve it waits as Pending Approval.
+_PAYMENT_CASH = {"transaction_type": ["Deposit Collection", "Deposit Refund", "Advance Collection", "Advance Refund"]}
+_PAYMENT_INVOICE = {"transaction_type": ["Deposit Deduction", "Advance Adjustment"]}
+_SOURCE_FETCH = {"customer": "customer", "customer_name": "customer_name", "company": "company"}
+ENTRY_TYPES["contract-payment"] = dict(
+	menu="more",
+	doctype="Rental Contract Payment",
+	print=True,
+	label="Deposit / Advance Transaction",
+	plural="Deposits and Advances",
+	title_field="customer_name",
+	search_fields=["customer_name", "rental_contract", "hire_order", "pro_forma_invoice", "reference_no", "sales_invoice"],
+	list_columns=[("customer_name", "Customer"), ("transaction_type", "Transaction"), ("posting_date", "Date"), ("amount", "Amount"),
+		("status", "Status")],
+	header=[
+		"transaction_type",
+		{"fieldname": "rental_contract", "filters": {"docstatus": 1, "status": ["!=", "Cancelled"]}, "fetch": _SOURCE_FETCH},
+		{"fieldname": "pro_forma_invoice", "filters": {"docstatus": 1}, "fetch": _SOURCE_FETCH},
+		{"fieldname": "hire_order", "filters": {"docstatus": ["!=", 2]}, "fetch": _SOURCE_FETCH},
+		{"fieldname": "customer", "ro": 1}, {"fieldname": "customer_name", "ro": 1}, {"fieldname": "company", "ro": 1},
+		"posting_date", "amount", {"fieldname": "currency", "ro": 1}, {"fieldname": "status", "ro": 1},
+		{"fieldname": "mode_of_payment", "show_if": _PAYMENT_CASH},
+		{"fieldname": "account", "show_if": _PAYMENT_CASH, "filters": {"company": "$company", "is_group": 0, "account_type": ["in", ["Bank", "Cash"]]}},
+		{"fieldname": "reference_no", "show_if": _PAYMENT_CASH}, {"fieldname": "reference_date", "show_if": _PAYMENT_CASH},
+		{"fieldname": "sales_invoice", "show_if": _PAYMENT_INVOICE,
+			"filters": {"customer": "$customer", "company": "$company", "docstatus": 1, "is_return": 0, "outstanding_amount": [">", 0]}},
+		{"fieldname": "invoice_outstanding", "ro": 1, "show_if": _PAYMENT_INVOICE},
+		{"fieldname": "deduction_reason", "show_if": {"transaction_type": ["Deposit Deduction"]}},
+		{"fieldname": "damage_settlement", "show_if": {"transaction_type": ["Deposit Deduction"]},
+			"filters": {"rental_contract": "$rental_contract", "docstatus": 1}},
+		{"fieldname": "balance_before", "ro": 1}, {"fieldname": "balance_after", "ro": 1}, {"fieldname": "vat_amount", "ro": 1},
+		{"fieldname": "journal_entry", "ro": 1}, {"fieldname": "approved_by", "ro": 1}, {"fieldname": "approved_on", "ro": 1},
+		{"fieldname": "remarks", "wide": 1},
+	],
+	tables=[],
+	totals=[],
+	prefill=["rental_contract", "pro_forma_invoice", "hire_order", "transaction_type"],
 )
 
 ENTRY_TYPES["request"] = dict(
@@ -1541,6 +1721,9 @@ def get_print_links(cfg, doc):
 		name = doc.get(field)
 		if name and frappe.has_permission(doctype, "print", doc=name):
 			links.append({"label": _("Print {0}").format(_(doctype)), "url": _print_url(doctype, name)})
+	for label, url in (cfg["share_links"](doc) if cfg.get("share_links") else []):
+		if url:
+			links.append({"label": label, "url": url})
 	return links
 
 

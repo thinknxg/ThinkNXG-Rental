@@ -100,7 +100,28 @@ def execute(filters, mode):
 	filters.to_date = filters.get("to_date") or nowdate()
 	if filters.get("from_date") and getdate(filters.from_date) > getdate(filters.to_date):
 		frappe.throw(_("From Date cannot be after To Date"))
-	return globals()["_" + mode](filters)
+	result = list(globals()["_" + mode](filters))
+	result[1] = with_totals(result[0], result[1])
+	return tuple(result)
+
+
+def with_totals(columns, data):
+	"""A total row per currency: amounts in AED and OMR are never added together. A running balance is not summed."""
+	money = [c["fieldname"] for c in columns if c.get("fieldtype") == "Currency" and c["fieldname"] != "balance"]
+	if not data or not money:
+		return data
+	first = next(c["fieldname"] for c in columns if not c.get("hidden"))
+	totals = {}
+	for row in data:
+		if row.get("name") is None and row.get("transaction_type") == _("Opening Balance"):
+			continue
+		t = totals.setdefault(row.get("currency"), {f: 0.0 for f in money})
+		for f in money:
+			t[f] += flt(row.get(f))
+	out = list(data)
+	for currency, t in sorted(totals.items(), key=lambda kv: kv[0] or ""):
+		out.append(frappe._dict(t, **{first: _("Total ({0})").format(currency) if currency else _("Total"), "currency": currency, "is_total_row": 1}))
+	return out
 
 
 # ------------------------------------------------------------------ deposit summaries

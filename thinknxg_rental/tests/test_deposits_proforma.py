@@ -178,14 +178,17 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			fields=["total_debit", "total_credit"])
 		self.assertEqual(len(jes), 5)
 		self.assertTrue(all(flt(j.total_debit) == flt(j.total_credit) for j in jes))
+		body = lambda rows: [r for r in rows if not r.get("is_total_row")]
 		_cols, ledger = deposit_reports.execute({"rental_contract": c.name}, "deposit_ledger")
-		self.assertEqual([flt(r.balance) for r in ledger], [6000, 5000, 0])
+		self.assertEqual([flt(r.balance) for r in body(ledger)], [6000, 5000, 0])
+		total = [r for r in ledger if r.get("is_total_row")]
+		self.assertEqual([(r.currency, flt(r.credit), flt(r.debit)) for r in total], [("OMR", 6000, 6000)])  # one total per currency
 		_cols, rows, *_ = deposit_reports.execute({"rental_contract": c.name}, "contract_deposit")
 		self.assertEqual((rows[0].deposit_balance, rows[0].deposit_status), (0, "Settled"))
 		_cols, rows, *_ = deposit_reports.execute({"customer": c.customer}, "unutilized_advance")
-		self.assertEqual([flt(r.advance_available) for r in rows], [1000])
+		self.assertEqual([flt(r.advance_available) for r in body(rows)], [1000])
 		_cols, rows = deposit_reports.execute({"customer": c.customer, "country": "Oman"}, "advance_adjustment")
-		self.assertEqual([(r.sales_invoice, flt(r.amount)) for r in rows], [(si.name, 2000)])
+		self.assertEqual([(r.sales_invoice, flt(r.amount)) for r in body(rows)], [(si.name, 2000)])
 
 	def test_limits_and_controls(self):
 		c = self.rc(deposit=1000, advance=500)
@@ -357,3 +360,86 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			credited += flt(frappe.db.get_value("Sales Invoice", name, "nxg_prepaid_credit"))
 		self.assertEqual(credited, 400)
 		self.assertEqual(pf.prepaid_rental(rc), 0)
+
+	# ------------------------------------------------------------------ Command Center screens
+	def test_command_center_screens(self):
+		from thinknxg_rental.command_center import api as cc_api, registry
+		from thinknxg_rental.portal import entry as E
+		from thinknxg_rental.tests.test_admin_portal import STAFF, create, form, labels, run, save
+
+		c = self.rc(deposit=800, advance=600)
+		frappe.set_user(STAFF)
+		try:
+			# sidebar, list views, report pages, quick create
+			nav = {i["key"] for g in registry.get_nav() for i in g["items"]}
+			for key in ("finance/pro-forma", "finance/deposits", "reports/deposit-ledger", "reports/advances-unutilized"):
+				self.assertIn(key, nav)
+			self.assertEqual(registry.entry_route("pro-forma-invoice"), "finance/pro-forma")
+			self.assertEqual(registry.entry_route("contract-payment"), "finance/deposits")
+			self.assertIn("pro-forma-invoice", [q["entry"] for q in registry.get_quick_create()])
+			for view, name in registry.REPORTS.items():
+				if "deposit" in view or "advance" in view:
+					meta = cc_api.report_meta(view)
+					self.assertEqual(meta["name"], name)
+					self.assertIn("country", [f["fieldname"] for f in meta["filters"]])
+			# the contract's deposit and advance actions post receipts
+			boot = form("rental-contract", c.name)
+			self.assertIn("Collect Deposit", labels(boot))
+			self.assertNotIn("Refund Deposit", labels(boot))  # nothing held yet
+			r = run(boot, "Collect Deposit", amount=800, mode_of_payment="Cash", remarks="At signing")
+			self.assertIn("type=contract-payment", r["url"])
+			run(form("rental-contract", c.name), "Collect Advance", amount=600, mode_of_payment="Cash")
+			row = frappe.db.get_value("Rental Contract", c.name, ["deposit_collected", "advance_available"], as_dict=True)
+			self.assertEqual((row.deposit_collected, row.advance_available), (800, 600))
+			boot = form("rental-contract", c.name)
+			self.assertTrue({"Refund Deposit", "Adjust Deposit", "Adjust Advance Against Invoice", "Refund Advance"} <= set(labels(boot)))
+			related = {g["label"]: g for g in boot["related"]}
+			self.assertEqual(len(related["Deposits and advances"]["rows"]), 2)
+			# a refund by a Rental Manager is approved and posted at once
+			run(boot, "Refund Deposit", amount=300, mode_of_payment="Cash")
+			self.assertEqual(frappe.db.get_value("Rental Contract", c.name, "deposit_balance"), 500)
+		finally:
+			frappe.set_user("Administrator")
+		# the rental invoice offers its contract's advance
+		si = self.invoice(self.company, c.customer, 400, c.name)
+		frappe.set_user(STAFF)
+		try:
+			boot = form("sales-invoice", si.name)
+			a = next(x for x in boot["next"] if x["label"] == "Adjust Advance")
+			self.assertEqual(a["ask"][0]["default"], 400)
+			run(boot, "Adjust Advance", amount=400)
+			self.assertEqual(flt(frappe.db.get_value("Sales Invoice", si.name, "outstanding_amount")), flt(si.grand_total) - 400)
+			self.assertNotIn("Adjust Advance", labels(form("sales-invoice", si.name)))
+			# a transaction entered directly in its own form, then posted with Submit
+			key = "contract-payment"
+			new = form(key, None, rental_contract=c.name, transaction_type="Advance Refund")
+			doc = dict(new["doc"], amount=200, mode_of_payment="Cash")
+			name = save(key, doc)
+			E.submit_entry(key, name)
+			self.assertEqual(frappe.db.get_value(deposits.DOCTYPE, name, "status"), "Posted")
+			self.assertEqual(frappe.db.get_value("Rental Contract", c.name, "advance_available"), 0)
+			self.assertTrue(form(key, name)["prints"])
+			# pro forma invoice from the hire order, through approval, sharing, acceptance, payment and the tax invoice
+			ho = frappe.db.get_value("Rental Contract", c.name, "hire_order")
+			key, pi = create(form("hire-order", ho), "New Pro Forma Invoice")
+			self.assertEqual(key, "pro-forma-invoice")
+			pi_name = save(key, pi["doc"])
+			boot = form(key, pi_name)
+			self.assertEqual(boot["doc"]["currency"], "OMR")
+			run(boot, "Submit for Approval")
+			E.submit_entry(key, pi_name)  # a Rental Manager approves
+			boot = form(key, pi_name)
+			self.assertEqual(boot["doc"]["status"], "Approved")
+			self.assertIn("Share on WhatsApp", [p["label"] for p in boot["prints"]])
+			run(boot, "Mark as Sent", via="WhatsApp")
+			run(form(key, pi_name), "Customer Accepted", accepted_by="Site engineer")
+			r = run(form(key, pi_name), "Collect Advance", amount=100, mode_of_payment="Cash")
+			self.assertIn("type=contract-payment", r["url"])
+			self.assertEqual(frappe.db.get_value(pf.DOCTYPE, pi_name, "status"), "Advance Received")
+			skey, sinv = create(form(key, pi_name), "Create Tax Invoice")
+			self.assertEqual((skey, sinv["doc"]["nxg_pro_forma_invoice"]), ("sales-invoice", pi_name))
+			self.assertNotIn("Create Tax Invoice", labels(form(key, pi_name)))
+			log = [r["status"] for r in form(key, pi_name)["doc"]["status_log"]]
+			self.assertEqual(log[:5], ["Draft", "Submitted for Approval", "Approved", "Sent to Customer", "Customer Accepted"])
+		finally:
+			frappe.set_user("Administrator")
