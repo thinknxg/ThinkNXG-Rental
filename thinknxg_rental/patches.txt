@@ -17,3 +17,4 @@ thinknxg_rental.patches.v2_6.register_existing_excess
 thinknxg_rental.patches.v2_6.refresh_workspace_menu
 thinknxg_rental.patches.v2_6.refresh_workspace_menu #2026-11-19 website enquiries and settings
 thinknxg_rental.patches.v2_7.link_pro_forma_payments
+thinknxg_rental.patches.v2_7.claim_pro_forma_collections

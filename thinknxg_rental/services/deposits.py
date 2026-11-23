@@ -161,15 +161,52 @@ def lock(doc):
 
 
 def source_balances(doc):
-	# money asked for by a pro forma invoice is limited by that pro forma invoice, even once its contract exists;
-	# what is held (refunds, deductions, adjustments) is the contract's, wherever it was collected
-	if doc.pro_forma_invoice and doc.transaction_type in (D_COLLECT, A_COLLECT):
-		return balances(pro_forma_invoice=doc.pro_forma_invoice)
+	"""What is held (deposit balance, advance available): the contract's, wherever it was collected."""
 	if doc.rental_contract:
 		return balances(rental_contract=doc.rental_contract)
 	if doc.hire_order:
 		return balances(hire_order=doc.hire_order)
 	return balances(pro_forma_invoice=doc.pro_forma_invoice)
+
+
+def collect_limits(rental_contract=None, hire_order=None, pro_forma_invoice=None):
+	"""What may still be collected, per fund: {fund: (remaining, document asking, required, collected)} for the
+	document that leaves the least; None when no document asks for that fund (no limit).
+
+	Deposit: every document that asks counts, the smallest remaining wins: the pro forma invoice (its deposit lines)
+	and the rental contract (Security Deposit Required), or the hire order before the contract exists.
+	Advance: the pro forma invoice when collecting on it (its charges including VAT), else the contract's (or
+	order's) Advance Amount Required. Remaining = required - collected; a refund does not make room for more."""
+	sources = []
+	if pro_forma_invoice:
+		sources.append((_("Pro Forma Invoice {0}").format(pro_forma_invoice), balances(pro_forma_invoice=pro_forma_invoice)))
+	if rental_contract:
+		sources.append((_("Rental Contract {0}").format(rental_contract), balances(rental_contract=rental_contract)))
+	elif hire_order:
+		sources.append((_("Hire Order {0}").format(hire_order), balances(hire_order=hire_order)))
+	out = {}
+	for fund, required, collected in ((DEPOSIT, "deposit_required", "deposit_collected"), (ADVANCE, "advance_required", "advance_received")):
+		best = None
+		# an advance asked for by a pro forma invoice (its charges including VAT) may go beyond the contract's Advance
+		# Amount Required; a deposit never goes beyond any requirement
+		for label, s in (sources[:1] if fund == ADVANCE and pro_forma_invoice else sources):
+			if s[required] > EPS:
+				left = max(s[required] - s[collected], 0)
+				if best is None or left < best[0]:
+					best = (left, label, s[required], s[collected])
+		out[fund] = best
+	return out
+
+
+def remaining_to_collect(rental_contract=None, hire_order=None, pro_forma_invoice=None):
+	"""{deposit, advance}: still to collect (None: nothing asked, no limit). For buttons and dialog defaults; the
+	same figure the server enforces."""
+	if pro_forma_invoice and not (rental_contract or hire_order):
+		rental_contract, hire_order = frappe.db.get_value("Rental Pro Forma Invoice", pro_forma_invoice, ["rental_contract", "hire_order"]) or (None, None)
+	if hire_order and not rental_contract:
+		rental_contract = frappe.db.get_value("Rental Contract", {"hire_order": hire_order, "docstatus": 1}, "name")
+	limits = collect_limits(rental_contract, hire_order, pro_forma_invoice)
+	return frappe._dict(deposit=limits[DEPOSIT][0] if limits[DEPOSIT] else None, advance=limits[ADVANCE][0] if limits[ADVANCE] else None)
 
 
 def validate(doc):
@@ -203,14 +240,17 @@ def validate(doc):
 	if doc.transaction_type != D_DEDUCT:
 		doc.deduction_reason = doc.damage_settlement = None
 	s = source_balances(doc)
-	doc.balance_before, limit, what = _limit(doc, s)
-	if limit is not None and doc.amount > flt(limit, precision) + EPS:
-		frappe.throw(_("{0} of {1} is more than the {2} of {3}").format(
-			doc.transaction_type, frappe.format(doc.amount, {"fieldtype": "Currency", "options": doc.currency}), what,
-			frappe.format(max(flt(limit), 0), {"fieldtype": "Currency", "options": doc.currency})), title=_("Amount Too High"))
-	doc.balance_after = flt(doc.balance_before) + (doc.amount if doc.transaction_type in (D_COLLECT, A_COLLECT) else -doc.amount)
-	if doc.transaction_type == D_COLLECT:
-		doc.balance_before, doc.balance_after = s.deposit_balance, s.deposit_balance + doc.amount
+	money = lambda v: frappe.format(max(flt(v), 0), {"fieldtype": "Currency", "options": doc.currency})
+	if doc.transaction_type in (D_COLLECT, A_COLLECT):
+		_check_collection(doc, precision, money)
+		held = s.deposit_balance if doc.transaction_type == D_COLLECT else s.advance_available
+		doc.balance_before, doc.balance_after = held, held + doc.amount
+	else:
+		doc.balance_before, limit, what = _limit(doc, s)
+		if limit is not None and doc.amount > flt(limit, precision) + EPS:
+			frappe.throw(_("{0} of {1} is more than the {2} of {3}").format(doc.transaction_type, money(doc.amount), what, money(limit)),
+				title=_("Amount Too High"))
+		doc.balance_after = flt(doc.balance_before) - doc.amount
 	_set_vat(doc, profile, s, precision)
 	doc.status = "Pending Approval" if needs_approval(doc) and doc.docstatus == 0 else ("Draft" if doc.docstatus == 0 else doc.status)
 
@@ -240,6 +280,7 @@ def _set_party(doc):
 	if not doc.pro_forma_invoice and doc.transaction_type in (D_COLLECT, A_COLLECT) and doc.is_new():
 		# collected on the contract or hire order: it is the money its open pro forma invoice asked for
 		doc.pro_forma_invoice = open_pro_forma(src.customer, doc.rental_contract, doc.hire_order)
+		doc.pro_forma_linked_automatically = 1 if doc.pro_forma_invoice else 0
 	if doc.pro_forma_invoice:
 		pi = frappe.db.get_value("Rental Pro Forma Invoice", doc.pro_forma_invoice, ["customer", "company", "rental_contract", "hire_order"], as_dict=True)
 		if (pi.customer, pi.company) != (src.customer, src.company):
@@ -277,6 +318,28 @@ def open_pro_forma(customer, rental_contract=None, hire_order=None, statuses=OPE
 	return names[0] if len(names) == 1 else None
 
 
+def claim_collections(pro_forma_invoice):
+	"""Collections made on the contract or hire order before the pro forma invoice existed or was approved are its
+	own once it is the contract's (or order's) one open pro forma invoice."""
+	pi = frappe.db.get_value("Rental Pro Forma Invoice", pro_forma_invoice, ["customer", "rental_contract", "hire_order", "docstatus", "status"], as_dict=True)
+	if not pi or pi.docstatus != 1 or pi.status not in OPEN_PRO_FORMA or not (pi.rental_contract or pi.hire_order):
+		return 0
+	if open_pro_forma(pi.customer, pi.rental_contract, pi.hire_order) != pro_forma_invoice:
+		return 0
+	cond, args = [], {"pi": pro_forma_invoice, "customer": pi.customer, "types": (D_COLLECT, A_COLLECT)}
+	if pi.rental_contract:
+		cond.append("rental_contract = %(rc)s")
+		args["rc"] = pi.rental_contract
+	if pi.hire_order:
+		cond.append("(hire_order = %(ho)s and ifnull(rental_contract, '') in ('', %(rc_or_blank)s))")
+		args.update(ho=pi.hire_order, rc_or_blank=pi.rental_contract or "")
+	names = frappe.db.sql_list(f"""select name from `tab{DOCTYPE}` where docstatus < 2 and customer = %(customer)s
+		and transaction_type in %(types)s and ifnull(pro_forma_invoice, '') = '' and ({' or '.join(cond)})""", args)
+	for name in names:
+		frappe.db.set_value(DOCTYPE, name, {"pro_forma_invoice": pro_forma_invoice, "pro_forma_linked_automatically": 1}, update_modified=False)
+	return len(names)
+
+
 def _validate_invoice(doc):
 	if not doc.sales_invoice:
 		frappe.throw(_("Choose the Sales Invoice to adjust against"))
@@ -294,17 +357,26 @@ def _validate_invoice(doc):
 	doc.invoice_outstanding = flt(si.outstanding_amount)
 
 
+def _check_collection(doc, precision, money):
+	"""Remaining = required - collected, for every document asking for this money; the new collection must fit
+	in the smallest. A collection the system linked to a pro forma invoice by itself (taken on the contract or
+	hire order) is held to the contract's or order's requirement only."""
+	explicit_pi = doc.pro_forma_invoice if not doc.pro_forma_linked_automatically else None
+	limit = collect_limits(doc.rental_contract, None if doc.rental_contract else doc.hire_order, explicit_pi)[FUND[doc.transaction_type]]
+	if limit and doc.amount > flt(limit[0], precision) + EPS:
+		left, source, required, collected = limit
+		what = _("security deposit") if doc.transaction_type == D_COLLECT else _("advance")
+		if left <= EPS:
+			msg = _("The {0} of {1} is already collected in full ({2} of {3} required).").format(what, source, money(collected), money(required))
+		else:
+			msg = _("Only {0} of the {1} of {2} is still to be collected (required {3}, collected {4}).").format(
+				money(left), what, source, money(required), money(collected))
+		frappe.throw(msg + " " + _("This collection of {0} would exceed it.").format(money(doc.amount)), title=_("More Than Required"))
+
+
 def _limit(doc, s):
-	"""(balance before, the most this transaction may be, what that limit is)"""
+	"""(balance before, the most this transaction may be, what that limit is) for refunds, deductions, adjustments"""
 	t = doc.transaction_type
-	if t == D_COLLECT:
-		if s.deposit_required > EPS:
-			return s.deposit_outstanding, s.deposit_outstanding, _("outstanding security deposit")
-		return s.deposit_balance, None, ""
-	if t == A_COLLECT:
-		if s.advance_required > EPS:
-			return s.advance_outstanding, s.advance_outstanding, _("outstanding advance")
-		return s.advance_available, None, ""
 	if t in (D_REFUND, D_DEDUCT):
 		limit, what = s.deposit_balance, _("security deposit held")
 	else:

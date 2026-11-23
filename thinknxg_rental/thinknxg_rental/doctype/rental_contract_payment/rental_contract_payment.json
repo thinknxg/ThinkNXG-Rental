@@ -3,7 +3,7 @@
  "autoname": "naming_series:",
  "naming_rule": "By \"Naming Series\" field",
  "creation": "2026-11-22 12:00:00.000000",
- "modified": "2026-11-22 12:00:00.000000",
+ "modified": "2026-11-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "is_submittable": 1,
@@ -70,6 +70,16 @@
    "label": "Pro Forma Invoice",
    "options": "Rental Pro Forma Invoice",
    "search_index": 1
+  },
+  {
+   "fieldname": "pro_forma_linked_automatically",
+   "fieldtype": "Check",
+   "label": "Linked to the Pro Forma Invoice Automatically",
+   "read_only": 1,
+   "no_copy": 1,
+   "depends_on": "pro_forma_linked_automatically",
+   "allow_on_submit": 1,
+   "description": "Collected on the rental contract or hire order and shown on its open pro forma invoice. Limited by the contract's (or order's) requirement, not the pro forma invoice's."
   },
   {
    "fieldname": "cb_1",
@@ -332,6 +342,7 @@
   "rental_contract",
   "hire_order",
   "pro_forma_invoice",
+  "pro_forma_linked_automatically",
   "cb_1",
   "posting_date",
   "customer",

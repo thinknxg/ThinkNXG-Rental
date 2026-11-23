@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "creation": "2026-11-23 10:00:00.000000",
+ "modified": "2026-11-23 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "istable": 1,
+ "module": "thinkNXG Rental",
+ "name": "Rental Pro Forma Payment",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "ASC",
+ "states": [],
+ "permissions": [],
+ "links": [],
+ "fields": [
+  {
+   "fieldname": "payment",
+   "fieldtype": "Link",
+   "label": "Receipt / Voucher",
+   "options": "Rental Contract Payment",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Date",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Data",
+   "label": "Transaction",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Data",
+   "label": "Paid By",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "collected_on",
+   "fieldtype": "Data",
+   "label": "Collected On",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 2,
+   "description": "Where the money was taken: on this pro forma invoice, or on its rental contract or hire order (linked automatically)."
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "hidden": 1,
+   "read_only": 1
+  }
+ ],
+ "field_order": [
+  "payment",
+  "posting_date",
+  "transaction_type",
+  "amount",
+  "mode_of_payment",
+  "reference_no",
+  "collected_on",
+  "currency"
+ ]
+}

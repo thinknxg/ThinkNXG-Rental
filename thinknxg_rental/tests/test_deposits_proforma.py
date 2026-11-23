@@ -438,7 +438,9 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			run(boot, "Submit for Approval")
 			E.submit_entry(key, pi_name)  # a Rental Manager approves
 			boot = form(key, pi_name)
-			self.assertEqual(boot["doc"]["status"], "Approved")
+			# the advance already taken on its contract (600) counts from approval
+			self.assertEqual((boot["doc"]["status"], boot["doc"]["advance_received"]), ("Advance Received", 600))
+			self.assertEqual({r["collected_on"] for r in boot["doc"]["payments"]}, {f"Rental Contract {c.name}"})
 			self.assertIn("Share on WhatsApp", [p["label"] for p in boot["prints"]])
 			run(boot, "Mark as Sent", via="WhatsApp")
 			run(form(key, pi_name), "Customer Accepted", accepted_by="Site engineer")
@@ -449,7 +451,8 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 			self.assertEqual((skey, sinv["doc"]["nxg_pro_forma_invoice"]), ("sales-invoice", pi_name))
 			self.assertNotIn("Create Tax Invoice", labels(form(key, pi_name)))
 			log = [r["status"] for r in form(key, pi_name)["doc"]["status_log"]]
-			self.assertEqual(log[:5], ["Draft", "Submitted for Approval", "Approved", "Sent to Customer", "Customer Accepted"])
+			self.assertEqual(log[:5], ["Draft", "Submitted for Approval", "Approved", "Advance Received", "Advance Received"])
+			self.assertIn("Customer Accepted", log)  # recorded, the status stays Advance Received
 		finally:
 			frappe.set_user("Administrator")
 
@@ -484,3 +487,86 @@ class TestDepositsAndProForma(tem.TestExcessMaterial):
 		link_pro_forma_payments.execute()
 		self.assertEqual(frappe.db.get_value(deposits.DOCTYPE, a.name, "pro_forma_invoice"), doc.name)
 		self.assertEqual(frappe.db.get_value(pf.DOCTYPE, doc.name, "advance_received"), 110)  # the 10 has its one pro forma now too
+
+	# ------------------------------------------------------------------ 2.7.2: linking and collection limits
+	def approved_pro_forma(self, rc, deposit_rate=None, submit=True, approve=True):
+		doc = frappe.get_doc(pf.make_from_rental_contract(rc))
+		if deposit_rate is not None:
+			doc.deposits[0].rate = deposit_rate
+		doc.insert()
+		if submit:
+			doc.submit_for_approval()
+		if approve:
+			doc.reload()
+			doc.submit()
+		return frappe.get_doc(pf.DOCTYPE, doc.name)
+
+	def test_collections_before_pro_forma_are_counted_and_listed(self):
+		# A. advance and deposit taken on the contract before the pro forma invoice existed
+		c = self.rc(deposit=1000, advance=500)
+		self.pay("Advance Collection", 200, rental_contract=c.name)
+		self.pay("Deposit Collection", 300, rental_contract=c.name)
+		pi = self.approved_pro_forma(c.name)
+		self.assertEqual((pi.status, pi.advance_received, pi.deposit_received), ("Advance Received", 200, 300))
+		self.assertEqual([(r.transaction_type, r.amount, r.collected_on) for r in pi.payments],
+			[("Advance Collection", 200, f"Rental Contract {c.name}"), ("Deposit Collection", 300, f"Rental Contract {c.name}")])
+		# then one on the pro forma invoice itself, listed as such
+		self.pay("Advance Collection", 50, pro_forma_invoice=pi.name)
+		pi.reload()
+		self.assertEqual((pi.advance_received, pi.payments[-1].collected_on), (250, "This Pro Forma Invoice"))
+		# B. a pro forma invoice still awaiting approval when the advance is taken counts it once approved
+		c2 = self.rc(deposit=0, advance=500)
+		draft = self.approved_pro_forma(c2.name, approve=False)
+		self.assertFalse(self.pay("Advance Collection", 150, rental_contract=c2.name).pro_forma_invoice)
+		draft.reload()
+		draft.submit()
+		self.assertEqual(frappe.db.get_value(pf.DOCTYPE, draft.name, "advance_received"), 150)
+		# cancelling the pro forma invoice leaves the money with the contract
+		frappe.get_doc(pf.DOCTYPE, draft.name).cancel()
+		self.assertFalse(frappe.db.get_value(deposits.DOCTYPE, {"rental_contract": c2.name}, "pro_forma_invoice"))
+		self.assertEqual(self.balances(c2.name).advance_available, 150)
+
+	def test_deposit_collection_never_exceeds_the_requirement(self):
+		from thinknxg_rental.portal import finance
+
+		# deposit already taken on the contract: the pro forma invoice cannot take it again
+		c = self.rc(deposit=1000, advance=0)
+		self.pay("Deposit Collection", 1000, rental_contract=c.name)
+		pi = self.approved_pro_forma(c.name)
+		self.assertEqual(pi.deposit_received, 1000)
+		self.assertEqual(deposits.remaining_to_collect(pro_forma_invoice=pi.name).deposit, 0)
+		self.assertFalse(finance.can_collect(pi, "deposit"))  # the button is not offered
+		with self.assertRaises(frappe.ValidationError) as cm:
+			self.pay("Deposit Collection", 1000, pro_forma_invoice=pi.name)
+		self.assertIn("already collected in full", str(cm.exception))
+		with self.assertRaises(frappe.ValidationError):
+			self.pay("Deposit Collection", 1, rental_contract=c.name)
+		# pro forma deposit lines of 3,000 against a contract requiring 1,000: only 1,000, in parts
+		c2 = self.rc(deposit=1000, advance=0)
+		pi2 = self.approved_pro_forma(c2.name, deposit_rate=3000)
+		self.assertEqual(deposits.remaining_to_collect(pro_forma_invoice=pi2.name).deposit, 1000)
+		with self.assertRaises(frappe.ValidationError) as cm:
+			self.pay("Deposit Collection", 3000, pro_forma_invoice=pi2.name)
+		self.assertIn("Rental Contract", str(cm.exception))
+		self.pay("Deposit Collection", 400, pro_forma_invoice=pi2.name)  # partial
+		self.assertEqual(deposits.remaining_to_collect(pro_forma_invoice=pi2.name).deposit, 600)
+		self.assertEqual(finance.ask_pro_forma_deposit(frappe.get_doc(pf.DOCTYPE, pi2.name))[0]["default"], 600)
+		self.pay("Deposit Collection", 600, pro_forma_invoice=pi2.name)  # the rest
+		with self.assertRaises(frappe.ValidationError):  # a third attempt
+			self.pay("Deposit Collection", 1, pro_forma_invoice=pi2.name)
+		self.assertEqual(self.balances(c2.name).deposit_collected, 1000)
+		# a refund does not make room for collecting again
+		self.pay("Deposit Refund", 100, rental_contract=c2.name)
+		self.assertEqual(deposits.remaining_to_collect(rental_contract=c2.name).deposit, 0)
+		# the contract's own requirement is what limits a collection taken on the contract, not the pro forma's lines
+		c3 = self.rc(deposit=1000, advance=0)
+		pi3 = self.approved_pro_forma(c3.name, deposit_rate=500)
+		p = self.pay("Deposit Collection", 1000, rental_contract=c3.name)
+		self.assertEqual((p.pro_forma_invoice, p.pro_forma_linked_automatically), (pi3.name, 1))
+		self.assertEqual(frappe.db.get_value(pf.DOCTYPE, pi3.name, "deposit_received"), 1000)
+		# the Command Center offers Collect Deposit only while something is left
+		from thinknxg_rental.tests.test_admin_portal import form, labels
+
+		self.assertNotIn("Collect Deposit", labels(form("rental-contract", c3.name)))
+		self.assertNotIn("Collect Security Deposit", labels(form("pro-forma-invoice", pi3.name)))
+		self.assertIn("Collect Deposit", labels(form("rental-contract", self.rc(deposit=50, advance=0).name)))

@@ -65,6 +65,12 @@ contract end = erection + contract days - 1. While the job stands, excess is bil
 Schedule row, so a period cannot be invoiced twice. The contract charge is billed on erection or at
 contract end, as chosen on the Hire Order Contract.
 
+### Changes in 2.7.2
+
+- **Pro forma invoice and money already collected:** deposits and advances collected on its contract or hire order before the pro forma invoice existed, or before it was approved, are now counted on it. A new **Payments Received** table lists every receipt counted. The upgrade patch `v2_7.claim_pro_forma_collections` links existing receipts and fills the table.
+- **Security deposit collection is validated against every requirement:** the pro forma invoice's deposit lines and the rental contract's (or hire order's) Security Deposit Required. A collection can never exceed the remaining amount (required − collected). This is checked on the server and reflected in the desk and Command Center buttons and dialog defaults.
+- The pro forma invoice shows its own status (Approved, Sent to Customer, ...) instead of "Submitted". Customer acceptance can still be recorded after an advance has arrived.
+
 ### Changes in 2.7.1
 
 - A deposit or advance collected on a contract or hire order now shows as received on its pro forma invoice, when that contract or hire order has exactly one open pro forma invoice. Collections already posted are linked on upgrade (patch `v2_7.link_pro_forma_payments`).
