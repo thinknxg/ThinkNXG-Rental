@@ -220,15 +220,25 @@ class RentalProFormaInvoice(Document):
 
 	def on_submit(self):
 		self.log("Approved")
+		# deposits and advances already taken on its contract or hire order are counted from now on
+		from thinknxg_rental.services import deposits
+
+		if deposits.claim_collections(self.name):
+			refresh_payments(self.name)
 
 	def before_cancel(self):
 		if self.sales_invoice and frappe.db.get_value("Sales Invoice", self.sales_invoice, "docstatus") != 2:
 			frappe.throw(_("Cancel Sales Invoice {0} first").format(self.sales_invoice))
-		posted = frappe.get_all("Rental Contract Payment", filters={"pro_forma_invoice": self.name, "docstatus": 1}, pluck="name")
+		# money held only by this pro forma invoice (no contract or hire order to keep it) must be refunded first
+		posted = frappe.get_all("Rental Contract Payment", filters={"pro_forma_invoice": self.name, "docstatus": 1,
+			"rental_contract": ["in", ("", None)], "hire_order": ["in", ("", None)]}, pluck="name")
 		if posted:
 			frappe.throw(_("Deposits or advances are posted against this pro forma invoice ({0}). Cancel or refund them first.").format(", ".join(posted)))
 
 	def on_cancel(self):
+		# the rest stays with its contract or hire order, no longer shown on this pro forma invoice
+		frappe.db.sql("""update `tabRental Contract Payment` set pro_forma_invoice = null, pro_forma_linked_automatically = 0
+			where pro_forma_invoice = %s""", self.name)
 		self.db_set("status", "Cancelled")
 		self.log("Cancelled")
 
@@ -296,9 +306,15 @@ class RentalProFormaInvoice(Document):
 	@frappe.whitelist()
 	def mark_accepted(self, accepted_by: str | None = None, remarks: str | None = None):
 		self.check_permission("write")
-		self._require(("Approved", "Sent to Customer"), _("accepted"))
-		self.set_status("Customer Accepted", remarks, accepted_on=now_datetime(), accepted_by=accepted_by or self.contact_display or self.customer_name,
-			acceptance_remarks=remarks)
+		self._require(("Approved", "Sent to Customer", "Advance Received"), _("accepted"))
+		if self.accepted_on:
+			frappe.throw(_("Accepted already, by {0}").format(self.accepted_by))
+		values = dict(accepted_on=now_datetime(), accepted_by=accepted_by or self.contact_display or self.customer_name, acceptance_remarks=remarks)
+		if self.status == "Advance Received":  # money came first: record the acceptance, keep the status
+			self.db_set(values)
+			self.log("Customer Accepted", remarks)
+		else:
+			self.set_status("Customer Accepted", remarks, **values)
 		return self.status
 
 	def _require(self, allowed, what):
@@ -338,8 +354,18 @@ def refresh_payments(name):
 
 	doc = frappe.get_doc(DOCTYPE, name)
 	rows = frappe.get_all("Rental Contract Payment", filters={"pro_forma_invoice": name, "docstatus": 1},
-		fields=["transaction_type", "amount", "vat_amount"])
+		fields=["name", "transaction_type", "amount", "vat_amount", "posting_date", "mode_of_payment", "reference_no", "currency",
+			"rental_contract", "hire_order", "pro_forma_linked_automatically"], order_by="posting_date, creation")
 	s = deposits.summarize([frappe._dict(r) for r in rows])
+	# Payments Received: one row per receipt counted here
+	frappe.db.delete("Rental Pro Forma Payment", {"parent": name, "parenttype": DOCTYPE, "parentfield": "payments"})
+	for i, r in enumerate(rows, 1):
+		frappe.get_doc({"doctype": "Rental Pro Forma Payment", "parent": name, "parenttype": DOCTYPE, "parentfield": "payments", "idx": i,
+			"payment": r.name, "posting_date": r.posting_date, "transaction_type": r.transaction_type,
+			"amount": -flt(r.amount) if r.transaction_type in (deposits.D_REFUND, deposits.A_REFUND) else flt(r.amount),
+			"mode_of_payment": r.mode_of_payment, "reference_no": r.reference_no, "currency": r.currency,
+			"collected_on": (_("Rental Contract {0}").format(r.rental_contract) if r.rental_contract else _("Hire Order {0}").format(r.hire_order))
+				if r.pro_forma_linked_automatically else _("This Pro Forma Invoice")}).db_insert()
 	doc.advance_received = flt(s.advance_received - s.advance_refunded)
 	doc.advance_vat_included = flt(s.advance_vat_held)
 	doc.deposit_received = flt(s.deposit_collected - s.deposit_refunded)
@@ -523,7 +549,12 @@ def get_item_rate(item_code: str, rate_basis: str = "Monthly", customer: str | N
 
 
 def link_contract(contract):
-	"""Pro forma invoices of the hire order belong to the contract made from it."""
+	"""Pro forma invoices of the hire order belong to the contract made from it (and count what it collected)."""
 	if contract.hire_order:
 		frappe.db.sql(f"""update `tab{DOCTYPE}` set rental_contract = %s
 			where hire_order = %s and ifnull(rental_contract, '') = ''""", (contract.name, contract.hire_order))
+		from thinknxg_rental.services import deposits
+
+		for name in frappe.get_all(DOCTYPE, filters={"rental_contract": contract.name, "docstatus": 1}, pluck="name"):
+			if deposits.claim_collections(name):
+				refresh_payments(name)

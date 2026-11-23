@@ -31,7 +31,9 @@ def get_balances(rental_contract: str | None = None, hire_order: str | None = No
 	for doctype, name in (("Rental Contract", rental_contract), ("Hire Order", hire_order), ("Rental Pro Forma Invoice", pro_forma_invoice)):
 		if name:
 			frappe.get_doc(doctype, name).check_permission("read")
-	return deposits.balances(rental_contract, hire_order, pro_forma_invoice)
+	result = deposits.balances(rental_contract, hire_order, pro_forma_invoice)
+	result.remaining = deposits.remaining_to_collect(rental_contract, hire_order, pro_forma_invoice)
+	return result
 
 
 @frappe.whitelist(methods=["POST"])

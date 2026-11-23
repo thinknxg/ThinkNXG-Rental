@@ -33,13 +33,16 @@ frappe.provide("thinknxg_rental.payments");
 		const currency = doc.currency || frappe.defaults.get_default("currency");
 		const cash = ["Deposit Collection", "Deposit Refund", "Advance Collection", "Advance Refund"].includes(type);
 		const against = ["Deposit Deduction", "Advance Adjustment"].includes(type);
+		const rem = b.remaining || {};
 		const limit = {
-			"Deposit Collection": b.deposit_required > 0 ? b.deposit_outstanding : null, "Advance Collection": b.advance_required > 0 ? b.advance_outstanding : null,
+			"Deposit Collection": rem.deposit, "Advance Collection": rem.advance,
 			"Deposit Refund": b.deposit_balance, "Deposit Deduction": b.deposit_balance, "Advance Refund": b.advance_available, "Advance Adjustment": b.advance_available,
 		}[type];
 		const info = {
-			"Deposit Collection": [[__("Required"), b.deposit_required], [__("Collected"), b.deposit_collected], [__("Outstanding"), b.deposit_outstanding]],
-			"Advance Collection": [[__("Required"), b.advance_required], [__("Received"), b.advance_received], [__("Outstanding"), b.advance_outstanding]],
+			"Deposit Collection": [[__("Required"), b.deposit_required], [__("Collected"), b.deposit_collected],
+				[__("Remaining to collect"), rem.deposit == null ? b.deposit_outstanding : rem.deposit]],
+			"Advance Collection": [[__("Required"), b.advance_required], [__("Received"), b.advance_received],
+				[__("Remaining to collect"), rem.advance == null ? b.advance_outstanding : rem.advance]],
 			"Deposit Refund": [[__("Collected"), b.deposit_collected], [__("Refunded"), b.deposit_refunded], [__("Approved Deductions"), b.deposit_adjusted], [__("Refundable Balance"), b.deposit_balance]],
 			"Deposit Deduction": [[__("Deposit Held"), b.deposit_balance]],
 			"Advance Refund": [[__("Advance Available"), b.advance_available]],
@@ -132,14 +135,16 @@ frappe.provide("thinknxg_rental.payments");
 				const wrap = frm.dashboard.add_section(html, __("Security Deposit and Advance"));
 				wrap && wrap.addClass("nxg-contract-finance");
 				const dep = __("Security Deposit"), adv = __("Advance Payment");
-				frm.add_custom_button(__("Collect Deposit"), () => P.dialog(frm, "Deposit Collection", b), dep);
+				// collect only while something is still to collect (null: nothing asked, no limit)
+				const can = (v) => v == null || v > 0;
+				if (can((b.remaining || {}).deposit)) frm.add_custom_button(__("Collect Deposit"), () => P.dialog(frm, "Deposit Collection", b), dep);
 				frm.add_custom_button(__("View Collection History"), () => P.history(frm, "Deposit"), dep);
 				if (b.deposit_balance > 0) {
 					frm.add_custom_button(__("Refund Deposit"), () => P.dialog(frm, "Deposit Refund", b), dep);
 					frm.add_custom_button(__("Adjust Deposit"), () => P.dialog(frm, "Deposit Deduction", b), dep);
 				}
 				frm.add_custom_button(__("View Ledger"), () => P.ledger(frm, "security_deposit_account"), dep);
-				frm.add_custom_button(__("Collect Advance"), () => P.dialog(frm, "Advance Collection", b), adv);
+				if (can((b.remaining || {}).advance)) frm.add_custom_button(__("Collect Advance"), () => P.dialog(frm, "Advance Collection", b), adv);
 				frm.add_custom_button(__("View Payment History"), () => P.history(frm, "Advance"), adv);
 				if (b.advance_available > 0) {
 					frm.add_custom_button(__("Adjust Against Invoice"), () => P.dialog(frm, "Advance Adjustment", b), adv);

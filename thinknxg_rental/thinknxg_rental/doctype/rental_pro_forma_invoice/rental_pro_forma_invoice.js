@@ -32,18 +32,27 @@ frappe.ui.form.on("Rental Pro Forma Invoice", {
 			}), __("Share"));
 			frm.add_custom_button(__("Mark as Sent (PDF)"), () => frm.call("mark_sent", { via: "PDF" }).then(() => frm.reload_doc()), __("Share"));
 		}
-		if (["Approved", "Sent to Customer"].includes(s)) {
+		if (["Approved", "Sent to Customer", "Advance Received"].includes(s) && !frm.doc.accepted_on) {
 			frm.add_custom_button(__("Customer Accepted"), () => frappe.prompt([
 				{ fieldname: "accepted_by", fieldtype: "Data", label: __("Accepted By"), default: frm.doc.contact_display },
 				{ fieldname: "remarks", fieldtype: "Small Text", label: __("Remarks") },
 			], (v) => frm.call("mark_accepted", v).then(() => frm.reload_doc()), __("Customer Acceptance")), __("Status"));
 		}
 		if (open) {
-			const b = () => frappe.xcall("thinknxg_rental.thinknxg_rental.doctype.rental_contract_payment.rental_contract_payment.get_balances", { pro_forma_invoice: frm.doc.name });
-			frm.add_custom_button(__("Collect Advance"), () => b().then((bal) => thinknxg_rental.payments.dialog(frm, "Advance Collection", bal)), __("Payment"));
-			if (flt(frm.doc.total_deposit) > 0) {
-				frm.add_custom_button(__("Collect Security Deposit"), () => b().then((bal) => thinknxg_rental.payments.dialog(frm, "Deposit Collection", bal)), __("Payment"));
-			}
+			// the same remaining amounts the server enforces: this pro forma invoice and its rental contract (or hire order)
+			frappe.xcall("thinknxg_rental.thinknxg_rental.doctype.rental_contract_payment.rental_contract_payment.get_balances",
+				{ pro_forma_invoice: frm.doc.name }).then((bal) => {
+				const rem = bal.remaining || {};
+				const can = (v) => v == null || v > 0;
+				if (can(rem.advance)) {
+					frm.add_custom_button(__("Collect Advance"), () => thinknxg_rental.payments.dialog(frm, "Advance Collection", bal), __("Payment"));
+				}
+				if (flt(frm.doc.total_deposit) > 0 && can(rem.deposit)) {
+					frm.add_custom_button(__("Collect Security Deposit"), () => thinknxg_rental.payments.dialog(frm, "Deposit Collection", bal), __("Payment"));
+				} else if (flt(frm.doc.total_deposit) > 0) {
+					frm.dashboard.add_comment(__("Security deposit collected in full."), "green", true);
+				}
+			});
 			if (!frm.doc.sales_invoice) {
 				frm.add_custom_button(__("Tax Invoice"), () => frappe.confirm(
 					__("Make the VAT tax invoice for this pro forma invoice? Its VAT is worked out again on the invoice date."),

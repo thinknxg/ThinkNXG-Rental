@@ -61,7 +61,12 @@ Every movement is a **Rental Contract Payment**. It has its own receipt or vouch
 
 - **Contract balances:** collected, outstanding, refunded, adjusted, balance and the statuses are worked out from posted transactions only. The required amounts stay editable on the submitted contract.
 - **Hire Order or Pro Forma Invoice:** money can be collected against either before the contract exists. It moves to the contract when the contract is submitted.
-- **Shown on the pro forma invoice:** a deposit or advance collected on a contract or hire order is linked to its pro forma invoice when there is exactly one open one (Approved, Sent to Customer, Customer Accepted or Advance Received). That pro forma invoice then shows it as received. With several open pro forma invoices, choose the one on the receipt.
+- **Shown on the pro forma invoice:** a deposit or advance collected on a contract or hire order is linked to its pro forma invoice when there is exactly one open one (Approved, Sent to Customer, Customer Accepted or Advance Received). This applies whether it was collected before the pro forma invoice existed, while it waited for approval, or after it was approved. The link is made at collection, at approval and when the contract is created. With several open pro forma invoices, choose the one on the receipt. **Payments Received** on the pro forma invoice lists every receipt it counts and where it was taken. Cancelling the pro forma invoice leaves that money with its contract or hire order.
+- **Collection limits** (enforced on the server; the buttons and dialog defaults use the same figures):
+  - Remaining = required − collected. A refund does not make room to collect again.
+  - **Security deposit:** the requirement of every document that asks counts, and the smallest remaining wins. That is the pro forma invoice's deposit lines when collecting on it, and the rental contract's Security Deposit Required (or the hire order's before the contract exists). A deposit collected in full can never be collected again, wherever the next attempt is made.
+  - **Advance:** on a pro forma invoice, its charges including VAT less what it has received; on a contract or hire order, its Advance Amount Required.
+  - Collect Deposit / Collect Security Deposit and Collect Advance are offered only while something is still to collect.
 - **Limits:**
   - collections up to the outstanding requirement;
   - refunds and deductions up to the deposit held;

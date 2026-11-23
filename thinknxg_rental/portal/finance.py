@@ -74,8 +74,22 @@ def _invoice():
 REMARKS = {"fieldname": "remarks", "label": "Remarks", "fieldtype": "Small Text", "wide": 1}
 
 
+def remaining(d, fund):
+	"""Still to collect on a contract or pro forma invoice (None: nothing asked): what the server will accept."""
+	if d.doctype == "Rental Pro Forma Invoice":
+		r = D.remaining_to_collect(pro_forma_invoice=d.name)
+	else:
+		r = D.remaining_to_collect(rental_contract=d.name)
+	return r[fund]
+
+
+def can_collect(d, fund):
+	left = remaining(d, fund)
+	return left is None or left > 0
+
+
 def ask_collect_deposit(d):
-	return [*_money("Deposit received now", d.get("deposit_outstanding")), *_cash(), REMARKS]
+	return [*_money("Deposit received now", remaining(d, "deposit")), *_cash(), REMARKS]
 
 
 def ask_refund_deposit(d):
@@ -90,7 +104,7 @@ def ask_deduct_deposit(d):
 
 
 def ask_collect_advance(d):
-	return [*_money("Advance received now", max(flt(d.get("advance_amount")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
+	return [*_money("Advance received now", remaining(d, "advance")), *_cash(), REMARKS]
 
 
 def ask_adjust_advance(d):
@@ -102,12 +116,11 @@ def ask_refund_advance(d):
 
 
 def ask_pro_forma_advance(d):
-	return [*_money("Advance received now", max(flt(d.get("total_including_vat")) - flt(d.get("advance_received")), 0)), *_cash(), REMARKS]
+	return [*_money("Advance received now", remaining(d, "advance")), *_cash(), REMARKS]
 
 
 def ask_pro_forma_deposit(d):
-	return [*_money("Deposit received now", max(flt(d.get("total_deposit")) + flt(d.get("deposit_vat")) - flt(d.get("deposit_received")), 0)),
-		*_cash(), REMARKS]
+	return [*_money("Deposit received now", remaining(d, "deposit")), *_cash(), REMARKS]
 
 
 def ask_invoice_advance(d):
