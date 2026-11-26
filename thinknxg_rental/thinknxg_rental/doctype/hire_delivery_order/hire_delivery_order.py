@@ -463,7 +463,8 @@ def get_contract_job_types(rental_contract):
 	src = frappe.db.get_value("Rental Contract", rental_contract, ["contract_type", "hire_order_contract"], as_dict=True)
 	if not src or src.contract_type != "Job Type Contract" or not src.hire_order_contract:
 		return []
-	return frappe.get_all("Hire Order Contract Material", filters={"parent": src.hire_order_contract, "parenttype": "Hire Order Contract"},
+	# the job lines of the Hire Order Contract: a contract entered without physical rental items still has its job types
+	return frappe.get_all("Hire Order Contract Item", filters={"parent": src.hire_order_contract, "parenttype": "Hire Order Contract"},
 		pluck="job_type", distinct=True, order_by="job_type")
 
 

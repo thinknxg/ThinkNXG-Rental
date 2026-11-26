@@ -59,8 +59,8 @@ class HireOrderContract(Document):
 				)
 
 	def validate_materials(self):
-		if not self.materials:
-			frappe.throw(_("No physical rental items. Add Job Type Rental Items to the job type item, or enter the materials."))
+		# physical rental items are not required here: they can be delivered later on a Hire Delivery Order
+		# (as additional items, for a job type of this contract)
 		totals = {}
 		for m in self.materials:
 			if not frappe.get_cached_value("Item", m.item_code, "is_stock_item"):
@@ -169,6 +169,8 @@ def make_reservation(source_name: str, target_doc=None):
 	for row in data["items"]:
 		target.append("items", row)
 	if not target.items:
+		if not source.materials:
+			frappe.throw(_("This contract has no physical rental items to reserve. They can be added on a Hire Delivery Order."))
 		frappe.throw(_("Everything on this contract has already been dispatched"))
 	return target
 
