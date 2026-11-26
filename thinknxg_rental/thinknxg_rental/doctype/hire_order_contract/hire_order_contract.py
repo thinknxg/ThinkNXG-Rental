@@ -19,7 +19,9 @@ class HireOrderContract(Document):
 		if self.rental_site and frappe.db.get_value("Rental Site", self.rental_site, "customer") != self.customer:
 			frappe.throw(_("Rental Site {0} does not belong to customer {1}").format(self.rental_site, self.customer))
 		self.validate_jobs()
-		if not self.materials:
+		# the job types' rental items fill a NEW contract; rows deleted afterwards stay deleted
+		# (Refresh Materials rebuilds them on request)
+		if self.is_new() and not self.materials and not self.get("skip_explode"):
 			self.explode_materials()
 		self.validate_materials()
 		damage_charges.hire_order_contract(self)
