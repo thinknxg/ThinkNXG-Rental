@@ -50,7 +50,7 @@ frappe.ui.form.on("Hire Delivery Order", {
 		}
 	},
 	rental_contract(frm) {
-		frm._contract_items = null;
+		frm._contract_info = null;
 		if (frm.doc.rental_contract && !(frm.doc.items || []).some((d) => d.item_code)) frm.trigger("get_items");
 	},
 	get_items(frm) {
@@ -106,20 +106,41 @@ frappe.ui.form.on("Hire Delivery Order", {
 
 
 // ---- Additional material: an item that is not on the Rental Contract is ticked as Additional automatically ----
+function nxg_hdo_contract_info(frm) {
+	if (!frm.doc.rental_contract) return Promise.resolve({ items: [], job_types: [] });
+	if (frm._contract_info && frm._contract_info.contract === frm.doc.rental_contract) return Promise.resolve(frm._contract_info);
+	return frappe.xcall("thinknxg_rental.thinknxg_rental.doctype.hire_delivery_order.hire_delivery_order.get_contract_info", {
+		rental_contract: frm.doc.rental_contract,
+	}).then((info) => {
+		frm._contract_info = Object.assign({ contract: frm.doc.rental_contract }, info);
+		return frm._contract_info;
+	});
+}
+
+frappe.ui.form.on("Hire Delivery Order", {
+	refresh(frm) {
+		// the Job Type column is only for a job type contract
+		nxg_hdo_contract_info(frm).then((info) => {
+			const grid = frm.fields_dict.items && frm.fields_dict.items.grid;
+			if (grid) grid.update_docfield_property("job_type", "hidden", info.job_types.length ? 0 : 1);
+			frm.set_query("job_type", "items", () => ({ filters: { name: ["in", info.job_types] } }));
+			frm.refresh_field("items");
+		});
+	},
+});
+
 frappe.ui.form.on("Hire Delivery Item", {
 	item_code(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		if (!row.item_code || !frm.doc.rental_contract || frm.doc.docstatus !== 0) return;
-		const check = (items) => {
-			if (!items.includes(row.item_code) && !row.additional_item) {
+		nxg_hdo_contract_info(frm).then((info) => {
+			if (!info.items.includes(row.item_code) && !row.additional_item) {
 				frappe.model.set_value(cdt, cdn, "additional_item", 1);
 				frappe.show_alert({ message: __("{0} is not on the contract: added as an Additional Item.", [row.item_code]), indicator: "blue" });
 			}
-		};
-		if (frm._contract_items) return check(frm._contract_items);
-		frappe.db.get_list("Rental Contract Item", { parent: "Rental Contract", filters: { parent: frm.doc.rental_contract }, fields: ["item_code"], limit: 500 }).then((rows) => {
-			frm._contract_items = rows.map((r) => r.item_code);
-			check(frm._contract_items);
+			if (info.job_types.length === 1 && !row.job_type && (row.additional_item || !info.items.includes(row.item_code))) {
+				frappe.model.set_value(cdt, cdn, "job_type", info.job_types[0]);
+			}
 		});
 	},
 });

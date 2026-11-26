@@ -117,10 +117,6 @@ class TestAdditionalDeliveryItems(tmw.TestMultiWarehouse):
 	def test_e_guards(self):
 		a, rc, _ = self.setup_contract()
 		extra = self.item({self.kochi: 5})
-		# an item that is not on the contract needs the Additional Item tick
-		with self.assertRaises(frappe.ValidationError) as cm:
-			self.dispatch(rc, [(extra, 2, self.kochi, False)])
-		self.assertIn("Additional Item", str(cm.exception))
 		# not more than the stock in the warehouse
 		with self.assertRaises(frappe.ValidationError) as cm:
 			self.dispatch(rc, [(extra, 9, self.kochi, True)])
@@ -239,6 +235,34 @@ class TestAdditionalDeliveryItems(tmw.TestMultiWarehouse):
 		with self.assertRaises(frappe.ValidationError):
 			self.contract_doc(rc).close_contract()
 
+	# ------------------------------------------------------------------ Command Center
+	def test_o_command_center_delivery_and_contract(self):
+		from thinknxg_rental.tests.test_admin_portal import STAFF, form, save
+		from thinknxg_rental.thinknxg_rental.doctype.hire_delivery_order.hire_delivery_order import get_contract_info
+
+		a, rc, _ = self.setup_contract()
+		extra = self.item({self.kochi: 10})
+		self.dispatch(rc, [(a, 10, self.kochi, False)])  # the contract is fully delivered
+		self.assertEqual(get_contract_info(rc), {"items": [a], "job_types": []})
+		frappe.set_user(STAFF)
+		try:
+			cc = form("delivery-order")
+			columns = [c["fieldname"] for t in cc["tables"] for c in t["columns"]]
+			self.assertIn("additional_item", columns)
+			self.assertIn("job_type", columns)
+			doc = cc["doc"]
+			doc.update(rental_contract=rc, posting_date=add_days(nowdate(), -2),
+				items=[{"item_code": extra, "qty": 3, "ownership": "Own", "source_warehouse": self.kochi}])
+			name = save("delivery-order", doc, submit=True)
+			contract_form = form("rental-contract", rc)
+			rows = {r["item_code"]: r for r in contract_form["doc"]["items"]}
+		finally:
+			frappe.set_user("Administrator")
+		self.assertEqual(frappe.db.get_value("Hire Delivery Item", {"parent": name}, "additional_item"), 1)
+		self.assertEqual((flt(rows[a]["qty"]), flt(rows[a]["dispatched_qty"])), (10, 10))
+		self.assertEqual((flt(rows[extra]["qty"]), rows[extra]["is_additional"], flt(rows[extra]["at_site_qty"])), (3, 1, 3))
+		self.assertEqual(flt(contract_form["doc"]["total_at_site_qty"]), 13)
+
 	# ------------------------------------------------------------------ 8. cancelling
 	def test_m_cancel_takes_the_additional_quantity_off_again(self):
 		a, rc, _ = self.setup_contract()
@@ -264,3 +288,70 @@ class TestAdditionalDeliveryItems(tmw.TestMultiWarehouse):
 		with self.assertRaises(frappe.ValidationError):
 			hdo.cancel()
 		self.assertEqual(flt(self.row(rc, extra).qty), 4)
+
+
+# ---------------------------------------------------------------------- job type contracts
+from thinknxg_rental.tests import test_damage_charges as tdc  # noqa: E402
+from thinknxg_rental.services.deal_flow import make_hire_order_contract_from_quotation  # noqa: E402
+from thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract import make_rental_contract  # noqa: E402
+from thinknxg_rental.thinknxg_rental.doctype.hire_delivery_order.hire_delivery_order import get_contract_info  # noqa: E402
+
+
+class TestAdditionalItemsOnJobTypeContract(tdc.TestDamageCharges):
+	for _name in [n for n in dir(tdc.TestDamageCharges) if n.startswith("test_")]:
+		locals()[_name] = None
+	del _name
+
+	def job(self, tube):
+		code = f"AJ-JOB-{tdc.tag()}"
+		frappe.get_doc({"doctype": "Item", "item_code": code, "item_name": "Additional Job", "item_group": tdc._leaf("Item Group"),
+			"stock_uom": "Nos", "is_stock_item": 0}).insert()
+		frappe.get_doc({"doctype": "Job Type", "item_code": code, "job_type_name": code, "rental_items": [{"item_code": tube, "qty": 5}]}).insert()
+		return code
+
+	def job_contract(self, jobs):
+		q = self.quotation([{"item_code": j, "qty": 1, "rate": 1000, "uom": "Nos", "nxg_included_days": 30,
+			"nxg_excess_basis": "Daily", "nxg_excess_rate": 10} for j in jobs], deal_type="Hire Order Contract")
+		self.submit_quotation(q)
+		hoc = make_hire_order_contract_from_quotation(q, args={"rental_site": self.site_from(q)})
+		hoc.order_date = nowdate()
+		hoc.insert()
+		hoc.submit()
+		rc = make_rental_contract(hoc.name)
+		rc.insert()
+		rc.submit()
+		return rc.name
+
+	def hdo(self, rc, rows, submit=True):
+		doc = frappe.get_doc({"doctype": "Hire Delivery Order", "company": self.company, "rental_contract": rc,
+			"posting_date": add_days(nowdate(), -3), "items": rows})
+		doc.insert()
+		if submit:
+			doc.submit()
+		return doc
+
+	def test_job_type_is_required_when_the_contract_has_several(self):
+		tube, extra = self.item(), self.item()
+		j1, j2 = self.job(tube), self.job(self.item())
+		rc = self.job_contract([j1, j2])
+		self.assertEqual(sorted(get_contract_info(rc)["job_types"]), sorted([j1, j2]))
+		# the original quantities are delivered in full first
+		self.hdo(rc, [{"item_code": d.item_code, "qty": d.qty, "ownership": "Own"} for d in frappe.get_doc("Rental Contract", rc).items])
+		with self.assertRaises(frappe.ValidationError) as cm:
+			self.hdo(rc, [{"item_code": extra, "qty": 2, "ownership": "Own"}])
+		self.assertIn("Job Type", str(cm.exception))
+		with self.assertRaises(frappe.ValidationError):
+			self.hdo(rc, [{"item_code": extra, "qty": 2, "ownership": "Own", "job_type": "Not A Job Type"}])
+		before = frappe.db.get_value("Rental Contract", rc, "total_dispatched_qty")
+		self.hdo(rc, [{"item_code": extra, "qty": 2, "ownership": "Own", "job_type": j2}])
+		row = frappe.db.get_value("Rental Contract Item", {"parent": rc, "item_code": extra}, ["job_type", "qty", "is_additional"], as_dict=True)
+		self.assertEqual((row.job_type, flt(row.qty), row.is_additional), (j2, 2, 1))
+		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc, "total_dispatched_qty")), flt(before) + 2)
+
+	def test_single_job_type_is_picked_automatically(self):
+		j = self.job(self.item())
+		rc = self.job_contract([j])
+		extra = self.item()
+		self.hdo(rc, [{"item_code": extra, "qty": 1, "ownership": "Own"}])
+		self.assertEqual(frappe.db.get_value("Rental Contract Item", {"parent": rc, "item_code": extra}, "job_type"), j)
+

@@ -16,6 +16,7 @@
   "is_additional",
   "additional_qty",
   "added_by_delivery",
+  "job_type",
   "sb_32",
   "dispatched_qty",
   "returned_qty",
@@ -120,6 +121,15 @@
    "fieldtype": "Link",
    "label": "First Added By",
    "options": "Hire Delivery Order",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "label": "Job Type",
+   "options": "Job Type",
    "read_only": 1,
    "no_copy": 1,
    "allow_on_submit": 1

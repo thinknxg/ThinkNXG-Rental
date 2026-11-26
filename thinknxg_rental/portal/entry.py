@@ -272,6 +272,10 @@ ENTRY_TYPES = {
 				{"fieldname": "item_name", "w": 3, "ro": 1},
 				{"fieldname": "uom", "w": 1, "ro": 1},
 				{"fieldname": "qty", "w": 1.2},
+				# added by Hire Delivery Orders after the contract was submitted (never edited here)
+				{"fieldname": "additional_qty", "w": 1.2, "ro": 1},
+				{"fieldname": "is_additional", "w": 1.1, "ro": 1},
+				{"fieldname": "job_type", "w": 2, "ro": 1},
 				{"fieldname": "rate_basis", "w": 1.3},
 				{"fieldname": "rate", "w": 1.4},
 				{"fieldname": "expected_hire_days", "w": 1},
@@ -501,7 +505,7 @@ ENTRY_TYPES = {
 		],
 		totals=["total_contract_qty", "total_dispatched_qty", "total_at_site_qty", "total_returned_qty"],
 		next=[
-			dict(label="New Delivery Order", target="delivery-order", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["Active", "On Hire"]}),
+			dict(label="New Delivery Order", target="delivery-order", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["Active", "On Hire", "Off Hired"]}),
 			dict(label="New Off-Hire Note", target="off-hire-note", prefill={"rental_contract": "name"}, when={"docstatus": [1], "status": ["On Hire", "Active"]}),
 			# settle material still owed against the customer's excess (services/excess.py)
 			dict(label="Dismantling Entry", target="dismantling-entry",
@@ -608,6 +612,8 @@ ENTRY_TYPES = {
 				{"fieldname": "previously_delivered", "w": 1.3, "ro": 1},
 				{"fieldname": "balance_to_deliver", "w": 1.3, "ro": 1},
 				{"fieldname": "qty", "w": 1.2},
+				{"fieldname": "additional_item", "w": 1.1},
+				{"fieldname": "job_type", "w": 2, "filters": {"disabled": 0}},
 			]),
 		],
 		totals=["total_qty", "total_weight"],
