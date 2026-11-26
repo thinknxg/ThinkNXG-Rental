@@ -255,10 +255,7 @@ def start_work(name):
 @frappe.whitelist()
 def submit_for_final_verification(name):
 	sc.require_role(sc.MANAGER, sc.SITE_ENGINEER)
-	doc = _get(name)
-	if doc.docstatus != 1 or doc.status != "Completed":
-		frappe.throw(_("Only a Completed work order can go for final verification"))
-	return _move(doc, "Pending Final Verification")
+	frappe.throw(_("Certify completion with a Subcontract Completion Report; it sends the work order for final verification"))
 
 
 @frappe.whitelist()
@@ -267,6 +264,11 @@ def verify_completion(name):
 	doc = _get(name)
 	if doc.docstatus != 1 or doc.status != "Pending Final Verification":
 		frappe.throw(_("Final verification applies to a work order that is Pending Final Verification"))
+	if not frappe.db.exists("Subcontract Completion Report", {"subcontract_work_order": name, "docstatus": 1}):
+		frappe.throw(_("No certified Completion Report"))
+	left = [r for r, b in sc.issued_balance(name).items() if b.outstanding > 1e-9]
+	if left:
+		frappe.throw(_("Material is still with the subcontractor: {0}. Reconcile it with a Material Return first").format(", ".join(left)))
 	return _move(doc, "Verified", verified_by=frappe.session.user, verified_on=now_datetime())
 
 
@@ -277,3 +279,58 @@ def close(name):
 	if doc.docstatus != 1 or doc.status != "Verified":
 		frappe.throw(_("Only a Verified work order can be closed"))
 	return _move(doc, "Closed")
+
+
+@frappe.whitelist()
+def make_purchase_order(name):
+	"""The commercial order for the work, a standard Purchase Order. Invoicing still runs through Subcontract Settlement."""
+	sc.require_role(sc.MANAGER, "Purchase Manager")
+	doc = _get(name)
+	if doc.docstatus != 1:
+		frappe.throw(_("Approve the work order first"))
+	if doc.purchase_order and frappe.db.get_value("Purchase Order", doc.purchase_order, "docstatus") != 2:
+		frappe.throw(_("Purchase Order {0} already exists").format(doc.purchase_order))
+	po = frappe.new_doc("Purchase Order")
+	po.update({"company": doc.company, "supplier": doc.supplier, "transaction_date": nowdate(), "schedule_date": doc.expected_completion_date or nowdate(),
+		"currency": doc.currency, "project": doc.project, "cost_center": doc.cost_center, "subcontract_work_order": doc.name})
+	if doc.taxes_and_charges:
+		po.taxes_and_charges = doc.taxes_and_charges
+	for r in doc.items:
+		po.append("items", {"item_code": r.job_type, "qty": r.qty, "rate": r.rate, "schedule_date": doc.expected_completion_date or nowdate(),
+			"project": doc.project, "cost_center": doc.cost_center})
+	po.flags.ignore_permissions = True
+	po.insert()
+	doc.db_set("purchase_order", po.name)
+	return po.name
+
+
+@frappe.whitelist()
+def make_advance_payment(name, amount, mode_of_payment=None):
+	"""Draft advance Payment Entry for Accounts to review and submit; limited to the advance agreed on the work order."""
+	sc.require_role(*sc.ACCOUNTS, sc.MANAGER)
+	from erpnext.accounts.party import get_party_account
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+	doc = _get(name)
+	if doc.docstatus != 1:
+		frappe.throw(_("Approve the work order first"))
+	if not doc.advance_amount:
+		frappe.throw(_("No advance is agreed on this work order"))
+	pe = frappe.new_doc("Payment Entry")
+	pe.update({"payment_type": "Pay", "party_type": "Supplier", "party": doc.supplier, "company": doc.company, "posting_date": nowdate(),
+		"mode_of_payment": mode_of_payment, "paid_amount": flt(amount), "received_amount": flt(amount), "subcontract_work_order": doc.name,
+		"project": doc.project, "cost_center": doc.cost_center,
+		"paid_to": get_party_account("Supplier", doc.supplier, doc.company)})
+	paid_from = None
+	if mode_of_payment:
+		from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
+		paid_from = (get_bank_cash_account(mode_of_payment, doc.company) or {}).get("account")
+	paid_from = paid_from or frappe.db.get_value("Company", doc.company, "default_bank_account") or frappe.db.get_value("Company", doc.company, "default_cash_account")
+	if not paid_from:
+		frappe.throw(_("Choose a Mode of Payment, or set a default bank or cash account on Company {0}").format(doc.company))
+	pe.paid_from = paid_from
+	pe.paid_from_account_currency = pe.paid_to_account_currency = frappe.db.get_value("Account", paid_from, "account_currency")
+	pe.source_exchange_rate = pe.target_exchange_rate = 1
+	pe.flags.ignore_permissions = True
+	pe.insert()
+	return pe.name

@@ -1,0 +1,228 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontract Material Allocation",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "field_order": [
+  "naming_series",
+  "subcontract_work_order",
+  "hire_order_contract",
+  "supplier",
+  "company",
+  "posting_date",
+  "source_warehouse",
+  "custody_warehouse",
+  "sb_i",
+  "items",
+  "stock_entry",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SMA-.YYYY.-.#####",
+   "default": "SMA-.YYYY.-.#####",
+   "reqd": 1,
+   "set_only_once": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "subcontract_work_order",
+   "fieldtype": "Link",
+   "label": "Subcontract Work Order",
+   "options": "Subcontract Work Order",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "hire_order_contract",
+   "fieldtype": "Link",
+   "label": "Hire Order Contract",
+   "options": "Hire Order Contract",
+   "fetch_from": "subcontract_work_order.hire_order_contract",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "fetch_from": "subcontract_work_order.supplier",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "fetch_from": "subcontract_work_order.company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Issue From",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "custody_warehouse",
+   "fieldtype": "Link",
+   "label": "Subcontractor Custody",
+   "options": "Warehouse",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_i",
+   "fieldtype": "Section Break",
+   "label": "Material Issued"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Subcontract Material Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Subcontract Material Allocation",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "Subcontracting Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Subcontracting Executive",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Store Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "submit": 1,
+   "cancel": 0
+  },
+  {
+   "role": "Site Engineer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Purchase Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Project Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "search_fields": "subcontract_work_order,supplier"
+}

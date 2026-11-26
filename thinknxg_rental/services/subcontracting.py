@@ -116,3 +116,97 @@ def subcontract_summary(hire_order_contract):
 		"completion_pct": round(accepted / qty * 100, 1) if qty else 0,
 		"currency": frappe.db.get_value("Company", frappe.db.get_value("Hire Order Contract", hire_order_contract, "company"), "default_currency"),
 	}
+
+
+# ----- material custody --------------------------------------------------------------------------------------
+CUSTODY = "Subcontractor Custody"
+
+
+def custody_warehouse(company):
+	"""One custody warehouse per company holds everything issued to subcontractors; the ledger says whose it is."""
+	from thinknxg_rental.services.setup import ensure_warehouse
+
+	return ensure_warehouse("Subcontractor Custody", company)
+
+
+def issued_balance(subcontract_work_order, exclude_return=None):
+	"""{item_code: {issued, installed, returned, damaged, missing, outstanding}} from submitted allocations and returns."""
+	out = {}
+	for r in frappe.db.sql(
+		"""select i.item_code, sum(i.qty) as qty from `tabSubcontract Material Item` i join `tabSubcontract Material Allocation` a on a.name = i.parent
+		where a.docstatus = 1 and a.subcontract_work_order = %s group by i.item_code""", subcontract_work_order, as_dict=True):
+		out[r.item_code] = frappe._dict(issued=flt(r.qty), installed=0, returned=0, damaged=0, missing=0)
+	cond = " and r.name != %s" if exclude_return else ""
+	args = (subcontract_work_order, exclude_return) if exclude_return else (subcontract_work_order,)
+	for r in frappe.db.sql(
+		f"""select i.item_code, sum(i.installed_qty) as installed, sum(i.returned_qty) as returned, sum(i.damaged_qty) as damaged, sum(i.missing_qty) as missing
+		from `tabSubcontract Return Item` i join `tabSubcontract Material Return` r on r.name = i.parent
+		where r.docstatus = 1 and r.subcontract_work_order = %s {cond} group by i.item_code""", args, as_dict=True):
+		row = out.setdefault(r.item_code, frappe._dict(issued=0, installed=0, returned=0, damaged=0, missing=0))
+		row.update(installed=flt(r.installed), returned=flt(r.returned), damaged=flt(r.damaged), missing=flt(r.missing))
+	for row in out.values():
+		row.outstanding = row.issued - row.installed - row.returned - row.damaged - row.missing
+	return out
+
+
+def work_order_for_document(doc, statuses=("Approved", "Work In Progress", "Partially Completed", "Completed")):
+	swo = frappe.db.get_value("Subcontract Work Order", doc.subcontract_work_order,
+		["name", "docstatus", "status", "company", "supplier", "customer", "project", "rental_site", "hire_order_contract"], as_dict=True)
+	if not swo or swo.docstatus != 1:
+		frappe.throw(_("Subcontract Work Order {0} must be approved first").format(doc.subcontract_work_order))
+	if statuses and swo.status not in statuses:
+		frappe.throw(_("Subcontract Work Order {0} is {1}; this is allowed only while it is {2}").format(swo.name, swo.status, ", ".join(statuses)))
+	return swo
+
+
+def lock_work_order(name):
+	frappe.db.sql("select name from `tabSubcontract Work Order` where name = %s for update", name)
+
+
+def set_status(name, status):
+	frappe.db.set_value("Subcontract Work Order", name, "status", status)
+
+
+# ----- accounts and money ------------------------------------------------------------------------------------
+def settlement_accounts(company):
+	"""Retention held (liability) and cost recoveries (expense, credited). Created once per company, no hard-coded names in documents."""
+	out = {}
+	spec = (("retention_account", "Subcontractor Retention Payable", "Liability", ("Current Liabilities", "Current Liability")),
+		("recovery_account", "Subcontract Cost Recoveries", "Expense", ("Direct Expenses", "Indirect Expenses", "Expenses")))
+	for key, label, root, parents in spec:
+		name = frappe.db.get_value("Account", {"company": company, "account_name": label, "is_group": 0}, "name")
+		if not name:
+			parent = (frappe.db.get_value("Account", {"company": company, "is_group": 1, "root_type": root, "account_name": ["in", parents]}, "name")
+				or frappe.db.get_value("Account", {"company": company, "is_group": 1, "root_type": root}, "name", order_by="lft desc"))
+			if not parent:
+				frappe.throw(_("Company {0} has no {1} account group").format(company, root))
+			acc = frappe.get_doc({"doctype": "Account", "account_name": label, "company": company, "parent_account": parent, "root_type": root,
+				"is_group": 0, "account_currency": frappe.get_cached_value("Company", company, "default_currency")})
+			acc.flags.ignore_permissions = True
+			acc.insert()
+			name = acc.name
+		out[key] = name
+	return out
+
+
+def advance_paid(swo, exclude_settlement=None):
+	"""(paid, recovered): advances paid to the subcontractor against this work order, and how much earlier settlements took back."""
+	paid = flt(frappe.db.sql("""select sum(paid_amount) from `tabPayment Entry` where docstatus = 1 and payment_type = 'Pay' and subcontract_work_order = %s
+		and ifnull(is_advance_payment, 0) = 1""", swo)[0][0]) if frappe.get_meta("Payment Entry").has_field("is_advance_payment") else flt(frappe.db.sql(
+		"""select sum(pe.paid_amount) from `tabPayment Entry` pe where pe.docstatus = 1 and pe.payment_type = 'Pay' and pe.subcontract_work_order = %s
+		and not exists (select 1 from `tabPayment Entry Reference` r where r.parent = pe.name and r.reference_doctype = 'Purchase Invoice')""", swo)[0][0])
+	cond, args = "", [swo]
+	if exclude_settlement:
+		cond, args = " and name != %s", [swo, exclude_settlement]
+	rec = flt(frappe.db.sql(f"select sum(advance_recovery) from `tabSubcontract Settlement` where docstatus = 1 and subcontract_work_order = %s {cond}", args)[0][0])
+	return paid, rec
+
+
+def unsettled_recovery(swo, exclude_settlement=None):
+	"""Damage and loss charged on returns that no settlement has taken yet."""
+	charged = flt(frappe.db.sql("select sum(total_recovery) from `tabSubcontract Material Return` where docstatus = 1 and subcontract_work_order = %s", swo)[0][0])
+	cond, args = "", [swo]
+	if exclude_settlement:
+		cond, args = " and name != %s", [swo, exclude_settlement]
+	taken = flt(frappe.db.sql(f"select sum(damage_recovery) from `tabSubcontract Settlement` where docstatus = 1 and subcontract_work_order = %s {cond}", args)[0][0])
+	return max(charged - taken, 0)

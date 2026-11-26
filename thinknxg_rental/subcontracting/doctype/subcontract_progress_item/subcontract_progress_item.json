@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontract Progress Item",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "field_order": [
+  "swo_item",
+  "job_type",
+  "work_category",
+  "ordered_qty",
+  "accepted_before",
+  "accepted_qty",
+  "rejected_qty",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "swo_item",
+   "fieldtype": "Data",
+   "label": "Work Item",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "label": "Job Type",
+   "options": "Item",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "work_category",
+   "fieldtype": "Data",
+   "label": "Category",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "ordered_qty",
+   "fieldtype": "Float",
+   "label": "Ordered",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "accepted_before",
+   "fieldtype": "Float",
+   "label": "Accepted Before",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "accepted_qty",
+   "fieldtype": "Float",
+   "label": "Accepted Now",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "rejected_qty",
+   "fieldtype": "Float",
+   "label": "Rejected Now",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "links": [],
+ "istable": 1,
+ "editable_grid": 1
+}

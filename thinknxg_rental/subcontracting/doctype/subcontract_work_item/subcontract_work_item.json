@@ -17,6 +17,7 @@
   "item_code",
   "work_category",
   "equipment_ownership",
+  "cross_hire_order",
   "is_additional",
   "description",
   "sb_qty",
@@ -76,9 +77,16 @@
    "fieldname": "equipment_ownership",
    "fieldtype": "Select",
    "label": "Equipment Is",
-   "options": "\nSubcontractor Supplied\nCompany Owned (issued)",
+   "options": "\nSubcontractor Supplied\nCompany Owned (issued)\nCross Hired",
    "depends_on": "eval:doc.work_category=='Equipment'",
-   "description": "Subcontractor-supplied equipment never becomes company stock."
+   "description": "Subcontractor-supplied equipment never becomes company stock. Cross Hired equipment is tracked on its Cross Hire Order."
+  },
+  {
+   "fieldname": "cross_hire_order",
+   "fieldtype": "Link",
+   "label": "Cross Hire Order",
+   "options": "Cross Hire Order",
+   "depends_on": "eval:doc.equipment_ownership=='Cross Hired'"
   },
   {
    "fieldname": "is_additional",
