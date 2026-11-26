@@ -123,6 +123,7 @@ app_include_css = ["/assets/thinknxg_rental/css/thinknxg_rental.css", "/assets/t
 
 doctype_js = {
 	"Item": "public/js/item_rental.js",
+	"Customer": "public/js/customer_dedupe.js",
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
 	"Purchase Order": "public/js/purchase_order.js",

@@ -1,13 +1,7 @@
-"""Warns when a Customer is saved with the same name or Tax ID as an existing Customer.
+"""Duplicate Customer check (same name or same Tax ID as another Customer).
 
-ERPNext names Customers by series (CUST-.YYYY.-), so two Customers with the same customer_name are
-allowed, and the conversions (Lead, Prospect, Quotation) never look for an existing one. This runs on
-Customer validate, for every way a Customer is created or renamed. It only shows a message and never
-blocks the save:
-
-* same name (ignoring case, spaces and punctuation) as another Customer;
-* same Tax ID as another Customer (group companies can share one, so this is only a hint).
-
+* The Customer form asks "Create anyway?" (Yes / No) before saving: see public/js/customer_dedupe.js
+* Other ways of creating a Customer (Lead / Quotation conversions, quick entry) only show a warning.
 Imports and scripts that load duplicates on purpose set frappe.flags.allow_duplicate_customer = True.
 """
 import re
@@ -27,28 +21,40 @@ def _links(names):
     return ", ".join(get_link_to_form("Customer", n) for n in names)
 
 
+def find_duplicates(customer_name, tax_id, name=None):
+    messages = []
+    key = normalise(customer_name)
+    if key:
+        word = max(key.split(), key=len)
+        rows = frappe.get_all("Customer", filters={"customer_name": ["like", "%" + word + "%"], "name": ["!=", name or ""]},
+                fields=["name", "customer_name"], limit_page_length=0)
+        same = [r.name for r in rows if normalise(r.customer_name) == key]
+        if same:
+            messages.append(_("A Customer with the same name already exists: {0}.").format(_links(same)))
+
+    tax_id = (tax_id or "").strip()
+    if tax_id:
+        others = frappe.get_all("Customer", filters={"tax_id": tax_id, "name": ["!=", name or ""]}, pluck="name", limit_page_length=5)
+        if others:
+            messages.append(_("Tax ID {0} is also used by {1}.").format(tax_id, _links(others)))
+    return messages
+
+
+@frappe.whitelist()
+def check_duplicate_customer(customer_name=None, tax_id=None, name=None):
+    frappe.has_permission("Customer", "read", throw=True)
+    return find_duplicates(customer_name, tax_id, name)
+
+
 def validate_customer(doc, method=None):
     flags = frappe.flags
     if flags.allow_duplicate_customer or flags.in_install or flags.in_patch or flags.in_import:
         return
+    # the Customer form has already asked the user (Yes / No) before this save
+    if frappe.form_dict.get("cmd") == "frappe.desk.form.save.savedocs":
+        return
     if not (doc.is_new() or doc.has_value_changed("customer_name") or doc.has_value_changed("tax_id")):
         return
-
-    messages = []
-    key = normalise(doc.customer_name)
-    if key:
-        word = max(key.split(), key=len)
-        rows = frappe.get_all("Customer", filters={"customer_name": ["like", "%" + word + "%"], "name": ["!=", doc.name or ""]},
-                fields=["name", "customer_name"], limit_page_length=0)
-        same = [r.name for r in rows if normalise(r.customer_name) == key]
-        if same:
-            messages.append(_("A Customer with the same name already exists: {0}. If this is the same company, use the existing Customer and merge this one into it.").format(_links(same)))
-
-    tax_id = (doc.tax_id or "").strip()
-    if tax_id:
-        others = frappe.get_all("Customer", filters={"tax_id": tax_id, "name": ["!=", doc.name or ""]}, pluck="name", limit_page_length=5)
-        if others:
-            messages.append(_("Tax ID {0} is also used by {1}. Check that this is not the same company.").format(tax_id, _links(others)))
-
+    messages = find_duplicates(doc.customer_name, doc.tax_id, doc.name)
     if messages:
         frappe.msgprint("<br><br>".join(messages), title=_("Possible duplicate Customer"), indicator="orange")
