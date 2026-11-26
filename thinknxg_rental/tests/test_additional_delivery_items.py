@@ -388,3 +388,29 @@ class TestAdditionalItemsOnJobTypeContract(tdc.TestDamageCharges):
 			["qty", "is_additional", "job_type", "at_site_qty"], as_dict=True)
 		self.assertEqual((flt(row.qty), row.is_additional, row.job_type, flt(row.at_site_qty)), (4, 1, j2, 4))
 		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc.name, "total_at_site_qty")), 4)
+
+	def test_deleted_materials_stay_deleted_and_the_contract_saves_through_the_desk(self):
+		tube = self.item()
+		j = self.job(tube)  # this job type DOES have a rental item, so a new contract is filled with it
+		q = self.quotation([{"item_code": j, "qty": 1, "rate": 1000, "uom": "Nos", "nxg_included_days": 30,
+			"nxg_excess_basis": "Daily", "nxg_excess_rate": 10}], deal_type="Hire Order Contract")
+		self.submit_quotation(q)
+		hoc = make_hire_order_contract_from_quotation(q, args={"rental_site": self.site_from(q)})
+		hoc.order_date = nowdate()
+		hoc.insert()
+		self.assertEqual(len(hoc.materials), 1)  # filled in from the job type, as before
+		hoc.set("materials", [])
+		hoc.save()  # the user removed the rows: they must not come back
+		self.assertEqual(len(frappe.get_doc("Hire Order Contract", hoc.name).materials), 0)
+		hoc.submit()
+		# the desk saves the mapped contract through savedocs, with no items
+		import json
+		from frappe.desk.form.save import savedocs
+		rc = make_rental_contract(hoc.name)
+		data = rc.as_dict(no_nulls=True)
+		data["name"] = "new-rental-contract-1"  # a form's unsaved document, as the desk posts it
+		doc = json.dumps(data, default=str)
+		savedocs(doc, "Save")
+		saved = frappe.get_all("Rental Contract", filters={"source_document": hoc.name}, pluck="name")
+		self.assertEqual(len(saved), 1)
+		self.assertEqual(frappe.db.count("Rental Contract Item", {"parent": saved[0]}), 0)

@@ -1,4 +1,8 @@
 frappe.ui.form.on("Hire Order Contract", {
+	before_save(frm) {
+		// materials the user left out (or deleted) stay out: the server only fills them in for a contract made through the API
+		if (frm.is_new() && !(frm.doc.materials || []).length) frm.doc.skip_explode = 1;
+	},
 	setup(frm) {
 		frm.set_query("job_type", "items", () => ({ query: "thinknxg_rental.events.job_type.job_type_query" }));
 		frm.set_query("nxg_item_code", "items", () => ({ query: "thinknxg_rental.events.job_type.quotation_item_query", filters: { nxg_job_types_only: 1 } }));
