@@ -40,9 +40,17 @@ frappe.ui.form.on("Hire Delivery Order", {
 	refresh(frm) {
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button(__("Get Items from Contract"), () => frm.trigger("get_items"));
+			frm.add_custom_button(__("Add Additional Item"), () => {
+				if (!frm.doc.rental_contract) return frappe.msgprint(__("Select a Rental Contract first"));
+				const row = frm.add_child("items", { additional_item: 1, ownership: "Own" });
+				frm.refresh_field("items");
+				frm.scroll_to_field("items");
+				return row;
+			}, __("Get Items"));
 		}
 	},
 	rental_contract(frm) {
+		frm._contract_items = null;
 		if (frm.doc.rental_contract && !(frm.doc.items || []).some((d) => d.item_code)) frm.trigger("get_items");
 	},
 	get_items(frm) {
@@ -94,4 +102,24 @@ function nxg_hdo_set_dispatch_date(frm, force) {
 frappe.ui.form.on("Hire Delivery Order", {
     rental_contract(frm) { nxg_hdo_set_dispatch_date(frm, true); },
     refresh(frm) { if (frm.is_new()) nxg_hdo_set_dispatch_date(frm, false); },
+});
+
+
+// ---- Additional material: an item that is not on the Rental Contract is ticked as Additional automatically ----
+frappe.ui.form.on("Hire Delivery Item", {
+	item_code(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (!row.item_code || !frm.doc.rental_contract || frm.doc.docstatus !== 0) return;
+		const check = (items) => {
+			if (!items.includes(row.item_code) && !row.additional_item) {
+				frappe.model.set_value(cdt, cdn, "additional_item", 1);
+				frappe.show_alert({ message: __("{0} is not on the contract: added as an Additional Item.", [row.item_code]), indicator: "blue" });
+			}
+		};
+		if (frm._contract_items) return check(frm._contract_items);
+		frappe.db.get_list("Rental Contract Item", { parent: "Rental Contract", filters: { parent: frm.doc.rental_contract }, fields: ["item_code"], limit: 500 }).then((rows) => {
+			frm._contract_items = rows.map((r) => r.item_code);
+			check(frm._contract_items);
+		});
+	},
 });

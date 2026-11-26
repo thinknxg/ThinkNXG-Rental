@@ -74,13 +74,16 @@ class HireDeliveryOrder(Document):
 		for item_code, warehouse, qty in allocations:
 			left.setdefault(item_code, []).append([warehouse, qty])
 		for d in self.items:  # rows that name their warehouse use up its allocation first
-			if d.ownership != "Cross Hire" and d.source_warehouse:
+			if d.ownership != "Cross Hire" and d.source_warehouse and not cint(d.additional_item):
 				for alloc in left.get(d.item_code, []):
 					if alloc[0] == d.source_warehouse:
 						alloc[1] -= flt(d.qty)
 		order = []
 		default = rw.default_own_warehouse()
 		for d in list(self.items):
+			if cint(d.additional_item) and d.ownership != "Cross Hire" and not d.source_warehouse:
+				# additional material was never reserved: it leaves from the default own rental warehouse
+				d.source_warehouse = default
 			if d.ownership == "Cross Hire" or d.source_warehouse:
 				order.append(d)
 				continue
@@ -111,7 +114,7 @@ class HireDeliveryOrder(Document):
 			d.idx = i
 
 	def _copy_row(self, d):
-		row = self.append("items", {k: d.get(k) for k in ("item_code", "item_name", "uom", "ownership", "batch_no", "serial_no", "remarks")})
+		row = self.append("items", {k: d.get(k) for k in ("item_code", "item_name", "uom", "ownership", "batch_no", "serial_no", "remarks", "additional_item")})
 		self.items.remove(row)
 		return row
 
@@ -140,7 +143,7 @@ class HireDeliveryOrder(Document):
 			reserved_in.setdefault(item_code, []).append(warehouse)
 		wanted = {}
 		for d in self.items:
-			if d.ownership != "Own":
+			if d.ownership != "Own" or cint(d.additional_item):  # additional material is not part of any reservation
 				continue
 			key = (d.item_code, d.source_warehouse)
 			if d.item_code in reserved_in and d.source_warehouse not in reserved_in[d.item_code]:
@@ -168,16 +171,28 @@ class HireDeliveryOrder(Document):
 		contract_items = {d.item_code: d for d in self._contract.items}
 		reserved_warehouses = self._reserved_warehouses()
 		per_item, per_cho, per_bin, per_custody = {}, {}, {}, {}
+		self._additional = {}
 		self.total_qty = self.total_weight = 0
 		for d in self.items:
 			if flt(d.qty) <= 0:
 				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 			row = contract_items.get(d.item_code)
-			if not row:
-				frappe.throw(_("Row #{0}: {1} is not on contract {2}. Add it to the contract first.").format(d.idx, d.item_code, self.rental_contract))
-			d.contract_qty = row.qty
-			d.previously_delivered = row.dispatched_qty
-			d.balance_to_deliver = flt(row.qty) - flt(d.previously_delivered)
+			d.additional_item = cint(d.additional_item)
+			if d.additional_item:
+				self.validate_additional_item(d)
+				self._additional[d.item_code] = self._additional.get(d.item_code, 0) + flt(d.qty)
+				d.contract_qty = row.qty if row else 0
+				d.previously_delivered = row.dispatched_qty if row else 0
+				d.balance_to_deliver = 0
+			else:
+				if not row:
+					frappe.throw(
+						_("Row #{0}: {1} is not on contract {2}. Tick Additional Item to add it to the contract with this delivery.").format(
+							d.idx, d.item_code, self.rental_contract)
+					)
+				d.contract_qty = row.qty
+				d.previously_delivered = row.dispatched_qty
+				d.balance_to_deliver = flt(row.qty) - flt(d.previously_delivered)
 			prefix = _("Row #{0}: ").format(d.idx)
 			if d.ownership == "Cross Hire":
 				if not d.cross_hire_order:
@@ -217,7 +232,8 @@ class HireDeliveryOrder(Document):
 				key = (d.item_code, d.source_warehouse)
 				per_bin[key] = per_bin.get(key, 0) + flt(d.qty)
 			d.weight = flt(d.qty) * flt(get_profile(d.item_code).get("weight_per_unit"))
-			per_item[d.item_code] = per_item.get(d.item_code, 0) + flt(d.qty)
+			if not d.additional_item:
+				per_item[d.item_code] = per_item.get(d.item_code, 0) + flt(d.qty)
 			self.total_qty += flt(d.qty)
 			self.total_weight += flt(d.weight)
 
@@ -226,7 +242,8 @@ class HireDeliveryOrder(Document):
 			balance = flt(row.qty) - flt(row.dispatched_qty)
 			if qty > balance + 1e-6:
 				frappe.throw(
-					_("{0}: dispatching {1} but only {2} remains on the contract. Increase the contracted quantity first.").format(
+					_("{0}: dispatching {1} but only {2} remains on the contract. Increase the contracted quantity first, "
+						"or tick Additional Item on the extra quantity.").format(
 						frappe.bold(item_code), qty, balance
 					)
 				)
@@ -252,6 +269,62 @@ class HireDeliveryOrder(Document):
 					)
 		self._per_bin = per_bin
 		self.validate_stock(per_bin)
+
+	def validate_additional_item(self, d):
+		item = frappe.db.get_value("Item", d.item_code, ["is_stock_item", "disabled", "item_name"], as_dict=True)
+		if not item or not item.is_stock_item:
+			frappe.throw(_("Row #{0}: {1} is not a stock item, so it cannot be hired out").format(d.idx, d.item_code))
+		if item.disabled:
+			frappe.throw(_("Row #{0}: {1} is disabled").format(d.idx, d.item_code))
+
+	def add_to_contract(self):
+		"""Additional material becomes part of the live contract: a new contract row, or more quantity on the
+		row it extends. The original rows and quantities are never rewritten; Additional Qty keeps the part
+		that came from deliveries. From here billing, material at site, off-hire, inspection and closure
+		see it like any contracted item."""
+		if not any(cint(d.additional_item) for d in self.items):
+			return
+		contract = frappe.get_doc("Rental Contract", self.rental_contract)
+		wanted = {}
+		for d in self.items:
+			if cint(d.additional_item):
+				wanted[d.item_code] = wanted.get(d.item_code, 0) + flt(d.qty)
+		rows = {r.item_code: r for r in contract.items}
+		for item_code, qty in wanted.items():
+			row = rows.get(item_code)
+			if row:
+				row.qty = flt(row.qty) + qty
+				row.additional_qty = flt(row.additional_qty) + qty
+			else:
+				contract.append("items", {"item_code": item_code, "qty": qty, "additional_qty": qty, "is_additional": 1,
+					"added_by_delivery": self.name, "rate_basis": "Monthly"})
+		contract.flags.ignore_permissions = True
+		contract.save()
+		self._contract = contract
+
+	def take_from_contract(self):
+		"""Cancelling the delivery takes its additional quantity off the contract again (a row that exists only
+		because of deliveries goes once none is left)."""
+		taken = {}
+		for d in self.items:
+			if cint(d.additional_item):
+				taken[d.item_code] = taken.get(d.item_code, 0) + flt(d.qty)
+		if not taken:
+			return
+		ledger.update_contract_progress(self.rental_contract)  # the cancelled dispatch is no longer counted
+		contract = frappe.get_doc("Rental Contract", self.rental_contract)
+		for row in list(contract.items):
+			qty = taken.get(row.item_code)
+			if not qty:
+				continue
+			row.additional_qty = max(flt(row.additional_qty) - qty, 0)
+			row.qty = max(flt(row.qty) - qty, 0)
+			if cint(row.is_additional) and row.additional_qty <= 1e-9:
+				contract.remove(row)
+		for i, row in enumerate(contract.items, 1):
+			row.idx = i
+		contract.flags.ignore_permissions = True
+		contract.save()
 
 	def _reserved_warehouses(self):
 		from thinknxg_rental.thinknxg_rental.doctype.rental_material_reservation.rental_material_reservation import (
@@ -342,6 +415,7 @@ class HireDeliveryOrder(Document):
 				stock_entry=stock_entry if d.source_warehouse != d.target_warehouse else None,
 				voucher_detail_no=d.name,
 			)
+		self.add_to_contract()
 		self.update_related()
 
 	def on_cancel(self):
@@ -356,6 +430,7 @@ class HireDeliveryOrder(Document):
 			frappe.throw(_("Cannot cancel: this delivery has been billed. Cancel the billing schedules after {0} first.").format(self.posting_date))
 		stock.cancel_stock_entries(self)
 		ledger.delete_entries(self.doctype, self.name)
+		self.take_from_contract()
 		self.update_related()
 
 	def update_related(self):

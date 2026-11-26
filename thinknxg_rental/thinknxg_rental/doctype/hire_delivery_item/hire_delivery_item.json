@@ -8,6 +8,7 @@
   "item_name",
   "uom",
   "qty",
+  "additional_item",
   "cb_51",
   "ownership",
   "cross_hire_order",
@@ -63,6 +64,15 @@
    "reqd": 1,
    "in_list_view": 1,
    "columns": 1
+  },
+  {
+   "fieldname": "additional_item",
+   "fieldtype": "Check",
+   "label": "Additional",
+   "default": "0",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Tick for material that was not in the original contract (or is more than the contracted quantity). It is added to the Rental Contract when this delivery is submitted."
   },
   {
    "fieldname": "cb_51",
