@@ -51,6 +51,8 @@ doc_events = {
 	"Rental Return Inspection": {"on_submit": _N + "inspection_submitted"},
 	"Payment Entry": {"on_submit": _N + "payment_submitted"},
 	"Sales Order": {"on_submit": _N + "sales_order_submitted"},
+	# warn (never block) when a Customer has the same name or Tax ID as another (services/customer_dedupe.py)
+	"Customer": {"validate": "thinknxg_rental.services.customer_dedupe.validate_customer"},
 	# Rental section of the Item form: Rental Item Profile saved with the Item
 	"Item": {
 		"validate": "thinknxg_rental.services.item_rental.item_validate",
