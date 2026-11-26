@@ -21,6 +21,20 @@ had to edit the contract first.
 5. Cancelling the delivery takes the additional quantity off the contract again (a row that exists only because of
    deliveries is removed). It is refused once any of the material has been off-hired or billed.
 
+## Updates in 2.8.0 (follow-up)
+* **Server error fixed.** The form looked up the contract's items with `frappe.db.get_list(..., parent=...)`, which v16
+  rejects (`DatabaseQuery.execute() got an unexpected keyword argument 'parent'`). It now calls the server method
+  `get_contract_info`. Additional items can be added on a new delivery at any time, also when every contracted
+  quantity has already been delivered; earlier deliveries and their quantities are not touched.
+* **Job Type.** On a Job Type Contract an additional line carries the Job Type it is for (the contract's job types are
+  those of its Hire Order Contract). With a single job type it is filled in automatically; with several the user picks
+  one, and the server refuses a missing or foreign job type. It is stored on the delivery line and on the contract row
+  the delivery adds. The column is not used for any other contract, and no interface change is needed there.
+* An item that is not on the contract is always treated as additional (the tick is no longer required).
+* **Command Center.** The delivery order form has the Additional and Job Type columns, the Rental Contract items table
+  shows Additional Qty, Added During Delivery and Job Type, and **New Delivery Order** is also offered on an Off Hired
+  contract (material can be added after everything was returned, until the contract is closed).
+
 ## Rules kept
 * Additional lines are not held to a reservation (they were never reserved); they leave from the default own rental
   warehouse unless a warehouse is chosen, and the free-stock check against other contracts' reservations still applies.

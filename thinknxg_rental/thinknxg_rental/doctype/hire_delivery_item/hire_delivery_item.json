@@ -9,6 +9,7 @@
   "uom",
   "qty",
   "additional_item",
+  "job_type",
   "cb_51",
   "ownership",
   "cross_hire_order",
@@ -73,6 +74,13 @@
    "in_list_view": 1,
    "columns": 1,
    "description": "Tick for material that was not in the original contract (or is more than the contracted quantity). It is added to the Rental Contract when this delivery is submitted."
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "label": "Job Type",
+   "options": "Job Type",
+   "description": "For an additional item on a job type contract: the job type it belongs to."
   },
   {
    "fieldname": "cb_51",

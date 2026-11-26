@@ -114,7 +114,7 @@ class HireDeliveryOrder(Document):
 			d.idx = i
 
 	def _copy_row(self, d):
-		row = self.append("items", {k: d.get(k) for k in ("item_code", "item_name", "uom", "ownership", "batch_no", "serial_no", "remarks", "additional_item")})
+		row = self.append("items", {k: d.get(k) for k in ("item_code", "item_name", "uom", "ownership", "batch_no", "serial_no", "remarks", "additional_item", "job_type")})
 		self.items.remove(row)
 		return row
 
@@ -169,6 +169,7 @@ class HireDeliveryOrder(Document):
 			"Rental Site", self.rental_site, ["site_warehouse", "cross_hire_site_warehouse"], as_dict=True
 		)
 		contract_items = {d.item_code: d for d in self._contract.items}
+		job_types = get_contract_job_types(self.rental_contract)
 		reserved_warehouses = self._reserved_warehouses()
 		per_item, per_cho, per_bin, per_custody = {}, {}, {}, {}
 		self._additional = {}
@@ -177,9 +178,11 @@ class HireDeliveryOrder(Document):
 			if flt(d.qty) <= 0:
 				frappe.throw(_("Row #{0}: Qty must be greater than zero").format(d.idx))
 			row = contract_items.get(d.item_code)
-			d.additional_item = cint(d.additional_item)
+			# material that is not on the contract is additional by definition
+			d.additional_item = 1 if (cint(d.additional_item) or not row) else 0
 			if d.additional_item:
-				self.validate_additional_item(d)
+				self.validate_additional_item(d, job_types)
+				d.job_type = d.job_type or None
 				self._additional[d.item_code] = self._additional.get(d.item_code, 0) + flt(d.qty)
 				d.contract_qty = row.qty if row else 0
 				d.previously_delivered = row.dispatched_qty if row else 0
@@ -190,6 +193,7 @@ class HireDeliveryOrder(Document):
 						_("Row #{0}: {1} is not on contract {2}. Tick Additional Item to add it to the contract with this delivery.").format(
 							d.idx, d.item_code, self.rental_contract)
 					)
+				d.job_type = None
 				d.contract_qty = row.qty
 				d.previously_delivered = row.dispatched_qty
 				d.balance_to_deliver = flt(row.qty) - flt(d.previously_delivered)
@@ -270,12 +274,22 @@ class HireDeliveryOrder(Document):
 		self._per_bin = per_bin
 		self.validate_stock(per_bin)
 
-	def validate_additional_item(self, d):
+	def validate_additional_item(self, d, job_types):
 		item = frappe.db.get_value("Item", d.item_code, ["is_stock_item", "disabled", "item_name"], as_dict=True)
 		if not item or not item.is_stock_item:
 			frappe.throw(_("Row #{0}: {1} is not a stock item, so it cannot be hired out").format(d.idx, d.item_code))
 		if item.disabled:
 			frappe.throw(_("Row #{0}: {1} is disabled").format(d.idx, d.item_code))
+		# a job type contract allocates its material to job types: the additional item names the one it is for
+		if not job_types:
+			d.job_type = None
+			return
+		if not d.job_type and len(job_types) == 1:
+			d.job_type = job_types[0]
+		if not d.job_type:
+			frappe.throw(_("Row #{0}: select the Job Type that {1} is for").format(d.idx, frappe.bold(d.item_code)))
+		if d.job_type not in job_types:
+			frappe.throw(_("Row #{0}: {1} is not a job type of this contract ({2})").format(d.idx, frappe.bold(d.job_type), ", ".join(job_types)))
 
 	def add_to_contract(self):
 		"""Additional material becomes part of the live contract: a new contract row, or more quantity on the
@@ -285,19 +299,21 @@ class HireDeliveryOrder(Document):
 		if not any(cint(d.additional_item) for d in self.items):
 			return
 		contract = frappe.get_doc("Rental Contract", self.rental_contract)
-		wanted = {}
+		wanted, job_type = {}, {}
 		for d in self.items:
 			if cint(d.additional_item):
 				wanted[d.item_code] = wanted.get(d.item_code, 0) + flt(d.qty)
+				job_type.setdefault(d.item_code, d.job_type)
 		rows = {r.item_code: r for r in contract.items}
 		for item_code, qty in wanted.items():
 			row = rows.get(item_code)
 			if row:
 				row.qty = flt(row.qty) + qty
 				row.additional_qty = flt(row.additional_qty) + qty
+				row.job_type = row.job_type or job_type[item_code]
 			else:
 				contract.append("items", {"item_code": item_code, "qty": qty, "additional_qty": qty, "is_additional": 1,
-					"added_by_delivery": self.name, "rate_basis": "Monthly"})
+					"added_by_delivery": self.name, "rate_basis": "Monthly", "job_type": job_type[item_code]})
 		contract.flags.ignore_permissions = True
 		contract.save()
 		self._contract = contract
@@ -440,6 +456,23 @@ class HireDeliveryOrder(Document):
 
 		ledger.update_contract_progress(self.rental_contract)
 		sync_reservations(self.rental_contract)
+
+
+def get_contract_job_types(rental_contract):
+	"""The job types of a Job Type Contract (those of its Hire Order Contract); empty for any other contract."""
+	src = frappe.db.get_value("Rental Contract", rental_contract, ["contract_type", "hire_order_contract"], as_dict=True)
+	if not src or src.contract_type != "Job Type Contract" or not src.hire_order_contract:
+		return []
+	return frappe.get_all("Hire Order Contract Material", filters={"parent": src.hire_order_contract, "parenttype": "Hire Order Contract"},
+		pluck="job_type", distinct=True, order_by="job_type")
+
+
+@frappe.whitelist()
+def get_contract_info(rental_contract: str):
+	"""For the delivery form: the items on the contract and, for a job type contract, its job types."""
+	contract = frappe.get_doc("Rental Contract", rental_contract)
+	contract.check_permission("read")
+	return {"items": [d.item_code for d in contract.items], "job_types": get_contract_job_types(rental_contract)}
 
 
 @frappe.whitelist()
