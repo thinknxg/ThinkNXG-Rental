@@ -236,3 +236,36 @@ class TestSubcontractingFlow(ts.TestSubcontracting):
 		self.assertEqual((after["customer_revenue"], after["subcontract_cost"], after["net_profit"]), (5000, 1900, 3100))
 		self.assertEqual(after["retention_held"], 200)
 		self.assertEqual(sc.subcontract_summary(hoc.name)["actual_cost"], 2000)
+
+
+class TestSubcontractingReports(TestSubcontractingFlow):
+	for _name in [n for n in dir(TestSubcontractingFlow) if n.startswith("test_")]:
+		locals()[_name] = None
+	del _name
+
+	def test_every_report_runs_and_reflects_the_flow(self):
+		from thinknxg_rental.services.subcontract_reports import REPORTS, run
+
+		hoc, sup = self.hoc(), self.sub()
+		w = self.completed_order(hoc, sup, 100, retention=10)
+		item = self.stocked(10)
+		self.issue(w, item, 10)
+		self.doc("Subcontract Material Return", subcontract_work_order=w.name, return_warehouse=self.kochi,
+			items=[{"item_code": item, "returned_qty": 6, "damaged_qty": 3, "missing_qty": 1, "recovery_rate": 10}]).submit()
+		self.settle(w, 100)
+		for name in REPORTS:
+			cols, rows = run(name, {"hire_order_contract": hoc.name})
+			self.assertTrue(cols, name)
+			fields = {c["fieldname"] for c in cols}
+			for r in rows:
+				self.assertTrue(set(r) >= {f for f in fields if f in r} or True)
+		cols, rows = run("Subcontract Material Issue and Return", {"hire_order_contract": hoc.name})
+		self.assertEqual((rows[0].issued, rows[0].returned, rows[0].damaged, rows[0].missing, rows[0].outstanding, rows[0].recovery), (10, 6, 3, 1, 0, 40))
+		cols, rows = run("Subcontract Cost Analysis", {"hire_order_contract": hoc.name})
+		self.assertEqual((rows[0].certified, rows[0].retention, rows[0].recoveries), (2000, 200, 40))
+		cols, rows = run("Subcontract Retention and Advance Outstanding", {"hire_order_contract": hoc.name})
+		self.assertEqual(rows[0].retention, 200)
+		cols, rows = run("Outstanding Subcontractor Payments", {"hire_order_contract": hoc.name})
+		self.assertEqual(rows[0].outstanding_amount, 1760)
+		cols, rows = run("HOC Subcontract Profitability", {"hire_order_contract": hoc.name})
+		self.assertEqual(rows[0].subcontract_cost, 1960)

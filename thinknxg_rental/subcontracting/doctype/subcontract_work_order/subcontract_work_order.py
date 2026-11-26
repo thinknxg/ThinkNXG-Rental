@@ -99,7 +99,6 @@ class SubcontractWorkOrder(Document):
 				if key in dup:
 					frappe.throw(_("Row {0}: job line is repeated for {1}. Merge the quantities into one row").format(r.idx, r.work_category))
 				dup.add(key)
-		want = {"Labour": "Labour", "Equipment": "Equipment"}
 		if self.subcontract_type == "Labour" and kinds - {"Labour"}:
 			frappe.throw(_("A Labour work order cannot hold Equipment rows"))
 		if self.subcontract_type == "Equipment" and kinds - {"Equipment"}:
@@ -309,7 +308,6 @@ def make_advance_payment(name, amount, mode_of_payment=None):
 	"""Draft advance Payment Entry for Accounts to review and submit; limited to the advance agreed on the work order."""
 	sc.require_role(*sc.ACCOUNTS, sc.MANAGER)
 	from erpnext.accounts.party import get_party_account
-	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 
 	doc = _get(name)
 	if doc.docstatus != 1:

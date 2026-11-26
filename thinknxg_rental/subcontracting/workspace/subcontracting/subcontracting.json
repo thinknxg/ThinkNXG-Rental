@@ -1,0 +1,311 @@
+{
+ "app": "thinknxg_rental",
+ "charts": [],
+ "content": "[{\"id\": \"h1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Subcontracting</b></span>\", \"col\": 12}}, {\"id\": \"s1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Subcontract Work Orders\", \"col\": 3}}, {\"id\": \"s2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Subcontract Settlement\", \"col\": 3}}, {\"id\": \"s3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Subcontract Material Allocation\", \"col\": 3}}, {\"id\": \"s4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Subcontract Completion Report\", \"col\": 3}}, {\"id\": \"sp\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"c0\", \"type\": \"card\", \"data\": {\"card_name\": \"Subcontracting\", \"col\": 4}}, {\"id\": \"c1\", \"type\": \"card\", \"data\": {\"card_name\": \"Subcontracting Reports\", \"col\": 4}}]",
+ "creation": "2026-11-26 18:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "tool",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Subcontracting",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontracting",
+   "link_count": 8,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontractor Master",
+   "link_count": 0,
+   "link_to": "Supplier",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontract Work Orders",
+   "link_count": 0,
+   "link_to": "Subcontract Work Order",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Material Allocation",
+   "link_count": 0,
+   "link_to": "Subcontract Material Allocation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Work Progress",
+   "link_count": 0,
+   "link_to": "Subcontract Work Progress",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Completion Reports",
+   "link_count": 0,
+   "link_to": "Subcontract Completion Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Material Returns",
+   "link_count": 0,
+   "link_to": "Subcontract Material Return",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontractor Invoices and Settlement",
+   "link_count": 0,
+   "link_to": "Subcontract Settlement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontractor Payments",
+   "link_count": 0,
+   "link_to": "Payment Entry",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Subcontracting Reports",
+   "link_count": 13,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontractor Wise Work Orders",
+   "link_count": 0,
+   "link_to": "Subcontractor Wise Work Orders",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "HOC Wise Subcontracting",
+   "link_count": 0,
+   "link_to": "HOC Wise Subcontracting",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Outstanding Subcontractor Payments",
+   "link_count": 0,
+   "link_to": "Outstanding Subcontractor Payments",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontractor Payments",
+   "link_count": 0,
+   "link_to": "Subcontractor Payments",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Material Issue and Return",
+   "link_count": 0,
+   "link_to": "Subcontract Material Issue and Return",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Work Progress Report",
+   "link_count": 0,
+   "link_to": "Subcontract Work Progress Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Pending Completion Approval",
+   "link_count": 0,
+   "link_to": "Pending Completion Approval",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Cost Analysis",
+   "link_count": 0,
+   "link_to": "Subcontract Cost Analysis",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontractor Performance",
+   "link_count": 0,
+   "link_to": "Subcontractor Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "HOC Subcontract Profitability",
+   "link_count": 0,
+   "link_to": "HOC Subcontract Profitability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Labour Cost",
+   "link_count": 0,
+   "link_to": "Subcontract Labour Cost",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Equipment Cost",
+   "link_count": 0,
+   "link_to": "Subcontract Equipment Cost",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Subcontract Retention and Advance Outstanding",
+   "link_count": 0,
+   "link_to": "Subcontract Retention and Advance Outstanding",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontracting",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "Subcontracting Manager"
+  },
+  {
+   "role": "Subcontracting Executive"
+  },
+  {
+   "role": "Purchase Manager"
+  },
+  {
+   "role": "Project Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Site Engineer"
+  },
+  {
+   "role": "Store Manager"
+  }
+ ],
+ "sequence_id": 31.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "label": "Subcontract Work Orders",
+   "type": "DocType",
+   "link_to": "Subcontract Work Order",
+   "doc_view": "List"
+  },
+  {
+   "color": "Grey",
+   "label": "Subcontract Settlement",
+   "type": "DocType",
+   "link_to": "Subcontract Settlement",
+   "doc_view": "List"
+  },
+  {
+   "color": "Grey",
+   "label": "Subcontract Material Allocation",
+   "type": "DocType",
+   "link_to": "Subcontract Material Allocation",
+   "doc_view": "List"
+  },
+  {
+   "color": "Grey",
+   "label": "Subcontract Completion Report",
+   "type": "DocType",
+   "link_to": "Subcontract Completion Report",
+   "doc_view": "List"
+  }
+ ],
+ "title": "Subcontracting",
+ "type": "Workspace"
+}
