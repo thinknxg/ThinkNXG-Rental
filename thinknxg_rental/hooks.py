@@ -17,6 +17,7 @@ add_to_apps_screen = [
 
 after_install = "thinknxg_rental.services.setup.after_install"
 after_migrate = ["thinknxg_rental.services.job_type_migration.run", 
+    "thinknxg_rental.services.subcontracting_setup.run",
     "thinknxg_rental.services.setup.after_migrate",
     "thinknxg_rental.services.print_formats.sync",
     "thinknxg_rental.services.hide_rotation.run",
