@@ -35,6 +35,14 @@ had to edit the contract first.
   shows Additional Qty, Added During Delivery and Job Type, and **New Delivery Order** is also offered on an Off Hired
   contract (material can be added after everything was returned, until the contract is closed).
 
+## Hire Order Contract without physical rental items (2.8.1)
+Physical rental items are no longer mandatory on a Hire Order Contract. It can be saved and submitted with an empty
+Materials table, and its Rental Contract can be created and submitted with no items (a Job Type Contract only; other
+contracts still need at least one item). The contract is Active as usual. The material is then delivered on a Hire
+Delivery Order as additional items. The job types offered there are those of the contract's job lines, so the item is
+linked to the Rental Contract and the relevant Job Type. Reserving material on such a contract says there is nothing
+to reserve. Contracts that do have materials behave exactly as before.
+
 ## Rules kept
 * Additional lines are not held to a reservation (they were never reserved); they leave from the default own rental
   warehouse unless a warehouse is chosen, and the free-stock check against other contracts' reservations still applies.

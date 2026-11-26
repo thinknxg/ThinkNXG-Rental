@@ -302,11 +302,11 @@ class TestAdditionalItemsOnJobTypeContract(tdc.TestDamageCharges):
 		locals()[_name] = None
 	del _name
 
-	def job(self, tube):
+	def job(self, tube=None):
 		code = f"AJ-JOB-{tdc.tag()}"
 		frappe.get_doc({"doctype": "Item", "item_code": code, "item_name": "Additional Job", "item_group": tdc._leaf("Item Group"),
 			"stock_uom": "Nos", "is_stock_item": 0}).insert()
-		frappe.get_doc({"doctype": "Job Type", "item_code": code, "job_type_name": code, "rental_items": [{"item_code": tube, "qty": 5}]}).insert()
+		frappe.get_doc({"doctype": "Job Type", "item_code": code, "job_type_name": code, "rental_items": [{"item_code": tube, "qty": 5}] if tube else []}).insert()
 		return code
 
 	def job_contract(self, jobs):
@@ -355,3 +355,36 @@ class TestAdditionalItemsOnJobTypeContract(tdc.TestDamageCharges):
 		self.hdo(rc, [{"item_code": extra, "qty": 1, "ownership": "Own"}])
 		self.assertEqual(frappe.db.get_value("Rental Contract Item", {"parent": rc, "item_code": extra}, "job_type"), j)
 
+	# ---- a Hire Order Contract without physical rental items
+	def test_contract_without_physical_items_then_delivered_later(self):
+		j1, j2 = self.job(), self.job()  # job types with no rental items
+		q = self.quotation([{"item_code": j, "qty": 1, "rate": 1000, "uom": "Nos", "nxg_included_days": 30,
+			"nxg_excess_basis": "Daily", "nxg_excess_rate": 10} for j in (j1, j2)], deal_type="Hire Order Contract")
+		self.submit_quotation(q)
+		hoc = make_hire_order_contract_from_quotation(q, args={"rental_site": self.site_from(q)})
+		hoc.order_date = nowdate()
+		hoc.insert()  # saved without materials
+		self.assertEqual(len(hoc.materials), 0)
+		hoc.submit()
+		self.assertEqual(frappe.db.get_value("Hire Order Contract", hoc.name, "status"), "Open")
+		rc = make_rental_contract(hoc.name)
+		self.assertEqual(len(rc.items), 0)
+		rc.insert()
+		rc.submit()
+		self.assertEqual(frappe.db.get_value("Rental Contract", rc.name, "status"), "Active")
+		# the contract is still billable per job: job types come from its job lines
+		self.assertEqual(sorted(get_contract_info(rc.name)["job_types"]), sorted([j1, j2]))
+		# nothing to reserve, with a clear message
+		from thinknxg_rental.thinknxg_rental.doctype.hire_order_contract.hire_order_contract import make_reservation
+		with self.assertRaises(frappe.ValidationError) as cm:
+			make_reservation(hoc.name)
+		self.assertIn("no physical rental items", str(cm.exception))
+		# the delivery adds the material, for a job type of the contract
+		tube = self.item()
+		with self.assertRaises(frappe.ValidationError):
+			self.hdo(rc.name, [{"item_code": tube, "qty": 4, "ownership": "Own"}])  # two job types: one must be chosen
+		self.hdo(rc.name, [{"item_code": tube, "qty": 4, "ownership": "Own", "job_type": j2}])
+		row = frappe.db.get_value("Rental Contract Item", {"parent": rc.name, "item_code": tube},
+			["qty", "is_additional", "job_type", "at_site_qty"], as_dict=True)
+		self.assertEqual((flt(row.qty), row.is_additional, row.job_type, flt(row.at_site_qty)), (4, 1, j2, 4))
+		self.assertEqual(flt(frappe.db.get_value("Rental Contract", rc.name, "total_at_site_qty")), 4)

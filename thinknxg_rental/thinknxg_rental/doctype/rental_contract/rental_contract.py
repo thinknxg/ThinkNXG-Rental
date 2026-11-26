@@ -58,6 +58,9 @@ class RentalContract(Document):
 			frappe.throw(_("Billing Interval Days is required for a custom billing cycle"))
 
 	def validate_items(self):
+		# a Job Type Contract may start without physical items: they are added by Hire Delivery Orders
+		if not self.items and self.contract_type != "Job Type Contract":
+			frappe.throw(_("Add at least one item to the contract"), title=_("Items Required"))
 		check_duplicate_items(self)
 		total = 0
 		for d in self.items:
