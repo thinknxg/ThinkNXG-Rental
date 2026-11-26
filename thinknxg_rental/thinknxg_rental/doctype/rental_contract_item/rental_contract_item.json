@@ -12,6 +12,10 @@
   "rate_basis",
   "rate",
   "replacement_value",
+  "sb_additional",
+  "is_additional",
+  "additional_qty",
+  "added_by_delivery",
   "sb_32",
   "dispatched_qty",
   "returned_qty",
@@ -86,6 +90,38 @@
    "fieldname": "replacement_value",
    "fieldtype": "Currency",
    "label": "Replacement Value per Unit",
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "sb_additional",
+   "fieldtype": "Section Break",
+   "label": "Additional Material"
+  },
+  {
+   "fieldname": "is_additional",
+   "fieldtype": "Check",
+   "label": "Added During Delivery",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "description": "This item was not in the original contract; it was added by a Hire Delivery Order."
+  },
+  {
+   "fieldname": "additional_qty",
+   "fieldtype": "Float",
+   "label": "Additional Qty",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "description": "Part of the contracted qty that was added by Hire Delivery Orders after the contract was submitted."
+  },
+  {
+   "fieldname": "added_by_delivery",
+   "fieldtype": "Link",
+   "label": "First Added By",
+   "options": "Hire Delivery Order",
+   "read_only": 1,
+   "no_copy": 1,
    "allow_on_submit": 1
   },
   {

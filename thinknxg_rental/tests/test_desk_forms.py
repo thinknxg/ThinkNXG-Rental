@@ -21,7 +21,7 @@ FORMS = {
 GRIDS = {
 	"Rental Material Reservation Item": [("item_code", "Item"), ("required_qty", "Qty"), ("source_warehouse", "Warehouse"),
 		("available_qty", "Available"), ("reserved_qty", "Reserved"), ("shortfall_qty", "Shortfall")],
-	"Hire Delivery Item": [("item_code", "Item"), ("qty", "Qty"), ("ownership", "Ownership"), ("source_warehouse", "From Warehouse")],
+	"Hire Delivery Item": [("item_code", "Item"), ("qty", "Qty"), ("additional_item", "Additional"), ("ownership", "Ownership"), ("source_warehouse", "From Warehouse")],
 	"Hire Off-Hire Item": [("item_code", "Item"), ("at_site_qty", "At Site"), ("received_qty", "Received"), ("returned_qty", "Returned"), ("lost_qty", "Lost"),
 		("excess_qty", "Excess"), ("target_warehouse", "Return To")],
 }
