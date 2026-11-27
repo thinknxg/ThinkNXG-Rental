@@ -603,14 +603,51 @@ def _free_stretches(start, end, done):
 def _covered(hoc_name):
 	"""{(line key, charge type): [(from, to)]} of periods already on a live pro forma or invoiced through the JCR billing."""
 	out = {}
-	for r in frappe.db.sql("""select i.jcr_line, i.charge_type, i.rental_from, i.rental_to from `tabRental Pro Forma Item` i
-		join `tabRental Pro Forma Invoice` p on p.name = i.parent where p.hire_order_contract = %s and p.docstatus < 2
-		and p.status not in ('Expired', 'Cancelled') and i.charge_type in %s and ifnull(i.jcr_line, '') != ''""", (hoc_name, JOB_CHARGES), as_dict=True):
-		out.setdefault((r.jcr_line, r.charge_type), []).append((getdate(r.rental_from), getdate(r.rental_to)))
+	# rows without a JCR line (jobs not yet reported) are keyed by their contract line
+	for r in frappe.db.sql("""select if(ifnull(i.jcr_line, '') = '', i.hire_order_item, i.jcr_line) as k, i.charge_type, i.rental_from, i.rental_to
+		from `tabRental Pro Forma Item` i join `tabRental Pro Forma Invoice` p on p.name = i.parent where p.hire_order_contract = %s
+		and p.docstatus < 2 and p.status not in ('Expired', 'Cancelled') and i.charge_type in %s""", (hoc_name, JOB_CHARGES), as_dict=True):
+		out.setdefault((r.k, r.charge_type), []).append((getdate(r.rental_from), getdate(r.rental_to)))
 	for r in frappe.db.sql("""select jcr_line, billing_type, period_from, period_to from `tabJCR Billing Schedule`
 		where hire_order_contract = %s and (ifnull(sales_invoice, '') != '' or status in ('Invoiced', 'No Charge'))""", hoc_name, as_dict=True):
 		kind = CONTRACT_CHARGE if r.billing_type == "Contract" else EXCESS_CHARGE
 		out.setdefault((r.jcr_line, kind), []).append((getdate(r.period_from), getdate(r.period_to)))
+	return out
+
+
+def _prebilled_excess(hoc_name):
+	"""Excess already put on a pro forma for jobs that had no JCR then: {HOC job line: [[from, to, jobs]]}."""
+	out = {}
+	for r in frappe.db.sql("""select i.hire_order_item, i.rental_from, i.rental_to, i.job_qty from `tabRental Pro Forma Item` i
+		join `tabRental Pro Forma Invoice` p on p.name = i.parent where p.hire_order_contract = %s and p.docstatus < 2
+		and p.status not in ('Expired', 'Cancelled') and i.charge_type = %s and ifnull(i.jcr_line, '') = ''""", (hoc_name, EXCESS_CHARGE), as_dict=True):
+		out.setdefault(r.hire_order_item, []).append([getdate(r.rental_from), getdate(r.rental_to), flt(r.job_qty)])
+	return out
+
+
+def _net_prebilled(start, end, qty, entries):
+	"""[(from, to, jobs)] of [start, end] for `qty` jobs after the jobs whose excess was already billed on a pro forma before their JCR existed."""
+	if not entries:
+		return [(start, end, qty)]
+	cuts = sorted({start, add_days(end, 1)} | {c for f, t, _q in entries for c in (f, add_days(t, 1)) if start < c <= end})
+	out = []
+	for a, b in zip(cuts, cuts[1:]):
+		b = add_days(b, -1)
+		have = [e for e in entries if e[0] <= a and b <= e[1] and e[2] > EPS]
+		take = min(qty, sum(e[2] for e in have))
+		left = take
+		for e in have:  # split each entry around the stretch so its jobs are used only once
+			use = min(e[2], left)
+			left -= use
+			if use <= EPS:
+				continue
+			if e[0] < a:
+				entries.append([e[0], add_days(a, -1), e[2]])
+			if b < e[1]:
+				entries.append([add_days(b, 1), e[1], e[2]])
+			e[0], e[1], e[2] = a, b, e[2] - use
+		if qty - take > EPS:
+			out.append((a, b, qty - take))
 	return out
 
 
@@ -629,7 +666,7 @@ def contract_lines(hoc, upto):
 	from thinknxg_rental.thinknxg_rental.doctype.job_completion_report import job_completion_report as jcrmod
 
 	month_basis = get_settings().month_basis
-	covered, prebilled = _covered(hoc.name), _prebilled(hoc.name)
+	covered, prebilled, prebilled_excess = _covered(hoc.name), _prebilled(hoc.name), _prebilled_excess(hoc.name)
 	rows, notes = [], []
 
 	def dmy(v):
@@ -670,26 +707,49 @@ def contract_lines(hoc, upto):
 					continue
 				basis = line.excess_rate_basis or "Daily"
 				unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
-				for start, end in _free_stretches(start, end, done):
+				stretches = [(a, b, q) for a, b in _free_stretches(start, end, done)
+					for a, b, q in _net_prebilled(a, b, flt(p.qty), prebilled_excess.get(line.contract_item))]
+				for start, end, jobs in stretches:
 					days = date_diff(end, start) + 1
-					units = billable_units(p.qty, start, end, basis, month_basis)
-					rows.append({"item_code": line.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(units, 6), "job_qty": flt(p.qty),
+					units = billable_units(jobs, start, end, basis, month_basis)
+					rows.append({"item_code": line.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(units, 6), "job_qty": flt(jobs),
 						"rate": flt(line.excess_rate), "rate_basis": basis, "rental_from": start, "rental_to": end, "jcr": jcr.name, "jcr_line": line.name,
 						"hire_order_item": line.contract_item,
 						"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
-							name, ref, _fmt(p.qty), days, dmy(start), dmy(end), _fmt(line.excess_rate), unit)})
+							name, ref, _fmt(jobs), days, dmy(start), dmy(end), _fmt(line.excess_rate), unit)})
 	# jobs not yet on a Job Completion Report: the contract charge they will carry, from the required date
 	reported, returned = jcrmod.get_reported_qty_by_line(hoc.name), jcrmod.get_returned_qty_by_line(hoc.name)
 	for item in hoc.items:
-		left = jcrmod.remaining_jobs(item, reported, returned) - prebilled.get(item.name, 0)
-		if left <= EPS:
+		remaining = jcrmod.remaining_jobs(item, reported, returned)
+		if remaining <= EPS:
 			continue
+		ref = f"{hoc.name} {jcrmod.line_label(item)}"
 		if flt(item.contract_rate) <= 0:
 			notes.append(_("{0}: no contract rate, so no contract charge").format(jcrmod.line_label(item)))
 			continue
 		start = getdate(hoc.required_from or hoc.order_date or nowdate())
 		end = jcr_billing.get_contract_end(start, item.included_days)
-		rows.append(contract_row(item, f"{hoc.name} {jcrmod.line_label(item)}", flt(left, 6), start, end, hoc_item=item.name))
+		left = remaining - prebilled.get(item.name, 0)  # jobs whose contract charge is not on a pro forma yet
+		if left > EPS:
+			rows.append(contract_row(item, ref, flt(left, 6), start, end, hoc_item=item.name))
+		# days past the contract days up to Bill Up To are excess, JCR or not: every unreported job, a month at a time as the JCR billing does
+		if end >= upto:
+			continue
+		if flt(item.excess_rate) <= 0:
+			notes.append(_("{0}: no excess rate, so its excess days are not charged").format(ref))
+			continue
+		basis = item.excess_rate_basis or "Daily"
+		unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
+		name = item.get("job_type_name") or item.job_type
+		cursor = add_days(end, 1)
+		while cursor <= upto:
+			stop = min(getdate(get_last_day(cursor)), upto)
+			for a, b in _free_stretches(cursor, stop, covered.get((item.name, EXCESS_CHARGE), [])):
+				rows.append({"item_code": item.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(billable_units(remaining, a, b, basis, month_basis), 6),
+					"job_qty": flt(remaining, 6), "rate": flt(item.excess_rate), "rate_basis": basis, "rental_from": a, "rental_to": b, "hire_order_item": item.name,
+					"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
+						name, ref, _fmt(remaining), date_diff(b, a) + 1, dmy(a), dmy(b), _fmt(item.excess_rate), unit)})
+			cursor = add_days(stop, 1)
 	return rows, notes
 
 
