@@ -20,7 +20,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
-from frappe.utils import add_days, cint, date_diff, flt, formatdate, getdate, money_in_words, now_datetime, nowdate
+from frappe.utils import add_days, cint, date_diff, flt, formatdate, get_last_day, getdate, money_in_words, now_datetime, nowdate
 
 from thinknxg_rental.services import vat
 from thinknxg_rental.services.utils import BASIS_FACTOR, BASIS_UOM, as_system, billable_units, get_rental_rate, get_settings, require_setting
@@ -31,6 +31,9 @@ CONVERTIBLE = OPEN
 APPROVERS = ("Rental Manager", "Accounts Manager", "System Manager")
 TRANSPORT = "Transportation"
 EPS = 1e-9
+# Lines taken from a Hire Order Contract: priced by the contract's job lines (jcr_billing.plan_periods), not by a rate basis
+CONTRACT_CHARGE, EXCESS_CHARGE = "Contract Charge", "Excess Charge"
+JOB_CHARGES = (CONTRACT_CHARGE, EXCESS_CHARGE)
 
 
 class RentalProFormaInvoice(Document):
@@ -187,6 +190,16 @@ class RentalProFormaInvoice(Document):
 			frappe.throw(_("Row #{0}: Quantity must be greater than zero").format(d.idx))
 		if not d.rental_from or not d.rental_to or getdate(d.rental_to) < getdate(d.rental_from):
 			frappe.throw(_("Row #{0}: set the rental period (Rental To on or after Rental From)").format(d.idx))
+		if d.charge_type in JOB_CHARGES:
+			# Contract Charge: qty = jobs, rate = contract rate for the whole contract period.
+			# Excess Charge: qty = job-days (weeks, months) of the period, rate = the excess rate. Exact, nothing re-derived.
+			if flt(d.rate) <= 0:
+				frappe.throw(_("Row #{0}: {1} has no rate. Set it on the Hire Order Contract job line").format(d.idx, _(d.charge_type)))
+			d.rental_days = date_diff(d.rental_to, d.rental_from) + 1
+			d.billable_periods = 1
+			d.amount = flt(flt(d.qty) * flt(d.rate), precision)
+			d.period_label = _("{0} day(s)").format(d.rental_days)
+			return
 		if d.rate_basis == "Custom" and cint(d.period_days) <= 0:
 			frappe.throw(_("Row #{0}: a Custom rate needs the number of days the rate covers").format(d.idx))
 		if not flt(d.rate):
@@ -385,6 +398,8 @@ def make_sales_invoice(source_name: str):
 	frappe.has_permission("Sales Invoice", "create", throw=True)
 	frappe.db.sql(f"select name from `tab{DOCTYPE}` where name = %s for update", source_name)
 	pi.reload()
+	if any(d.charge_type in JOB_CHARGES for d in pi.items):
+		frappe.throw(_("Contract and excess charges of a Hire Order Contract are invoiced from its Job Completion Reports (Create Invoice), which keeps each billing period once. This pro forma invoice is the preliminary document for them."), title=_("Invoice from the Job Completion Report"))
 	if pi.docstatus != 1 or pi.status not in CONVERTIBLE:
 		frappe.throw(_("Only an approved pro forma invoice (not expired, cancelled or converted) becomes a tax invoice. Status: {0}").format(_(pi.status)))
 	if pi.sales_invoice and frappe.db.get_value("Sales Invoice", pi.sales_invoice, "docstatus") != 2:
@@ -528,6 +543,9 @@ def make_from_hire_order(source_name: str):
 def make_from_rental_contract(source_name: str):
 	rc = frappe.get_doc("Rental Contract", source_name)
 	rc.check_permission("read")
+	if rc.get("hire_order_contract"):
+		# a Job Type Contract bills its job lines, not material on hire
+		return make_from_hire_order_contract(rc.hire_order_contract, rental_contract=rc.name)
 	start = getdate(rc.start_date or nowdate())
 	end = getdate(rc.end_date) if rc.end_date else add_days(start, 29)
 	doc = _new(rc.company, rc.customer, rental_contract=rc.name, hire_order=rc.hire_order, rental_site=rc.rental_site,
@@ -540,6 +558,139 @@ def make_from_rental_contract(source_name: str):
 		doc.append("deposits", {"description": _("Security deposit for the material on hire"), "basis_qty": 1,
 			"rate": rc.security_deposit, "deposit_type": "Refundable"})
 	return doc
+
+
+@frappe.whitelist()
+def make_from_hire_order_contract(source_name: str, bill_upto: str | None = None, rental_contract: str | None = None):
+	"""Pro forma invoice of a Hire Order Contract: a Contract Charge line and, where days run past the contract, Excess Charge
+	lines for every job line, as the Job Completion Report billing would invoice them up to `bill_upto` (month end by default)."""
+	hoc = frappe.get_doc("Hire Order Contract", source_name)
+	hoc.check_permission("read")
+	if hoc.docstatus != 1:
+		frappe.throw(_("Submit the Hire Order Contract first"))
+	upto = getdate(bill_upto) if bill_upto else getdate(get_last_day(nowdate()))
+	rental_contract = rental_contract or frappe.db.get_value("Rental Contract", {"hire_order_contract": hoc.name, "docstatus": 1}, "name")
+	doc = _new(hoc.company, hoc.customer, hire_order_contract=hoc.name, rental_contract=rental_contract, quotation=hoc.quotation,
+		customer_reference=hoc.customer_reference, rental_site=hoc.rental_site, project=hoc.project,
+		payment_terms_template=hoc.payment_terms_template)
+	rows, notes = contract_lines(hoc, upto)
+	if not rows:
+		frappe.throw(_("Nothing is left to put on a pro forma invoice up to {0}: every contract and excess period is already on a pro forma or tax invoice.").format(formatdate(upto))
+			+ ("<br>" + "<br>".join(notes) if notes else ""))
+	for r in rows:
+		doc.append("items", r)
+	if notes:
+		doc.remarks = "\n".join(notes)
+	return doc
+
+
+def _free_stretches(start, end, done):
+	"""[start, end] without the periods in `done`: the stretches nobody has billed yet."""
+	out, cursor = [], getdate(start)
+	for f, t in sorted(done):
+		if t < cursor:
+			continue
+		if f > end:
+			break
+		if f > cursor:
+			out.append((cursor, add_days(f, -1)))
+		cursor = max(cursor, add_days(t, 1))
+	if cursor <= end:
+		out.append((cursor, end))
+	return out
+
+
+def _covered(hoc_name):
+	"""{(line key, charge type): [(from, to)]} of periods already on a live pro forma or invoiced through the JCR billing."""
+	out = {}
+	for r in frappe.db.sql("""select i.jcr_line, i.charge_type, i.rental_from, i.rental_to from `tabRental Pro Forma Item` i
+		join `tabRental Pro Forma Invoice` p on p.name = i.parent where p.hire_order_contract = %s and p.docstatus < 2
+		and p.status not in ('Expired', 'Cancelled') and i.charge_type in %s and ifnull(i.jcr_line, '') != ''""", (hoc_name, JOB_CHARGES), as_dict=True):
+		out.setdefault((r.jcr_line, r.charge_type), []).append((getdate(r.rental_from), getdate(r.rental_to)))
+	for r in frappe.db.sql("""select jcr_line, billing_type, period_from, period_to from `tabJCR Billing Schedule`
+		where hire_order_contract = %s and (ifnull(sales_invoice, '') != '' or status in ('Invoiced', 'No Charge'))""", hoc_name, as_dict=True):
+		kind = CONTRACT_CHARGE if r.billing_type == "Contract" else EXCESS_CHARGE
+		out.setdefault((r.jcr_line, kind), []).append((getdate(r.period_from), getdate(r.period_to)))
+	return out
+
+
+def _prebilled(hoc_name):
+	"""Jobs whose contract charge went on a pro forma before any Job Completion Report existed: {HOC job line: jobs}."""
+	return {r.hire_order_item: flt(r.qty) for r in frappe.db.sql("""select i.hire_order_item, sum(i.job_qty) as qty from `tabRental Pro Forma Item` i
+		join `tabRental Pro Forma Invoice` p on p.name = i.parent where p.hire_order_contract = %s and p.docstatus < 2
+		and p.status not in ('Expired', 'Cancelled') and i.charge_type = %s and ifnull(i.jcr_line, '') = '' group by i.hire_order_item""",
+		(hoc_name, CONTRACT_CHARGE), as_dict=True)}
+
+
+def contract_lines(hoc, upto):
+	"""Pro forma item rows for a Hire Order Contract. Contract Charge: jobs x contract rate for the contract days. Excess Charge: only the
+	days beyond the contract days of that job line, at that line's excess rate and basis, each job line on its own."""
+	from thinknxg_rental.services import jcr_billing
+	from thinknxg_rental.thinknxg_rental.doctype.job_completion_report import job_completion_report as jcrmod
+
+	month_basis = get_settings().month_basis
+	covered, prebilled = _covered(hoc.name), _prebilled(hoc.name)
+	rows, notes = [], []
+
+	def dmy(v):
+		return getdate(v).strftime("%d-%m-%Y")
+
+	def contract_row(line, ref, qty, start, end, jcr=None, jcr_line=None, hoc_item=None):
+		days = date_diff(end, start) + 1
+		name = line.get("job_type_name") or line.job_type
+		return {"item_code": line.job_type, "item_name": name, "charge_type": CONTRACT_CHARGE, "qty": qty, "job_qty": qty, "rate": flt(line.contract_rate),
+			"rate_basis": "Daily", "rental_from": start, "rental_to": end, "jcr": jcr, "jcr_line": jcr_line, "hire_order_item": hoc_item,
+			"description": _("Contract Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5})").format(name, ref, _fmt(qty), days, dmy(start), dmy(end))}
+
+	for jcr_name in frappe.get_all("Job Completion Report", filters={"hire_order_contract": hoc.name, "docstatus": 1, "status": ["!=", "Cancelled"]}, pluck="name", order_by="creation"):
+		jcr = frappe.get_doc("Job Completion Report", jcr_name)
+		for line in jcr.job_lines:
+			ref = f"{jcr.name} @ {line.location}" if line.location else jcr.name
+			name = line.job_type_name or line.job_type
+			for p in jcr_billing.plan_periods(line, today=upto, on_demand=True, partial=True):
+				kind = CONTRACT_CHARGE if p.billing_type == "Contract" else EXCESS_CHARGE
+				start, end = getdate(p.period_from), getdate(p.period_to)
+				done = covered.get((line.name, kind), [])
+				if kind == CONTRACT_CHARGE:
+					if done:
+						continue
+					qty = flt(p.qty)
+					if flt(line.contract_rate) <= 0:
+						notes.append(_("{0}: no contract rate, so no contract charge").format(ref))
+						continue
+					early = min(prebilled.get(line.contract_item, 0), qty)  # jobs already on a pro forma made before this JCR
+					prebilled[line.contract_item] = prebilled.get(line.contract_item, 0) - early
+					if qty - early <= EPS:
+						continue
+					rows.append(contract_row(line, ref, flt(qty - early, 6), start, end, jcr.name, line.name, line.contract_item))
+					continue
+				# Excess: only the days not already billed or on a live pro forma, each remaining stretch as its own line
+				if flt(line.excess_rate) <= 0:
+					notes.append(_("{0}: no excess rate, so its excess days are not charged").format(ref))
+					continue
+				basis = line.excess_rate_basis or "Daily"
+				unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
+				for start, end in _free_stretches(start, end, done):
+					days = date_diff(end, start) + 1
+					units = billable_units(p.qty, start, end, basis, month_basis)
+					rows.append({"item_code": line.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(units, 6), "job_qty": flt(p.qty),
+						"rate": flt(line.excess_rate), "rate_basis": basis, "rental_from": start, "rental_to": end, "jcr": jcr.name, "jcr_line": line.name,
+						"hire_order_item": line.contract_item,
+						"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
+							name, ref, _fmt(p.qty), days, dmy(start), dmy(end), _fmt(line.excess_rate), unit)})
+	# jobs not yet on a Job Completion Report: the contract charge they will carry, from the required date
+	reported, returned = jcrmod.get_reported_qty_by_line(hoc.name), jcrmod.get_returned_qty_by_line(hoc.name)
+	for item in hoc.items:
+		left = jcrmod.remaining_jobs(item, reported, returned) - prebilled.get(item.name, 0)
+		if left <= EPS:
+			continue
+		if flt(item.contract_rate) <= 0:
+			notes.append(_("{0}: no contract rate, so no contract charge").format(jcrmod.line_label(item)))
+			continue
+		start = getdate(hoc.required_from or hoc.order_date or nowdate())
+		end = jcr_billing.get_contract_end(start, item.included_days)
+		rows.append(contract_row(item, f"{hoc.name} {jcrmod.line_label(item)}", flt(left, 6), start, end, hoc_item=item.name))
+	return rows, notes
 
 
 @frappe.whitelist()

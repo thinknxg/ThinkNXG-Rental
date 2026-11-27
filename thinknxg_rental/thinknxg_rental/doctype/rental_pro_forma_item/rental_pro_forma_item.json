@@ -28,7 +28,11 @@
   "vat_rate",
   "vat_amount",
   "treatment_overridden",
-  "hire_order_item"
+  "hire_order_item",
+  "charge_type",
+  "job_qty",
+  "jcr",
+  "jcr_line"
  ],
  "fields": [
   {
@@ -190,6 +194,37 @@
    "label": "Hire Order Item",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "charge_type",
+   "fieldtype": "Select",
+   "label": "Charge",
+   "options": "Rental\nContract Charge\nExcess Charge",
+   "default": "Rental",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Contract and Excess Charge lines come from a Hire Order Contract and are priced from its job lines, not from a rate basis."
+  },
+  {
+   "fieldname": "job_qty",
+   "fieldtype": "Float",
+   "label": "No. of Jobs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "jcr",
+   "fieldtype": "Link",
+   "label": "Job Completion Report",
+   "options": "Job Completion Report",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "jcr_line",
+   "fieldtype": "Data",
+   "label": "JCR Job Line",
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "istable": 1,

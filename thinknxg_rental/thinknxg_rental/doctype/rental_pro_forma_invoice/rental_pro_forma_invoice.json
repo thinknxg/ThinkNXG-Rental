@@ -11,6 +11,7 @@
   "customer_name",
   "hire_order",
   "rental_contract",
+  "hire_order_contract",
   "quotation",
   "cb_head",
   "posting_date",
@@ -144,6 +145,14 @@
    "fieldtype": "Link",
    "label": "Rental Contract",
    "options": "Rental Contract"
+  },
+  {
+   "fieldname": "hire_order_contract",
+   "fieldtype": "Link",
+   "label": "Hire Order Contract",
+   "options": "Hire Order Contract",
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "quotation",
