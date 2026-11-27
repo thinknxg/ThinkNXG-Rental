@@ -14,6 +14,7 @@
   "ownership",
   "supplier",
   "cross_hire_order",
+  "subcontract_work_order",
   "rental_contract",
   "source_type",
   "source_document",
@@ -49,7 +50,7 @@
    "fieldname": "position_type",
    "fieldtype": "Select",
    "label": "Position Type",
-   "options": "At Site\nCross Hire Custody",
+   "options": "At Site\nCross Hire Custody\nSubcontractor Custody",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1
@@ -102,6 +103,14 @@
    "label": "Cross Hire Order",
    "options": "Cross Hire Order",
    "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "subcontract_work_order",
+   "fieldtype": "Link",
+   "label": "Subcontract Work Order",
+   "options": "Subcontract Work Order",
+   "read_only": 1,
    "search_index": 1
   },
   {

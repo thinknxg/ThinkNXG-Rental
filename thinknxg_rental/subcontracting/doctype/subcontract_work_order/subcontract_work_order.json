@@ -1,0 +1,493 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontract Work Order",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "field_order": [
+  "naming_series",
+  "hire_order_contract",
+  "supplier",
+  "supplier_name",
+  "status",
+  "cb_1",
+  "customer",
+  "project",
+  "rental_site",
+  "company",
+  "sec_scope",
+  "subcontract_type",
+  "allocation_type",
+  "cb_2",
+  "contract_date",
+  "start_date",
+  "expected_completion_date",
+  "sec_items",
+  "items",
+  "sec_comm",
+  "currency",
+  "contract_amount",
+  "approved_additional_cost",
+  "final_contract_value",
+  "total_estimated_cost",
+  "cb_3",
+  "labour_cost",
+  "equipment_cost",
+  "advance_percentage",
+  "advance_amount",
+  "retention_percentage",
+  "cb_4",
+  "payment_terms",
+  "tax_category",
+  "taxes_and_charges",
+  "cost_center",
+  "sec_docs",
+  "subcontract_agreement",
+  "drawings",
+  "cb_5",
+  "supporting_attachments",
+  "work_instructions",
+  "sec_ref",
+  "purchase_order",
+  "approved_by",
+  "approved_on",
+  "cb_6",
+  "verified_by",
+  "verified_on",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SWO-.YYYY.-.#####",
+   "default": "SWO-.YYYY.-.#####",
+   "reqd": 1,
+   "set_only_once": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "hire_order_contract",
+   "fieldtype": "Link",
+   "label": "Hire Order Contract",
+   "options": "Hire Order Contract",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_list_view": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Subcontractor Name",
+   "fetch_from": "supplier.supplier_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_standard_filter": 1,
+   "in_list_view": 1,
+   "default": "Draft",
+   "options": "Draft\nPending Approval\nApproved\nWork In Progress\nPartially Completed\nCompleted\nPending Final Verification\nVerified\nClosed\nCancelled"
+  },
+  {
+   "fieldname": "cb_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "fetch_from": "hire_order_contract.customer"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "fetch_from": "hire_order_contract.project"
+  },
+  {
+   "fieldname": "rental_site",
+   "fieldtype": "Link",
+   "label": "Job Site",
+   "options": "Rental Site",
+   "fetch_from": "hire_order_contract.rental_site"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "fetch_from": "hire_order_contract.company"
+  },
+  {
+   "fieldname": "sec_scope",
+   "fieldtype": "Section Break",
+   "label": "Scope"
+  },
+  {
+   "fieldname": "subcontract_type",
+   "fieldtype": "Select",
+   "label": "Subcontract Type",
+   "options": "Labour\nEquipment\nLabour and Equipment",
+   "default": "Labour",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "allocation_type",
+   "fieldtype": "Select",
+   "label": "Allocation Type",
+   "options": "Partial\nFull",
+   "default": "Partial",
+   "reqd": 1,
+   "description": "Full: this work order takes the whole remaining quantity of every job line of the contract."
+  },
+  {
+   "fieldname": "cb_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_date",
+   "fieldtype": "Date",
+   "label": "Contract Date",
+   "default": "Today",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "expected_completion_date",
+   "fieldtype": "Date",
+   "label": "Expected Completion Date"
+  },
+  {
+   "fieldname": "sec_items",
+   "fieldtype": "Section Break",
+   "label": "Work Items"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Work Items",
+   "options": "Subcontract Work Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sec_comm",
+   "fieldtype": "Section Break",
+   "label": "Commercial"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_amount",
+   "fieldtype": "Currency",
+   "label": "Contract Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_additional_cost",
+   "fieldtype": "Currency",
+   "label": "Approved Additional Cost",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_contract_value",
+   "fieldtype": "Currency",
+   "label": "Final Contract Value",
+   "options": "currency",
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "total_estimated_cost",
+   "fieldtype": "Currency",
+   "label": "Total Estimated Cost",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "labour_cost",
+   "fieldtype": "Currency",
+   "label": "Labour Cost",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "equipment_cost",
+   "fieldtype": "Currency",
+   "label": "Equipment Cost",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "advance_percentage",
+   "fieldtype": "Percent",
+   "label": "Advance %"
+  },
+  {
+   "fieldname": "advance_amount",
+   "fieldtype": "Currency",
+   "label": "Advance Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "retention_percentage",
+   "fieldtype": "Percent",
+   "label": "Retention %",
+   "description": "Held back from every bill and released with the final settlement."
+  },
+  {
+   "fieldname": "cb_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_terms",
+   "fieldtype": "Link",
+   "label": "Payment Terms",
+   "options": "Payment Terms Template"
+  },
+  {
+   "fieldname": "tax_category",
+   "fieldtype": "Link",
+   "label": "Tax Category",
+   "options": "Tax Category"
+  },
+  {
+   "fieldname": "taxes_and_charges",
+   "fieldtype": "Link",
+   "label": "Purchase Taxes and Charges Template",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "sec_docs",
+   "fieldtype": "Section Break",
+   "label": "Documents",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "subcontract_agreement",
+   "fieldtype": "Attach",
+   "label": "Subcontract Agreement"
+  },
+  {
+   "fieldname": "drawings",
+   "fieldtype": "Attach",
+   "label": "Drawings"
+  },
+  {
+   "fieldname": "cb_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supporting_attachments",
+   "fieldtype": "Attach",
+   "label": "Supporting Attachments"
+  },
+  {
+   "fieldname": "work_instructions",
+   "fieldtype": "Text Editor",
+   "label": "Work Instructions"
+  },
+  {
+   "fieldname": "sec_ref",
+   "fieldtype": "Section Break",
+   "label": "References",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Link",
+   "label": "Verified By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Subcontract Work Order",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "Subcontracting Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Subcontracting Executive",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Purchase Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Site Engineer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Store Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Project Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "is_submittable": 1,
+ "autoname": "naming_series:",
+ "title_field": "supplier_name",
+ "search_fields": "hire_order_contract,supplier,status"
+}

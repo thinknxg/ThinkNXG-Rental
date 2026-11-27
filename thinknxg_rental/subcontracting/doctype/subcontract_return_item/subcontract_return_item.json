@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-11-26 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-26 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontract Return Item",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "field_order": [
+  "item_code",
+  "issued_qty",
+  "outstanding_qty",
+  "installed_qty",
+  "returned_qty",
+  "damaged_qty",
+  "missing_qty",
+  "recovery_rate",
+  "recovery_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "issued_qty",
+   "fieldtype": "Float",
+   "label": "Issued",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "outstanding_qty",
+   "fieldtype": "Float",
+   "label": "Outstanding",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "installed_qty",
+   "fieldtype": "Float",
+   "label": "Installed",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "returned_qty",
+   "fieldtype": "Float",
+   "label": "Returned Good",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "damaged_qty",
+   "fieldtype": "Float",
+   "label": "Damaged",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "missing_qty",
+   "fieldtype": "Float",
+   "label": "Missing",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "recovery_rate",
+   "fieldtype": "Currency",
+   "label": "Recovery Rate",
+   "description": "Charged per damaged or missing unit."
+  },
+  {
+   "fieldname": "recovery_amount",
+   "fieldtype": "Currency",
+   "label": "Recovery",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "istable": 1,
+ "editable_grid": 1
+}

@@ -17,6 +17,7 @@ add_to_apps_screen = [
 
 after_install = "thinknxg_rental.services.setup.after_install"
 after_migrate = ["thinknxg_rental.services.job_type_migration.run", 
+    "thinknxg_rental.services.subcontracting_setup.run",
     "thinknxg_rental.services.setup.after_migrate",
     "thinknxg_rental.services.print_formats.sync",
     "thinknxg_rental.services.hide_rotation.run",
@@ -49,7 +50,7 @@ doc_events = {
 	"Hire Delivery Order": {"on_submit": _N + "delivery_submitted"},
 	"Hire Off-Hire Note": {"on_submit": _N + "off_hire_submitted"},
 	"Rental Return Inspection": {"on_submit": _N + "inspection_submitted"},
-	"Payment Entry": {"on_submit": _N + "payment_submitted"},
+	"Payment Entry": {"on_submit": _N + "payment_submitted", "validate": "thinknxg_rental.events.subcontracting.payment_entry_validate"},
 	"Sales Order": {"on_submit": _N + "sales_order_submitted"},
 	# warn (never block) when a Customer has the same name or Tax ID as another (services/customer_dedupe.py)
 	"Customer": {"validate": "thinknxg_rental.services.customer_dedupe.validate_customer"},
@@ -67,6 +68,7 @@ doc_events = {
 	"Item Group": {"on_update": "thinknxg_rental.website.catalogue.clear_cache", "on_trash": "thinknxg_rental.website.catalogue.clear_cache"},
 	"Hire Order Contract": {
 	    "validate": "thinknxg_rental.events.default_terms.apply",
+	    "on_cancel": "thinknxg_rental.events.subcontracting.contract_on_cancel",
 	},
 	# a project is not completed while its rental material is not reconciled (services/excess.py)
 	"Project": {"validate": "thinknxg_rental.services.excess.project_validate"},
@@ -81,6 +83,7 @@ doc_events = {
 		"on_cancel": "thinknxg_rental.events.purchase.pr_on_cancel",
 	},
 	"Purchase Invoice": {
+		"before_validate": "thinknxg_rental.events.subcontracting.purchase_invoice_validate",
 		"on_submit": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 		"on_cancel": "thinknxg_rental.events.purchase.pi_update_cross_hire",
 	},
@@ -123,6 +126,7 @@ app_include_css = ["/assets/thinknxg_rental/css/thinknxg_rental.css", "/assets/t
 
 doctype_js = {
 	"Item": "public/js/item_rental.js",
+	"Hire Order Contract": "public/js/hire_order_contract_subcontracting.js",
 	"Customer": "public/js/customer_dedupe.js",
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
