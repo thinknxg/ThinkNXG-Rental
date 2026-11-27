@@ -159,6 +159,32 @@ class TestProFormaContractCharges(IntegrationTestCase):
 		with self.assertRaisesRegex(frappe.ValidationError, "Nothing is left"):
 			self.make(hoc, "2026-01-30")
 
+	def test_excess_follows_bill_upto_even_without_a_jcr(self):
+		hoc = self.hoc([("PF-JOB-A", 2, 30, 1000, "Daily", 50)])        # no Job Completion Report at all
+		doc = self.make(hoc, "2026-02-14")
+		self.assertEqual([r.charge_type for r in doc.items], ["Contract Charge", "Excess Charge", "Excess Charge"])
+		self.assertEqual([(str(r.rental_from), str(r.rental_to), flt(r.qty)) for r in self.rows(doc, "Excess Charge")],
+			[("2026-01-31", "2026-01-31", 2), ("2026-02-01", "2026-02-14", 28)])
+		doc.insert()
+		self.assertEqual([flt(r.amount) for r in doc.items], [2000, 100, 1400])
+		more = self.make(hoc, "2026-02-28")                              # only the days after the first
+		self.assertEqual([(str(r.rental_from), str(r.rental_to)) for r in more.items], [("2026-02-15", "2026-02-28")])
+		with self.assertRaisesRegex(frappe.ValidationError, "Nothing is left"):
+			self.make(hoc, "2026-02-14")
+
+	def test_excess_billed_before_a_jcr_is_not_billed_again_for_those_jobs(self):
+		hoc = self.hoc([("PF-JOB-A", 3, 30, 1000, "Daily", 50)])
+		self.make(hoc, "2026-02-14").insert()                            # 3 jobs: contract 3000, excess 150 + 2100
+		self.jcr(hoc, 0, 1)                                              # one of them is now reported
+		with self.assertRaisesRegex(frappe.ValidationError, "Nothing is left"):
+			self.make(hoc, "2026-02-14")
+
+	def test_no_excess_rate_without_a_jcr_says_so(self):
+		hoc = self.hoc([("PF-JOB-A", 1, 30, 1000, "Daily", 0)])
+		doc = self.make(hoc, "2026-02-14")
+		self.assertEqual(self.rows(doc, "Excess Charge"), [])
+		self.assertIn("no excess rate", doc.remarks)
+
 	# ------------------------------------------------------------------ validation
 	def test_no_excess_rate_means_no_excess_line_and_says_so(self):
 		hoc = self.hoc([("PF-JOB-A", 1, 30, 1000, "Daily", 0)])

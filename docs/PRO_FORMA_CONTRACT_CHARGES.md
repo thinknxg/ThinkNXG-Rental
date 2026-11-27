@@ -19,7 +19,7 @@ The lines come from `jcr_billing.plan_periods`, the same planner the JCR billing
 - Contract days = included days of the job line from its erection date; excess days are only the days after that, up to Bill Up To or the last return date, each month its own line. No excess days, no excess line.
 - Every job line is worked from its own included days, rates, basis, erection and return dates, never from another line or the contract's overall span.
 - Descriptions: `Contract Charge - <job type> - <JCR @ location> - <n> Jobs - <d> Days (<from> to <to>)` and `Excess Charge - ... - <n> Jobs - <d> Days (<from> to <to>) @ <rate> per job per <day|week|month>`. The item is the job type; the JCR and job line are kept on the row.
-- Jobs of a contract line not yet on a JCR carry their contract charge from the contract's *Required From* date (no excess is projected). When their JCR is made later, that charge is not asked again.
+- Jobs of a contract line not yet on a JCR are worked from the contract's *Required From* date and its own included days: the Contract Charge, then an Excess Charge for every day after the contract days up to *Bill Up To* (a line per month, that job line's excess rate and basis). When their JCR is made later, neither charge is asked again for those jobs.
 - **No duplicates**: periods already on a live (not expired, not cancelled) pro forma, or already invoiced / settled as No Charge through JCR billing, are left out; a later pro forma gets only the days after them. If nothing is left the user is told. Cancel or delete a pro forma and its periods are free again.
 - A job line with no excess rate has no excess line (JCR billing treats those days as No Charge); one with no contract rate has no contract line. Either is named in the pro forma's Remarks, and if that leaves nothing the message says why.
 - Other charges (transport and services) stay in the existing *charges* table with their current maths, VAT treatment and totals. They are not generated from the contract today, so they cannot be duplicated by it.
@@ -34,7 +34,7 @@ Rental Pro Forma Item: `charge_type` (Rental / Contract Charge / Excess Charge, 
 
 `rental_pro_forma_invoice.py` (`make_from_hire_order_contract`, `contract_lines`, `_covered`, `_prebilled`, `_free_stretches`, `calculate_item`, `make_sales_invoice`, `make_from_rental_contract`), the two doctype JSONs, `hire_order_contract.js`, `tests/test_proforma_contract_charges.py`.
 
-## Tests (13)
+## Tests (16)
 
 Worked by hand with fixed dates (erection 2026-01-01):
 
@@ -46,7 +46,9 @@ Worked by hand with fixed dates (erection 2026-01-01):
 | Weekly basis | 1 job, excess 70/week, 8 excess days | 8/7 weeks, 80.00 |
 | Several JCRs | 1 and 3 jobs of one line, different erection dates | each keeps its JCR, dates and jobs; only the first has excess |
 | Repeat | same pro forma twice; later date; after cancelling | second refused; later one gets only the new days; periods free again |
+| No JCR at all | 2 jobs, 30 days, 1000, excess 50, up to 02-14 | Contract 2000; Excess 01-31 = 100; Excess 02-01..14 = 1400; a later date adds only the new days |
 | Not yet erected | 3 jobs, 1 on a JCR | 1 + 2 jobs once; later JCR for the 2 adds nothing |
+| Excess before a JCR | 3 jobs billed to 02-14 with no JCR, then 1 JCR | nothing billed twice |
 | Missing rates | no excess rate / no contract rate | no line, reason given |
 | Rental Contract of a Hire Order Contract | | same lines, linked to both |
 | Conversion | pro forma with Contract lines | refused |
