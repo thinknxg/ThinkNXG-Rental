@@ -163,11 +163,11 @@ frappe.ui.form.on("Quotation Item", {
 	},
 });
 
-// Quotation made for a Lead or Prospect (saved or submitted): one click makes (or finds) the Customer.
+// Quotation made for a Lead or Prospect (approved and submitted): one click makes (or finds) the Customer.
 // The Hire Order, Hire Order Contract and Sales Order buttons do the same on their own when they need a Customer.
 frappe.ui.form.on("Quotation", {
 	refresh(frm) {
-		if (frm.is_new() || frm.doc.docstatus === 2 || !["Lead", "Prospect"].includes(frm.doc.quotation_to)) return;
+		if (frm.is_new() || frm.doc.docstatus !== 1 || !["Lead", "Prospect"].includes(frm.doc.quotation_to)) return;  // only once approved (submitted)
 		frm.add_custom_button(__("Customer"), () => {
 			frappe.call({
 				method: "thinknxg_rental.services.deal_flow.make_customer_from_quotation",
