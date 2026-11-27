@@ -83,17 +83,29 @@ class TestProFormaContractCharges(IntegrationTestCase):
 	def test_excess_days_beyond_the_contract_days_only(self):
 		hoc = self.hoc([("PF-JOB-A", 2, 30, 1000, "Daily", 50)])
 		self.jcr(hoc, 0, 2)
-		doc = self.make(hoc, "2026-02-14")  # contract Jan 1-30; excess Jan 31 (1 day) and Feb 1-14 (14 days)
+		doc = self.make(hoc, "2026-02-14")  # contract Jan 1-30; excess Jan 31 to Feb 14 (15 days) on one row
 		self.assertEqual(len(self.rows(doc, "Contract Charge")), 1)
 		doc.insert()
 		excess = self.rows(doc, "Excess Charge")
-		self.assertEqual([(str(r.rental_from), str(r.rental_to), r.rental_days) for r in excess], [("2026-01-31", "2026-01-31", 1), ("2026-02-01", "2026-02-14", 14)])
-		self.assertEqual([flt(r.qty) for r in excess], [2, 28])      # job-days: 2 jobs x 1 day, 2 jobs x 14 days
+		self.assertEqual([(str(r.rental_from), str(r.rental_to), r.rental_days) for r in excess], [("2026-01-31", "2026-02-14", 15)])
+		self.assertEqual([flt(r.qty) for r in excess], [30])          # job-days: 2 jobs x 15 days, not split by month
 		self.assertTrue(all(flt(r.rate) == 50 and flt(r.job_qty) == 2 for r in excess))
-		self.assertEqual([flt(r.amount) for r in doc.items], [2000, 100, 1400])
+		self.assertEqual([flt(r.amount) for r in doc.items], [2000, 1500])
 		self.assertEqual(flt(doc.total_rental), 3500)
-		self.assertIn("Excess Charge - PF JOB A - ", excess[1].description)
-		self.assertIn("2 Jobs - 14 Days", excess[1].description)
+		self.assertIn("Excess Charge - PF JOB A - ", excess[0].description)
+		self.assertIn("2 Jobs - 15 Days (31-01-2026 to 14-02-2026)", excess[0].description)
+
+	def test_long_excess_stretch_is_one_row(self):
+		# the SC-01 case: 30,000 jobs, 0.65 a day, 26 Apr to 30 Nov = 219 days -> 6,570,000 job-days, 4,270,500
+		hoc = self.hoc([("PF-JOB-A", 30000, 30, 1, "Daily", 0.65)])
+		self.jcr(hoc, 0, 30000, erection="2026-03-27")                # contract 27 Mar to 25 Apr
+		doc = self.make(hoc, "2026-11-30")
+		doc.insert()
+		excess = self.rows(doc, "Excess Charge")
+		self.assertEqual([(str(r.rental_from), str(r.rental_to), r.rental_days, flt(r.qty), flt(r.amount)) for r in excess],
+			[("2026-04-26", "2026-11-30", 219, 6570000, 4270500)])
+		self.assertEqual(excess[0].hire_order_item, hoc.items[0].name)
+		self.assertIn("219 Days (26-04-2026 to 30-11-2026)", excess[0].description)
 
 	def test_each_job_line_is_worked_on_its_own_duration_and_rate(self):
 		hoc = self.hoc([("PF-JOB-A", 2, 30, 1000, "Daily", 50), ("PF-JOB-B", 1, 10, 200, "Daily", 20)])
@@ -162,11 +174,11 @@ class TestProFormaContractCharges(IntegrationTestCase):
 	def test_excess_follows_bill_upto_even_without_a_jcr(self):
 		hoc = self.hoc([("PF-JOB-A", 2, 30, 1000, "Daily", 50)])        # no Job Completion Report at all
 		doc = self.make(hoc, "2026-02-14")
-		self.assertEqual([r.charge_type for r in doc.items], ["Contract Charge", "Excess Charge", "Excess Charge"])
+		self.assertEqual([r.charge_type for r in doc.items], ["Contract Charge", "Excess Charge"])
 		self.assertEqual([(str(r.rental_from), str(r.rental_to), flt(r.qty)) for r in self.rows(doc, "Excess Charge")],
-			[("2026-01-31", "2026-01-31", 2), ("2026-02-01", "2026-02-14", 28)])
+			[("2026-01-31", "2026-02-14", 30)])
 		doc.insert()
-		self.assertEqual([flt(r.amount) for r in doc.items], [2000, 100, 1400])
+		self.assertEqual([flt(r.amount) for r in doc.items], [2000, 1500])
 		more = self.make(hoc, "2026-02-28")                              # only the days after the first
 		self.assertEqual([(str(r.rental_from), str(r.rental_to)) for r in more.items], [("2026-02-15", "2026-02-28")])
 		with self.assertRaisesRegex(frappe.ValidationError, "Nothing is left"):
