@@ -600,6 +600,17 @@ def _free_stretches(start, end, done):
 	return out
 
 
+def _merge_stretches(pieces):
+	"""Join back-to-back stretches with the same number of jobs, so a free stretch is one row whatever months it spans."""
+	out = []
+	for a, b, q in sorted(pieces):
+		if out and abs(out[-1][2] - q) <= EPS and add_days(out[-1][1], 1) == a:
+			out[-1] = (out[-1][0], b, q)
+		else:
+			out.append((a, b, q))
+	return out
+
+
 def _covered(hoc_name):
 	"""{(line key, charge type): [(from, to)]} of periods already on a live pro forma or invoiced through the JCR billing."""
 	out = {}
@@ -679,11 +690,21 @@ def contract_lines(hoc, upto):
 			"rate_basis": "Daily", "rental_from": start, "rental_to": end, "jcr": jcr, "jcr_line": jcr_line, "hire_order_item": hoc_item,
 			"description": _("Contract Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5})").format(name, ref, _fmt(qty), days, dmy(start), dmy(end))}
 
+	def excess_row(line, ref, jobs, start, end, jcr=None, jcr_line=None, hoc_item=None):
+		basis = line.excess_rate_basis or "Daily"
+		unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
+		name = line.get("job_type_name") or line.job_type
+		return {"item_code": line.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(billable_units(jobs, start, end, basis, month_basis), 6),
+			"job_qty": flt(jobs, 6), "rate": flt(line.excess_rate), "rate_basis": basis, "rental_from": start, "rental_to": end, "jcr": jcr, "jcr_line": jcr_line,
+			"hire_order_item": hoc_item,
+			"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
+				name, ref, _fmt(jobs), date_diff(end, start) + 1, dmy(start), dmy(end), _fmt(line.excess_rate), unit)}
+
 	for jcr_name in frappe.get_all("Job Completion Report", filters={"hire_order_contract": hoc.name, "docstatus": 1, "status": ["!=", "Cancelled"]}, pluck="name", order_by="creation"):
 		jcr = frappe.get_doc("Job Completion Report", jcr_name)
 		for line in jcr.job_lines:
 			ref = f"{jcr.name} @ {line.location}" if line.location else jcr.name
-			name = line.job_type_name or line.job_type
+			pieces, no_excess_rate = [], False
 			for p in jcr_billing.plan_periods(line, today=upto, on_demand=True, partial=True):
 				kind = CONTRACT_CHARGE if p.billing_type == "Contract" else EXCESS_CHARGE
 				start, end = getdate(p.period_from), getdate(p.period_to)
@@ -701,22 +722,16 @@ def contract_lines(hoc, upto):
 						continue
 					rows.append(contract_row(line, ref, flt(qty - early, 6), start, end, jcr.name, line.name, line.contract_item))
 					continue
-				# Excess: only the days not already billed or on a live pro forma, each remaining stretch as its own line
+				# Excess: only the days not already billed or on a live pro forma; gathered here, written below as one row per free stretch
 				if flt(line.excess_rate) <= 0:
-					notes.append(_("{0}: no excess rate, so its excess days are not charged").format(ref))
+					no_excess_rate = True
 					continue
-				basis = line.excess_rate_basis or "Daily"
-				unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
-				stretches = [(a, b, q) for a, b in _free_stretches(start, end, done)
+				pieces += [(a, b, q) for a, b in _free_stretches(start, end, done)
 					for a, b, q in _net_prebilled(a, b, flt(p.qty), prebilled_excess.get(line.contract_item))]
-				for start, end, jobs in stretches:
-					days = date_diff(end, start) + 1
-					units = billable_units(jobs, start, end, basis, month_basis)
-					rows.append({"item_code": line.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(units, 6), "job_qty": flt(jobs),
-						"rate": flt(line.excess_rate), "rate_basis": basis, "rental_from": start, "rental_to": end, "jcr": jcr.name, "jcr_line": line.name,
-						"hire_order_item": line.contract_item,
-						"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
-							name, ref, _fmt(jobs), days, dmy(start), dmy(end), _fmt(line.excess_rate), unit)})
+			if no_excess_rate:
+				notes.append(_("{0}: no excess rate, so its excess days are not charged").format(ref))
+			for start, end, jobs in _merge_stretches(pieces):
+				rows.append(excess_row(line, ref, jobs, start, end, jcr.name, line.name, line.contract_item))
 	# jobs not yet on a Job Completion Report: the contract charge they will carry, from the required date
 	reported, returned = jcrmod.get_reported_qty_by_line(hoc.name), jcrmod.get_returned_qty_by_line(hoc.name)
 	for item in hoc.items:
@@ -732,24 +747,14 @@ def contract_lines(hoc, upto):
 		left = remaining - prebilled.get(item.name, 0)  # jobs whose contract charge is not on a pro forma yet
 		if left > EPS:
 			rows.append(contract_row(item, ref, flt(left, 6), start, end, hoc_item=item.name))
-		# days past the contract days up to Bill Up To are excess, JCR or not: every unreported job, a month at a time as the JCR billing does
+		# days past the contract days up to Bill Up To are excess, JCR or not: every unreported job, one row for the whole free stretch
 		if end >= upto:
 			continue
 		if flt(item.excess_rate) <= 0:
 			notes.append(_("{0}: no excess rate, so its excess days are not charged").format(ref))
 			continue
-		basis = item.excess_rate_basis or "Daily"
-		unit = {"Daily": _("day"), "Weekly": _("week"), "Monthly": _("month")}.get(basis, basis)
-		name = item.get("job_type_name") or item.job_type
-		cursor = add_days(end, 1)
-		while cursor <= upto:
-			stop = min(getdate(get_last_day(cursor)), upto)
-			for a, b in _free_stretches(cursor, stop, covered.get((item.name, EXCESS_CHARGE), [])):
-				rows.append({"item_code": item.job_type, "item_name": name, "charge_type": EXCESS_CHARGE, "qty": flt(billable_units(remaining, a, b, basis, month_basis), 6),
-					"job_qty": flt(remaining, 6), "rate": flt(item.excess_rate), "rate_basis": basis, "rental_from": a, "rental_to": b, "hire_order_item": item.name,
-					"description": _("Excess Charge - {0} - {1} - {2} Jobs - {3} Days ({4} to {5}) @ {6} per job per {7}").format(
-						name, ref, _fmt(remaining), date_diff(b, a) + 1, dmy(a), dmy(b), _fmt(item.excess_rate), unit)})
-			cursor = add_days(stop, 1)
+		for a, b in _free_stretches(add_days(end, 1), upto, covered.get((item.name, EXCESS_CHARGE), [])):
+			rows.append(excess_row(item, ref, remaining, a, b, hoc_item=item.name))
 	return rows, notes
 
 
