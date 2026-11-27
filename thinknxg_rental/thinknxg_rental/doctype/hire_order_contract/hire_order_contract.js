@@ -37,6 +37,12 @@ frappe.ui.form.on("Hire Order Contract", {
 		if (frm.doc.status === "Open") create("Rental Contract", "make_rental_contract");
 		create("Material Reservation", "make_reservation");
 		frm.add_custom_button(__("Job Completion Report (JCR)"), () => frm.trigger("make_jcr"), __("Create"));
+		// contract and excess charge per job line, up to the chosen date (month end unless changed)
+		frm.add_custom_button(__("Pro Forma Invoice"), () => frappe.prompt(
+			{ fieldname: "bill_upto", fieldtype: "Date", label: __("Bill Up To"), reqd: 1, default: frappe.datetime.month_end(),
+				description: __("Contract charges that fall due and excess days up to this date") },
+			(v) => frappe.model.open_mapped_doc({ method: "thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.make_from_hire_order_contract", frm, args: { bill_upto: v.bill_upto } }),
+			__("Pro Forma Invoice")), __("Create"));
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	},
 });
