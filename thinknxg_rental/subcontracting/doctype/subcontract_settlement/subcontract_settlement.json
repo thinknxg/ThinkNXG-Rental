@@ -3,7 +3,7 @@
  "creation": "2026-11-26 18:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "modified": "2026-11-26 18:00:00.000000",
+ "modified": "2026-11-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontract Settlement",
@@ -19,6 +19,9 @@
   "company",
   "posting_date",
   "settlement_type",
+  "invoice_submission",
+  "supplier_invoice_no",
+  "supplier_invoice_date",
   "currency",
   "sb_i",
   "items",
@@ -105,6 +108,28 @@
    "default": "Partial",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "invoice_submission",
+   "fieldtype": "Link",
+   "label": "Invoice Submission",
+   "options": "Subcontractor Invoice Submission",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "supplier_invoice_no",
+   "fieldtype": "Data",
+   "label": "Supplier Invoice No.",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "supplier_invoice_date",
+   "fieldtype": "Date",
+   "label": "Supplier Invoice Date",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "currency",

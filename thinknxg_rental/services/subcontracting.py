@@ -10,7 +10,7 @@ allocate the same remaining quantity.
 """
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import getdate, cint, nowdate, flt
 
 EPS = 1e-9
 MANAGER = "Subcontracting Manager"
@@ -70,7 +70,7 @@ def line_availability(hire_order_contract, exclude=None):
 def refresh_status(swo):
 	"""Work-in-progress status of an approved work order, from what has been reported and accepted."""
 	doc = frappe.get_doc("Subcontract Work Order", swo) if isinstance(swo, str) else swo
-	if doc.docstatus != 1 or doc.status in ("Pending Final Verification", "Verified", "Closed", "Cancelled"):
+	if doc.docstatus != 1 or doc.status in ("Pending Final Verification", "Verified", "Closed", "Cancelled", "On Hold"):
 		return doc.status
 	rows = doc.items
 	if rows and all(flt(r.accepted_qty) >= flt(r.qty) - EPS for r in rows):
@@ -79,8 +79,14 @@ def refresh_status(swo):
 		status = "Partially Completed"
 	elif any(flt(r.completed_qty) > EPS for r in rows):
 		status = "Work In Progress"
+	elif doc.status in RELEASED + ("Rejected by Subcontractor",):
+		status = doc.status  # nothing done yet: keep where the hand-over to the subcontractor stands
 	else:
 		status = "Approved"
+	if status == "Completed" and not doc.get("actual_completion_date"):
+		doc.db_set("actual_completion_date", nowdate(), update_modified=False)
+	if status in ("Work In Progress", "Partially Completed", "Completed") and not doc.get("actual_start_date"):
+		doc.db_set("actual_start_date", nowdate(), update_modified=False)
 	if status != doc.status:
 		doc.db_set("status", status, update_modified=False)
 		doc.status = status
@@ -149,7 +155,13 @@ def issued_balance(subcontract_work_order, exclude_return=None):
 	return out
 
 
-def work_order_for_document(doc, statuses=("Approved", "Work In Progress", "Partially Completed", "Completed")):
+# statuses in which work is released and being done (or about to be)
+RELEASED = ("Approved", "Sent to Subcontractor", "Accepted by Subcontractor")
+WORKING = RELEASED + ("Work In Progress", "Partially Completed")
+BILLABLE = WORKING + ("Completed", "Pending Final Verification", "Verified")
+
+
+def work_order_for_document(doc, statuses=WORKING + ("Completed",)):
 	swo = frappe.db.get_value("Subcontract Work Order", doc.subcontract_work_order,
 		["name", "docstatus", "status", "company", "supplier", "customer", "project", "rental_site", "hire_order_contract"], as_dict=True)
 	if not swo or swo.docstatus != 1:
@@ -210,3 +222,117 @@ def unsettled_recovery(swo, exclude_settlement=None):
 		cond, args = " and name != %s", [swo, exclude_settlement]
 	taken = flt(frappe.db.sql(f"select sum(damage_recovery) from `tabSubcontract Settlement` where docstatus = 1 and subcontract_work_order = %s {cond}", args)[0][0])
 	return max(charged - taken, 0)
+
+
+# ----- v2: settings, compliance, scorecard ----------------------------------------------------------------------
+def settings():
+	return frappe.get_cached_doc("Subcontracting Settings")
+
+
+def compliance_status(expiry_date, alert_days=None):
+	if not expiry_date:
+		return "No Expiry"
+	days = (getdate(expiry_date) - getdate(nowdate())).days
+	if days < 0:
+		return "Expired"
+	if days <= (alert_days if alert_days is not None else cint(settings().compliance_alert_days or 30)):
+		return "Expiring"
+	return "Valid"
+
+
+def supplier_validate(doc, method=None):
+	"""Supplier hook: compliance document status, and approval status only through approve_subcontractor."""
+	if not doc.get("is_subcontractor"):
+		return
+	alert = cint(settings().compliance_alert_days or 30)
+	for r in doc.get("compliance_documents") or []:
+		if r.expiry_date and r.issue_date and getdate(r.expiry_date) < getdate(r.issue_date):
+			frappe.throw(_("Compliance row {0}: expiry date is before the issue date").format(r.idx))
+		r.compliance_status = compliance_status(r.expiry_date, alert)
+	if doc.is_new() or frappe.flags.in_install or frappe.flags.in_patch or frappe.flags.in_migrate or doc.flags.approving_subcontractor:
+		return
+	before = frappe.db.get_value("Supplier", doc.name, "subcontractor_approval_status")
+	if before != doc.get("subcontractor_approval_status") and MANAGER not in frappe.get_roles() and "System Manager" not in frappe.get_roles():
+		frappe.throw(_("Only a Subcontracting Manager can change the approval status of a subcontractor"), frappe.PermissionError)
+
+
+@frappe.whitelist()
+def approve_subcontractor(supplier, status="Approved", remarks=None):
+	require_role(MANAGER)
+	if status not in ("Approved", "Suspended", "Blacklisted", "Pending"):
+		frappe.throw(_("Unknown approval status {0}").format(status))
+	doc = frappe.get_doc("Supplier", supplier)
+	if not doc.get("is_subcontractor"):
+		frappe.throw(_("{0} is not set up as a Subcontractor").format(supplier))
+	if status == "Approved":
+		expired = [r.document_type for r in doc.get("compliance_documents") or [] if compliance_status(r.expiry_date, 0) == "Expired"]
+		if expired:
+			frappe.throw(_("Renew the expired compliance documents first: {0}").format(", ".join(expired)))
+	doc.subcontractor_approval_status = status
+	doc.flags.approving_subcontractor = True
+	doc.save()
+	doc.add_comment("Info", _("Subcontractor {0} by {1}{2}").format(status, frappe.session.user, (": " + remarks) if remarks else ""))
+	return status
+
+
+def _pct(num, den, default=None):
+	return round(100.0 * num / den, 1) if den else default
+
+
+def scorecard(supplier):
+	"""Transparent performance score: every indicator 0-100 with its inputs, and the weighted average."""
+	s = settings()
+	today = getdate(nowdate())
+	wos = frappe.get_all("Subcontract Work Order", filters={"supplier": supplier, "docstatus": 1},
+		fields=["name", "status", "expected_completion_date", "actual_completion_date", "sent_on", "responded_on"])
+	done = [w for w in wos if w.status in ("Completed", "Pending Final Verification", "Verified", "Closed")]
+	on_time = [w for w in done if w.expected_completion_date and getdate(w.actual_completion_date or today) <= getdate(w.expected_completion_date)]
+	q = frappe.db.sql("""select sum(pi.accepted_qty), sum(pi.rejected_qty), sum(pi.rework_qty) from `tabSubcontract Progress Item` pi
+		join `tabSubcontract Work Progress` p on p.name = pi.parent where p.docstatus = 1 and p.supplier = %s""", supplier)[0]
+	acc, rej, rew = flt(q[0]), flt(q[1]), flt(q[2])
+	docs = frappe.get_all("Subcontractor Compliance Document", filters={"parent": supplier, "parenttype": "Supplier"}, fields=["expiry_date"])
+	valid = [d for d in docs if compliance_status(d.expiry_date, 0) != "Expired"]
+	m = frappe.db.sql("""select sum(ri.returned_qty + ri.installed_qty), sum(ri.missing_qty + ri.damaged_qty) from `tabSubcontract Return Item` ri
+		join `tabSubcontract Material Return` r on r.name = ri.parent where r.docstatus = 1 and r.supplier = %s""", supplier)[0]
+	good, lost = flt(m[0]), flt(m[1])
+	responded = [w for w in wos if w.sent_on and w.responded_on]
+	avg_hours = (sum((w.responded_on - w.sent_on).total_seconds() for w in responded) / 3600 / len(responded)) if responded else None
+	subs = frappe.get_all("Subcontractor Invoice Submission", filters={"supplier": supplier, "status": ["in", ["Verified", "Rejected"]]}, pluck="status")
+	ind = [
+		("on_time", _("On-time completion"), _pct(len(on_time), len(done)), _("{0} of {1} finished work orders on time").format(len(on_time), len(done))),
+		("quality", _("Work quality"), _pct(acc, acc + rej), _("{0} accepted, {1} rejected").format(acc, rej)),
+		("rework", _("Rework"), (100 - _pct(rew, acc + rej + rew)) if (acc + rej + rew) else None, _("{0} sent back for rework").format(rew)),
+		("safety", _("Safety and compliance"), _pct(len(valid), len(docs)), _("{0} of {1} documents valid").format(len(valid), len(docs))),
+		("material", _("Material management"), _pct(good, good + lost), _("{0} lost or damaged of {1} reconciled").format(lost, good + lost)),
+		("response", _("Response time"), None if avg_hours is None else max(0, round(100 - avg_hours * 100 / 72, 1)),
+			_("average {0} hours to accept or reject").format(round(avg_hours, 1)) if avg_hours is not None else _("no responses yet")),
+		("commercial", _("Commercial compliance"), _pct(subs.count("Verified"), len(subs)), _("{0} of {1} invoices verified").format(subs.count("Verified"), len(subs))),
+	]
+	weights = {"on_time": s.weight_on_time, "quality": s.weight_quality, "rework": s.weight_rework, "safety": s.weight_safety,
+		"material": s.weight_material, "response": s.weight_response, "commercial": s.weight_commercial}
+	rows, num, den = [], 0, 0
+	for key, label, score, basis in ind:
+		w = flt(weights.get(key))
+		rows.append({"key": key, "label": label, "score": score, "weight": w, "basis": basis})
+		if score is not None and w > 0:
+			num += score * w
+			den += w
+	return {"score": round(num / den, 1) if den else None, "indicators": rows,
+		"work_orders": {"total": len(wos), "completed": len(done), "ongoing": len([w for w in wos if w.status in WORKING]),
+			"delayed": len([w for w in wos if w.status in WORKING and w.expected_completion_date and getdate(w.expected_completion_date) < today])}}
+
+
+def compliance_alerts():
+	"""Daily: refresh compliance document status and tell each subcontractor about documents expiring soon or expired."""
+	alert = cint(settings().compliance_alert_days or 30)
+	from thinknxg_rental.services.subcontract_portal import notify_supplier
+
+	for r in frappe.get_all("Subcontractor Compliance Document", filters={"parenttype": "Supplier", "expiry_date": ["is", "set"]},
+			fields=["name", "parent", "document_type", "expiry_date", "compliance_status"]):
+		status = compliance_status(r.expiry_date, alert)
+		if status != r.compliance_status:
+			frappe.db.set_value("Subcontractor Compliance Document", r.name, "compliance_status", status, update_modified=False)
+			if status in ("Expiring", "Expired"):
+				notify_supplier(r.parent, _("{0} {1}").format(_(r.document_type), _(status).lower()),
+					_("Your {0} expires on {1}. Upload the renewed document in the portal.").format(_(r.document_type), frappe.format(r.expiry_date, "Date")),
+					"Supplier", r.parent)

@@ -38,7 +38,15 @@ class SubcontractWorkOrder(Document):
 
 	def load_contract(self):
 		if not self.hire_order_contract:
-			frappe.throw(_("Hire Order Contract is required"))
+			# project / customer work that is not on a Hire Order Contract
+			if not self.company:
+				frappe.throw(_("Company is required"))
+			if not self.currency:
+				self.currency = frappe.db.get_value("Company", self.company, "default_currency")
+			if not self.contract_date:
+				self.contract_date = nowdate()
+			self.load_agreement()
+			return
 		hoc = frappe.db.get_value("Hire Order Contract", self.hire_order_contract,
 			["docstatus", "status", "customer", "project", "rental_site", "company", "cost_center", "taxes_and_charges"], as_dict=True)
 		if not hoc or hoc.docstatus != 1:
@@ -53,6 +61,38 @@ class SubcontractWorkOrder(Document):
 			self.currency = frappe.db.get_value("Company", self.company, "default_currency")
 		if not self.contract_date:
 			self.contract_date = nowdate()
+		self.load_agreement()
+
+	def load_agreement(self):
+		"""The agreement's terms are the defaults; its rate card fills empty rates. Rates are copied into the work items, so a
+		later change to the agreement never alters an approved work order (the snapshot)."""
+		if not self.agreement:
+			return
+		ag = frappe.db.get_value("Subcontract Agreement", self.agreement, ["docstatus", "status", "supplier", "start_date", "end_date",
+			"retention_percentage", "advance_percentage", "taxes_and_charges", "payment_terms_template", "currency", "contract_value"], as_dict=True)
+		if not ag or ag.docstatus != 1 or ag.status != "Active":
+			frappe.throw(_("Agreement {0} is not active").format(self.agreement))
+		if ag.supplier != self.supplier:
+			frappe.throw(_("Agreement {0} belongs to another subcontractor").format(self.agreement))
+		if self.docstatus == 0 and getdate(self.contract_date or nowdate()) > getdate(ag.end_date):
+			frappe.throw(_("Agreement {0} ended on {1}").format(self.agreement, frappe.format(ag.end_date, "Date")))
+		if self.is_new() or self.docstatus == 0:
+			for f in ("retention_percentage", "advance_percentage", "taxes_and_charges", "payment_terms"):
+				src = "payment_terms_template" if f == "payment_terms" else f
+				if not self.get(f) and ag.get(src) and self.meta.has_field(f) and self.meta.get_field(f).fieldtype != "Small Text":
+					self.set(f, ag.get(src))
+			rates = {r.item_code: flt(r.rate) for r in frappe.get_all("Subcontract Agreement Rate", filters={"parent": self.agreement},
+				fields=["item_code", "rate"])}
+			for r in self.items:
+				if not flt(r.rate) and (r.job_type or r.item_code) in rates:
+					r.rate = rates[r.job_type or r.item_code]
+			if flt(ag.contract_value):
+				used = flt(frappe.db.sql("""select sum(final_contract_value) from `tabSubcontract Work Order` where agreement = %s
+					and docstatus = 1 and name != %s""", (self.agreement, self.name or ""))[0][0])
+				total = sum(flt(r.qty) * flt(r.rate) for r in self.items)
+				if used + total > flt(ag.contract_value) + 1e-6:
+					frappe.throw(_("Agreement {0} has {1} left of its contract value; this work order is {2}").format(
+						self.agreement, frappe.format(flt(ag.contract_value) - used, "Currency"), frappe.format(total, "Currency")))
 
 	def validate_supplier(self):
 		if not self.supplier:
@@ -70,7 +110,7 @@ class SubcontractWorkOrder(Document):
 	def validate_rows(self):
 		if not self.items:
 			frappe.throw(_("Add at least one work item"))
-		lines = sc.job_lines(self.hire_order_contract)
+		lines = sc.job_lines(self.hire_order_contract) if self.hire_order_contract else {}
 		kinds = set()
 		for r in self.items:
 			if flt(r.qty) <= 0:
@@ -84,6 +124,10 @@ class SubcontractWorkOrder(Document):
 				r.hoc_item = r.hoc_item if r.hoc_item in lines else None
 				if not r.description:
 					frappe.throw(_("Row {0}: describe the additional work").format(r.idx))
+			elif not self.hire_order_contract:
+				r.hoc_item, r.contract_qty = None, 0
+				if not r.job_type:
+					frappe.throw(_("Row {0}: choose the Job Type / Service item").format(r.idx))
 			else:
 				if r.hoc_item not in lines:
 					frappe.throw(_("Row {0}: Job line does not belong to Hire Order Contract {1}").format(r.idx, self.hire_order_contract))
@@ -123,6 +167,8 @@ class SubcontractWorkOrder(Document):
 	def check_availability(self, strict):
 		"""strict=True (on approval): refuse. strict=False (draft): refuse too when the draft alone already exceeds the
 		balance, because that work order could never be approved; quantity is only consumed on approval."""
+		if not self.hire_order_contract:
+			return
 		avail = {r.hoc_item: r for r in sc.line_availability(self.hire_order_contract, exclude=self.name)}
 		per_line = {}
 		for r in self.items:
@@ -148,7 +194,8 @@ class SubcontractWorkOrder(Document):
 	def before_submit(self):
 		if not self.flags.approving:
 			frappe.throw(_("A Subcontract Work Order is approved with Approve, not submitted directly"), frappe.PermissionError)
-		sc.lock_contract(self.hire_order_contract)
+		if self.hire_order_contract:
+			sc.lock_contract(self.hire_order_contract)
 		self.load_contract()
 		if frappe.get_meta("Supplier").has_field("subcontractor_approval_status"):
 			status = frappe.db.get_value("Supplier", self.supplier, "subcontractor_approval_status")
@@ -166,7 +213,9 @@ class SubcontractWorkOrder(Document):
 		blockers = []
 		for dt, label in (("Subcontract Work Progress", "Work Progress"), ("Subcontract Completion Report", "Completion Report"),
 				("Subcontract Material Allocation", "Material Allocation"), ("Subcontract Material Return", "Material Return"),
-				("Subcontract Settlement", "Settlement")):
+				("Subcontract Settlement", "Settlement"), ("Subcontract Daily Progress", "Daily Progress"),
+				("Subcontract Material Request", "Material Request"), ("Subcontract Variation", "Variation"),
+				("Subcontractor Invoice Submission", "Invoice Submission")):
 			if frappe.db.exists("DocType", dt):
 				names = frappe.get_all(dt, filters={"subcontract_work_order": self.name, "docstatus": 1}, pluck="name")
 				if names:
@@ -179,12 +228,14 @@ class SubcontractWorkOrder(Document):
 		if blockers:
 			frappe.throw(_("Cancel or reverse these first:") + "<br>" + "<br>".join(blockers), title=_("Cannot cancel"))
 		self.flags.workflow_move = True
-		sc.lock_contract(self.hire_order_contract)
+		if self.hire_order_contract:
+			sc.lock_contract(self.hire_order_contract)
 
 	def on_cancel(self):
 		# the quantity returns to the contract automatically: availability only counts docstatus = 1
 		self.db_set("status", "Cancelled")
-		self.add_comment("Info", _("Cancelled by {0}; quantity released back to {1}").format(frappe.session.user, self.hire_order_contract))
+		self.add_comment("Info", _("Cancelled by {0}; quantity released back to {1}").format(frappe.session.user, self.hire_order_contract)
+			if self.hire_order_contract else _("Cancelled by {0}").format(frappe.session.user))
 
 	def on_trash(self):
 		if self.docstatus == 1:
@@ -246,9 +297,45 @@ def reject(name, reason=None):
 def start_work(name):
 	sc.require_role(sc.MANAGER, sc.SITE_ENGINEER)
 	doc = _get(name)
-	if doc.docstatus != 1 or doc.status != "Approved":
-		frappe.throw(_("Work starts only on an Approved work order"))
-	return _move(doc, "Work In Progress")
+	if doc.docstatus != 1 or doc.status not in ("Approved", "Sent to Subcontractor", "Accepted by Subcontractor"):
+		frappe.throw(_("Work starts only on an Approved or Accepted work order"))
+	return _move(doc, "Work In Progress", actual_start_date=doc.actual_start_date or nowdate())
+
+
+@frappe.whitelist()
+def send_to_subcontractor(name):
+	"""Release an approved work order to the subcontractor portal for acceptance."""
+	sc.require_role(sc.MANAGER, sc.EXECUTIVE)
+	doc = _get(name)
+	if doc.docstatus != 1 or doc.status not in ("Approved", "Rejected by Subcontractor"):
+		frappe.throw(_("Only an Approved work order, or one the subcontractor rejected, can be sent"))
+	status = _move(doc, "Sent to Subcontractor", sent_on=now_datetime(), subcontractor_response=None, responded_by=None, responded_on=None)
+	from thinknxg_rental.services import subcontract_portal as sp
+
+	sp.notify_supplier(doc.supplier, _("New work order {0}").format(doc.name),
+		_("Work order {0} is waiting for your acceptance in the subcontractor portal.").format(doc.name), "Subcontract Work Order", doc.name)
+	return status
+
+
+@frappe.whitelist()
+def put_on_hold(name, reason):
+	sc.require_role(sc.MANAGER)
+	doc = _get(name)
+	if doc.docstatus != 1 or doc.status in ("On Hold", "Pending Final Verification", "Verified", "Closed", "Cancelled"):
+		frappe.throw(_("This work order cannot be put on hold now ({0})").format(doc.status))
+	if not (reason or "").strip():
+		frappe.throw(_("Give the reason for the hold"))
+	return _move(doc, "On Hold", hold_reason=reason, status_before_hold=doc.status)
+
+
+@frappe.whitelist()
+def resume(name):
+	sc.require_role(sc.MANAGER)
+	doc = _get(name)
+	if doc.docstatus != 1 or doc.status != "On Hold":
+		frappe.throw(_("The work order is not on hold"))
+	_move(doc, doc.status_before_hold or "Approved", hold_reason=None, status_before_hold=None)
+	return sc.refresh_status(name)
 
 
 @frappe.whitelist()

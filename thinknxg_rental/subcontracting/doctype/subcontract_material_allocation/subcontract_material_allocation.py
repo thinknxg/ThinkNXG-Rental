@@ -27,6 +27,10 @@ class SubcontractMaterialAllocation(Document):
 			if not frappe.db.get_value("Item", r.item_code, "is_stock_item"):
 				frappe.throw(_("Row {0}: {1} is not a stock item").format(r.idx, r.item_code))
 			r.uom = r.uom or frappe.db.get_value("Item", r.item_code, "stock_uom")
+		if self.material_request:
+			from thinknxg_rental.subcontracting.doctype.subcontract_material_request.subcontract_material_request import check_issue
+
+			check_issue(self)
 
 	def before_submit(self):
 		sc.require_role(sc.STORE_MANAGER, sc.MANAGER)
@@ -49,6 +53,17 @@ class SubcontractMaterialAllocation(Document):
 				qty=flt(r.qty), ownership="Own", supplier=swo.supplier, customer=swo.customer, project=swo.project, rental_site=swo.rental_site,
 				subcontract_work_order=self.subcontract_work_order, warehouse=custody, origin_warehouse=self.source_warehouse,
 				source_warehouse=self.source_warehouse, target_warehouse=custody, stock_entry=self.stock_entry, voucher_detail_no=r.name)
+		self.update_request()
+		from thinknxg_rental.services.subcontract_portal import notify_supplier
+
+		notify_supplier(self.supplier, _("Material issued: {0}").format(self.name),
+			_("Material for work order {0} has been issued. Confirm receipt in the portal.").format(self.subcontract_work_order), self.doctype, self.name)
+
+	def update_request(self):
+		if self.material_request:
+			from thinknxg_rental.subcontracting.doctype.subcontract_material_request.subcontract_material_request import update_issued
+
+			update_issued(self.material_request)
 
 	def before_cancel(self):
 		sc.require_role(sc.STORE_MANAGER, sc.MANAGER)
@@ -61,3 +76,4 @@ class SubcontractMaterialAllocation(Document):
 	def on_cancel(self):
 		stock.cancel_stock_entries(self)
 		ledger.delete_entries(self.doctype, self.name)
+		self.update_request()

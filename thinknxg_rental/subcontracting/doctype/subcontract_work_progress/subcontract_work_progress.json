@@ -3,7 +3,7 @@
  "creation": "2026-11-26 18:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "modified": "2026-11-26 18:00:00.000000",
+ "modified": "2026-11-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontract Work Progress",
@@ -18,9 +18,19 @@
   "supplier",
   "company",
   "progress_date",
+  "inspection_status",
+  "source",
+  "proposed_inspection_date",
+  "inspector",
+  "inspection_location",
+  "reinspection_of",
   "sb_i",
   "items",
   "remarks",
+  "checklist",
+  "quality_remarks",
+  "corrective_action",
+  "subcontractor_remarks",
   "attachments",
   "verified_by",
   "amended_from"
@@ -81,6 +91,47 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "inspection_status",
+   "fieldtype": "Select",
+   "label": "Inspection Status",
+   "options": "Inspection Requested\nUnder Inspection\nAccepted\nPartially Accepted\nRejected\nRework Required",
+   "read_only": 1,
+   "default": "Under Inspection",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "Internal\nPortal",
+   "default": "Internal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "proposed_inspection_date",
+   "fieldtype": "Date",
+   "label": "Proposed Inspection Date"
+  },
+  {
+   "fieldname": "inspector",
+   "fieldtype": "Link",
+   "label": "Inspector",
+   "options": "User"
+  },
+  {
+   "fieldname": "inspection_location",
+   "fieldtype": "Data",
+   "label": "Inspection Location"
+  },
+  {
+   "fieldname": "reinspection_of",
+   "fieldtype": "Link",
+   "label": "Reinspection Of",
+   "options": "Subcontract Work Progress"
+  },
+  {
    "fieldname": "sb_i",
    "fieldtype": "Section Break",
    "label": "Verified Work"
@@ -96,6 +147,30 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "checklist",
+   "fieldtype": "Table",
+   "label": "Inspection Checklist",
+   "options": "Subcontract Inspection Check"
+  },
+  {
+   "fieldname": "quality_remarks",
+   "fieldtype": "Small Text",
+   "label": "Quality Remarks",
+   "description": "Shown to the subcontractor."
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Corrective Action / Rework Instructions",
+   "description": "Shown to the subcontractor."
+  },
+  {
+   "fieldname": "subcontractor_remarks",
+   "fieldtype": "Small Text",
+   "label": "Subcontractor Remarks",
+   "read_only": 1
   },
   {
    "fieldname": "attachments",

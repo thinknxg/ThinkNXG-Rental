@@ -103,3 +103,80 @@ Then mark approved subcontractors (Supplier → Is Subcontractor, Approval Statu
 - Material and settlement amounts use the company currency; multi-currency subcontractors are not covered by the tests.
 - "Installed" material is posted as a Material Issue at valuation cost; if you prefer to charge it to the customer contract instead, change the target in `subcontract_material_return.py`.
 - The concurrency guarantee rests on the database row lock and was tested sequentially (second approval after the first fails); no multi-process race test is included.
+
+---
+
+# Version 2.10: agreements, execution, portal and Command Center
+
+Architecture, gap matrix and plan: `docs/SUBCONTRACTING_PORTAL_PLAN.md`.
+
+## New and changed documents
+
+| Document | What it does |
+|---|---|
+| Supplier (more fields) | Business classification, specializations, service areas, operating locations, relationship manager, contact person, **Compliance Documents** (type, number, issue / expiry, attachment, status, verified). Approval status moves only through `approve_subcontractor` (Subcontracting Manager); approval is refused while a compliance document has expired. |
+| Subcontract Agreement (+ Rate) | Rate contract: type (unit rate, fixed price, labour, equipment hire, material supply, time based, project based), validity, value ceiling, retention / advance %, guarantee, tax template, payment terms, rate card, terms. Draft → Pending Approval → Active (approve) → Expired (daily job) / Terminated. |
+| Subcontract Work Order | Hire Order Contract is now **optional** (project or customer work). Links an agreement: the rate card fills empty rates and the agreement's terms are defaults; rates are stored on the rows, so later agreement changes never alter an approved order. Fixed-value agreements cap the total of their work orders. New: priority, work description, project manager, site engineer, coordinator, actual start / completion (set automatically). New statuses: Sent to Subcontractor, Accepted / Rejected by Subcontractor, On Hold (with reason, Resume returns to the earlier status). |
+| Subcontract Daily Progress | Quantity done per work item, labour, equipment, delay and blockers, expected completion, photos. From the portal or staff; Site Engineer / Manager approves (submit) or returns it. Approved quantity is *reported* work (`reported_qty`), never billable by itself. |
+| Subcontract Work Progress (inspection) | Now the inspection: portal *Request inspection* creates it with the submitted quantity; staff schedule it (inspector, date), record accepted / rejected / rework, checklist, quality remarks and corrective action, and submit. Result: Accepted, Partially Accepted, Rejected or Rework Required. Only accepted quantity becomes billable. |
+| Subcontract Material Request | Subcontractor asks for company material. Store Manager / Manager approves or rejects; *Issue Material* makes the existing Material Allocation, which is capped at the approved, not-yet-issued quantity and keeps Issued / Partially Issued up to date. The subcontractor confirms receipt (or reports a shortage) in the portal. |
+| Subcontract Variation | Extra work, quantity variation, rate revision, time extension, delay / shortage / other claims, additional material. Approval (Manager) writes to the work order: new additional rows, new quantity (Hire Order Contract balance re-checked), new rate for the not-yet-invoiced quantity, new completion date, or one accepted claim row at the approved amount (item from Subcontracting Settings). Logged on the work order; cancelling reverses it while nothing built on it was accepted or invoiced. |
+| Subcontractor Invoice Submission | The subcontractor's invoice (portal or staff): invoice no. and date, lines limited to accepted − invoiced − quantity on other open submissions, duplicate invoice numbers refused (submissions and Purchase Invoices of the same supplier and company). Verifying creates the existing Settlement and its Purchase Invoice, with the supplier's bill no. and date. Final Bill needs a Verified work order. |
+| Subcontract Message | Staff ↔ subcontractor messages per work order, and announcements. Desk comments stay internal. |
+| Subcontractor Portal Access | One portal login per contact: supplier, email, name, access level (Operational or Commercial), enabled / suspension reason, invitation, last access. Creates the Website User with role *Subcontractor Portal User*. |
+| Subcontracting Settings | Compliance and agreement alert days, claim item, portal on/off, contact details, announcement, scorecard weights. |
+
+## Portal (`/subcontractor`)
+
+Dashboard (work orders, acceptance, progress, materials, inspections; for Commercial contacts approved value, invoices, outstanding and overdue payments; action list, schedule, progress bars, announcements, expiring documents, recent payments), Work orders (accept / reject with start date, scope, PDF, tabs for progress, inspections, materials, variations, invoices, files, messages), Progress reports, Inspections, Materials (held, issued with receipt confirmation, requests, own-supplied), Variations and claims, Invoices, Payments (with payment advice PDF), Messages, Company and documents (upload renewed documents).
+
+Security: every call resolves the subcontractor from the session (`services/subcontract_portal.current`) through an enabled access row of an approved (or suspended: read-only) subcontractor; every document is checked against that supplier (`own`) and answers "not found" otherwise; work orders appear only once sent; Operational contacts get no rates, amounts, invoices or payments (removed on the server); internal notes and remarks are never returned; POST endpoints are rate limited; uploads are private files on the contact's own records, by extension and size; downloads are checked against ownership.
+
+## Command Center (`/rental/admin/subcontracting`)
+
+Sidebar group **Subcontracting**: Overview (14 KPIs, each opening its filtered list; action centre with approve / reject / send / return / verify / hold buttons that call the documents' own methods; status, financial, monthly value, planned vs actual, progress by project, top subcontractors, projects, delayed and rejected work; all reports), Subcontractors (list with compliance and score; 360 with business information, scorecard, compliance, agreements, work orders, inspections, variations, material, invoices, portal users, messages and a GL-based account statement), Work Orders (filters: status tabs incl. delayed / on schedule, search, project, subcontractor, site, manager, dates; 360 with overview and cost monitor, scope, progress, materials, inspections, variations, invoices, payments, communication and a document timeline), lists of every new document, Performance & Comparison, Portal Users. Subcontracting Manager, Executive and Site Engineer can open the Command Center; each item still checks the DocType permission.
+
+## Reports (6 new, 19 in all)
+
+Subcontractor Register, Subcontract Variation Report, Subcontractor Account Statement (GL), Subcontract Cost Monitor (original, variations, revised, completed, certified, invoiced, paid, retention, advance, outstanding, utilisation, forecast), Delayed Subcontract Work Orders, Subcontractor Invoice Register.
+
+## Roles and permissions
+
+| Action | Who (server-checked) |
+|---|---|
+| Approve / suspend subcontractor | Subcontracting Manager |
+| Agreement: send / approve / terminate | Executive, Manager / Manager / Manager |
+| Work order: send, start | Manager, Executive / Manager, Site Engineer; hold / resume: Manager |
+| Daily progress approve / return | Site Engineer, Manager |
+| Inspection schedule / certify | Site Engineer, Manager |
+| Material request approve / reject / issue | Store Manager, Manager |
+| Variation approve / reject | Manager |
+| Invoice verify (Running / Final) / reject | Accounts User, Accounts Manager, Manager / Accounts Manager |
+| Portal (Operational / Commercial) | own records only; Commercial also rates, invoices, payments, commercial variations |
+
+## APIs
+
+- `thinknxg_rental.portal.subcontractor.*`: boot, dashboard, work_orders, work_order, respond_work_order, work_order_pdf, progress_reports, submit_progress, inspections, request_inspection, materials, request_options, create_material_request, confirm_receipt, variations, submit_variation, billable, invoices, submit_invoice, payments, payment_advice, messages, post_message, mark_messages_read, notifications, mark_notifications_read, profile, add_compliance_document, upload, download.
+- `thinknxg_rental.command_center.subcontracting.*`: dashboard, act, work_orders, work_order, wo_action, send_message, subcontractors, subcontractor, compare.
+- Workflow methods on each controller (`approve`, `reject`, `submit_for_review`, `return_for_correction`, `start_inspection`, `make_material_allocation`, `submit_variation`, `start_review`, `verify`, `send_to_subcontractor`, `put_on_hold`, `resume`, `invite`, `terminate`) and `services.subcontracting.approve_subcontractor`.
+
+## Upgrade
+
+```
+git pull                                     # branch subcontracting-portal
+bench --site <site> migrate                  # new doctypes, Supplier fields, role, settings defaults, patch v2_10
+bench build --app thinknxg_rental            # only if assets are not symlinked
+bench --site <site> run-tests --module thinknxg_rental.tests.test_subcontracting_portal
+```
+
+Patch `v2_10.subcontracting_inspection_status` only writes the new inspection result on existing Work Progress records from their accepted / rejected quantities; no submitted quantity or ledger changes. Existing work orders keep their status; approved ones are not visible in the portal until *Send to Subcontractor*.
+
+Then: set the claim item and contacts in Subcontracting Settings, add compliance documents to subcontractors, create Subcontractor Portal Access rows and send invitations.
+
+## Known limits (v2.10)
+
+- Subcontractor-supplied material is recorded on work items; delivery advice, goods receipt and quality inspection of supplier material use ERPNext's Purchase Receipt and Quality Inspection, not a portal flow.
+- Retention release is still a manual Journal / Payment Entry; the cost monitor and reports show what is held.
+- Document versions are Frappe's file attachments and version history; there is no separate document repository.
+- Notifications use Notification Log and email; no SMS or push.
+- The portal and Command Center screens were checked in a headless browser on desktop and phone sizes with demo data; no load test and no multi-currency test.

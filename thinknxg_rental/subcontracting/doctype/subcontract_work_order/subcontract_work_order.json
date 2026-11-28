@@ -3,7 +3,7 @@
  "creation": "2026-11-26 18:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "modified": "2026-11-26 18:00:00.000000",
+ "modified": "2026-11-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontract Work Order",
@@ -15,6 +15,9 @@
   "naming_series",
   "hire_order_contract",
   "supplier",
+  "agreement",
+  "priority",
+  "work_description",
   "supplier_name",
   "status",
   "cb_1",
@@ -29,6 +32,11 @@
   "contract_date",
   "start_date",
   "expected_completion_date",
+  "actual_start_date",
+  "actual_completion_date",
+  "project_manager",
+  "site_engineer",
+  "coordinator",
   "sec_items",
   "items",
   "sec_comm",
@@ -62,6 +70,15 @@
   "verified_by",
   "verified_on",
   "remarks",
+  "sb_portal",
+  "sent_on",
+  "responded_by",
+  "responded_on",
+  "cb_portal",
+  "confirmed_start_date",
+  "subcontractor_response",
+  "hold_reason",
+  "status_before_hold",
   "amended_from"
  ],
  "fields": [
@@ -80,10 +97,10 @@
    "fieldtype": "Link",
    "label": "Hire Order Contract",
    "options": "Hire Order Contract",
-   "reqd": 1,
    "in_standard_filter": 1,
    "in_list_view": 1,
-   "set_only_once": 1
+   "set_only_once": 1,
+   "description": "Optional: leave empty for project or customer work that is not on a Hire Order Contract."
   },
   {
    "fieldname": "supplier",
@@ -93,6 +110,26 @@
    "reqd": 1,
    "in_standard_filter": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "agreement",
+   "fieldtype": "Link",
+   "label": "Agreement",
+   "options": "Subcontract Agreement",
+   "description": "Rates are copied from the agreement into the work items and kept there."
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "Medium\nHigh\nLow\nUrgent",
+   "default": "Medium",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "work_description",
+   "fieldtype": "Small Text",
+   "label": "Work Description"
   },
   {
    "fieldname": "supplier_name",
@@ -110,7 +147,7 @@
    "in_standard_filter": 1,
    "in_list_view": 1,
    "default": "Draft",
-   "options": "Draft\nPending Approval\nApproved\nWork In Progress\nPartially Completed\nCompleted\nPending Final Verification\nVerified\nClosed\nCancelled"
+   "options": "Draft\nPending Approval\nApproved\nSent to Subcontractor\nAccepted by Subcontractor\nRejected by Subcontractor\nWork In Progress\nPartially Completed\nCompleted\nPending Final Verification\nVerified\nOn Hold\nClosed\nCancelled"
   },
   {
    "fieldname": "cb_1",
@@ -121,22 +158,24 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer",
-   "read_only": 1,
-   "fetch_from": "hire_order_contract.customer"
+   "fetch_from": "hire_order_contract.customer",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "project",
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
-   "fetch_from": "hire_order_contract.project"
+   "fetch_from": "hire_order_contract.project",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "rental_site",
    "fieldtype": "Link",
    "label": "Job Site",
    "options": "Rental Site",
-   "fetch_from": "hire_order_contract.rental_site"
+   "fetch_from": "hire_order_contract.rental_site",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "company",
@@ -144,7 +183,8 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1,
-   "fetch_from": "hire_order_contract.company"
+   "fetch_from": "hire_order_contract.company",
+   "fetch_if_empty": 1
   },
   {
    "fieldname": "sec_scope",
@@ -189,6 +229,40 @@
    "fieldname": "expected_completion_date",
    "fieldtype": "Date",
    "label": "Expected Completion Date"
+  },
+  {
+   "fieldname": "actual_start_date",
+   "fieldtype": "Date",
+   "label": "Actual Start Date",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "actual_completion_date",
+   "fieldtype": "Date",
+   "label": "Actual Completion Date",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "project_manager",
+   "fieldtype": "Link",
+   "label": "Project Manager",
+   "options": "User"
+  },
+  {
+   "fieldname": "site_engineer",
+   "fieldtype": "Link",
+   "label": "Site Engineer",
+   "options": "User"
+  },
+  {
+   "fieldname": "coordinator",
+   "fieldtype": "Link",
+   "label": "Internal Coordinator",
+   "options": "User"
   },
   {
    "fieldname": "sec_items",
@@ -389,6 +463,74 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "sb_portal",
+   "fieldtype": "Section Break",
+   "label": "Subcontractor response",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "sent_on",
+   "fieldtype": "Datetime",
+   "label": "Sent to Subcontractor On",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "responded_by",
+   "fieldtype": "Link",
+   "label": "Responded By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "responded_on",
+   "fieldtype": "Datetime",
+   "label": "Responded On",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "cb_portal",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "confirmed_start_date",
+   "fieldtype": "Date",
+   "label": "Confirmed Start Date",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "subcontractor_response",
+   "fieldtype": "Small Text",
+   "label": "Subcontractor Response",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "hold_reason",
+   "fieldtype": "Small Text",
+   "label": "Hold Reason",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "status_before_hold",
+   "fieldtype": "Data",
+   "label": "Status Before Hold",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1,
+   "hidden": 1
   },
   {
    "fieldname": "amended_from",

@@ -136,13 +136,16 @@
 	const routes = boot.routes;
 	const SIMPLE = { "": "dashboard", dashboard: "dashboard", notifications: "notifications", tasks: "tasks", requests: "requests", inventory: "inventory",
 		"material-at-site": "material", "supplier-position": "suppliers", billing: "billing", outstanding: "outstanding", utilization: "utilization",
-		settings: "settings", users: "users", customers: "customers" };
+		settings: "settings", users: "users", customers: "customers", subcontracting: "scOverview", "subcontracting/work-orders": "scWorkOrders",
+		"subcontracting/subcontractors": "scSubcontractors", "subcontracting/compare": "scCompare" };
 	function resolve(path) {
 		path = path.replace(/^\/+|\/+$/g, "");
 		if (path in SIMPLE) return { page: SIMPLE[path] };
 		if (routes.reports[path]) return { page: "report" };
 		if (path.startsWith("requests/")) return { page: "form", entry: "request", name: decodeURIComponent(path.slice(9)) };
 		if (path.startsWith("customers/")) return { page: "customer", name: decodeURIComponent(path.slice(10)) };
+		if (path.startsWith("subcontracting/work-orders/")) return { page: "scWorkOrder", name: decodeURIComponent(path.slice(27)) };
+		if (path.startsWith("subcontracting/subcontractors/")) return { page: "scSubcontractor", name: decodeURIComponent(path.slice(30)) };
 		if (path.startsWith("doc/")) {
 			const [, entry, ...rest] = path.split("/");
 			const name = decodeURIComponent(rest.join("/"));
