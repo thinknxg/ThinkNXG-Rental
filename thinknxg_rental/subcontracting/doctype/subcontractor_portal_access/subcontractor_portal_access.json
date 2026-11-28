@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "creation": "2026-11-28 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-28 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontractor Portal Access",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "links": [],
+ "field_order": [
+  "supplier",
+  "supplier_name",
+  "email",
+  "full_name",
+  "mobile_no",
+  "cb1",
+  "access_level",
+  "enabled",
+  "user",
+  "invited_on",
+  "last_access",
+  "suspended_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Subcontractor",
+   "options": "Supplier",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Subcontractor Name",
+   "read_only": 1,
+   "fetch_from": "supplier.supplier_name"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "access_level",
+   "fieldtype": "Select",
+   "label": "Access Level",
+   "options": "Operational\nCommercial",
+   "default": "Operational",
+   "in_list_view": 1,
+   "description": "Operational: work orders, progress, materials, inspections, messages. Commercial: also rates, amounts, invoices and payments."
+  },
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invited_on",
+   "fieldtype": "Datetime",
+   "label": "Invited On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_access",
+   "fieldtype": "Datetime",
+   "label": "Last Access",
+   "read_only": 1
+  },
+  {
+   "fieldname": "suspended_reason",
+   "fieldtype": "Small Text",
+   "label": "Suspension Reason",
+   "depends_on": "eval:!doc.enabled"
+  }
+ ],
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "Subcontracting Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Subcontracting Executive",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1
+  },
+  {
+   "role": "Purchase Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Project Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "autoname": "hash",
+ "title_field": "full_name",
+ "show_title_field_in_link": 0,
+ "search_fields": "supplier,email"
+}

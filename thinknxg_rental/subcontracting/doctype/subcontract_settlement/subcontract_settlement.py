@@ -19,7 +19,7 @@ class SubcontractSettlement(Document):
 			["docstatus", "status", "company", "supplier", "currency", "contract_amount", "approved_additional_cost", "retention_percentage", "hire_order_contract"], as_dict=True)
 		if not swo or swo.docstatus != 1:
 			frappe.throw(_("Subcontract Work Order {0} must be approved").format(self.subcontract_work_order))
-		allowed = ("Verified",) if self.settlement_type == "Final" else ("Approved", "Work In Progress", "Partially Completed", "Completed", "Pending Final Verification", "Verified")
+		allowed = ("Verified",) if self.settlement_type == "Final" else sc.BILLABLE
 		if swo.status not in allowed:
 			frappe.throw(_("A {0} settlement needs the work order to be {1}; it is {2}").format(self.settlement_type, _(" or ").join(allowed), swo.status))
 		self.company, self.supplier, self.hire_order_contract, self.currency = swo.company, swo.supplier, swo.hire_order_contract, swo.currency
@@ -72,7 +72,8 @@ class SubcontractSettlement(Document):
 		swo = frappe.get_doc("Subcontract Work Order", self.subcontract_work_order)
 		accounts = sc.settlement_accounts(self.company)
 		pi = frappe.new_doc("Purchase Invoice")
-		pi.update({"company": self.company, "supplier": self.supplier, "posting_date": self.posting_date, "bill_date": self.posting_date,
+		pi.update({"company": self.company, "supplier": self.supplier, "posting_date": self.posting_date,
+			"bill_no": self.get("supplier_invoice_no") or None, "bill_date": self.get("supplier_invoice_date") or self.posting_date,
 			"currency": self.currency, "subcontract_work_order": self.subcontract_work_order, "project": swo.project, "cost_center": swo.cost_center,
 			"update_stock": 0, "remarks": _("Subcontract Settlement {0} for {1}").format(self.name, self.subcontract_work_order)})
 		for r in self.items:
@@ -117,5 +118,8 @@ class SubcontractSettlement(Document):
 				pi.cancel()
 
 	def on_cancel(self):
+		if self.get("invoice_submission"):
+			# the verified submission no longer stands: its invoice number can be submitted again
+			frappe.db.set_value("Subcontractor Invoice Submission", self.invoice_submission, "status", "Cancelled", update_modified=False)
 		for r in self.items:
 			frappe.db.sql("update `tabSubcontract Work Item` set invoiced_qty = greatest(ifnull(invoiced_qty, 0) - %s, 0) where name = %s", (flt(r.qty), r.swo_item))

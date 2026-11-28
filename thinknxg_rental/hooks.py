@@ -43,6 +43,7 @@ before_uninstall = "thinknxg_rental.services.setup.before_uninstall"
 _N = "thinknxg_rental.services.customer_notify."  # customer portal notifications
 
 doc_events = {
+	"Supplier": {"validate": "thinknxg_rental.services.subcontracting.supplier_validate"},
 	# customer portal notifications (services/customer_notify.py)
 	"Rental Contract": {"on_submit": [_N + "rental_contract_submitted", "thinknxg_rental.events.deposits.contract_submitted"]},
 	# a Journal Entry that posts a Rental Contract Payment is cancelled only through it (services/deposits.py)
@@ -131,6 +132,7 @@ doctype_js = {
 	"Lead": "public/js/lead_deal.js",
 	"Quotation": "public/js/quotation_deal.js",
 	"Purchase Order": "public/js/purchase_order.js",
+	"Supplier": "public/js/supplier_subcontractor.js",
 	"Purchase Receipt": "public/js/purchase_receipt.js",
 	"Sales Invoice": ["public/js/sales_invoice.js", "public/js/contract_payments.js"],
 	# forms whose setup uses thinknxg_rental.rental_warehouses(): the helper travels with the form
@@ -157,6 +159,8 @@ website_route_rules = [
 	{"from_route": "/rental/admin/<path:app_path>", "to_route": "rental/admin"},
 	# public rental website: every page under /hire is served by www/hire/index.py
 	{"from_route": "/hire/<path:app_path>", "to_route": "hire"},
+	# subcontractor portal: one single-page application for /subcontractor and every path under it
+	{"from_route": "/subcontractor/<path:app_path>", "to_route": "subcontractor"},
 	# customer Command Center: one single-page application for /rental and every path under it
 	{"from_route": "/rental/<path:app_path>", "to_route": "rental"},
 ]
@@ -165,6 +169,7 @@ website_route_rules = [
 standard_portal_menu_items = [
 	{"title": "Rental Portal", "route": "/rental", "role": "Customer"},
 	{"title": "Rental Command Center", "route": "/rental/admin", "role": "Rental User"},
+	{"title": "Subcontractor Portal", "route": "/subcontractor", "role": "Subcontractor Portal User"},
 ]
 
 scheduler_events = {
@@ -173,5 +178,7 @@ scheduler_events = {
 		"thinknxg_rental.services.jcr_billing.run_daily_jcr_billing",
 		"thinknxg_rental.services.customer_notify.rental_expiry_reminders",
 		"thinknxg_rental.thinknxg_rental.doctype.rental_pro_forma_invoice.rental_pro_forma_invoice.expire",
+		"thinknxg_rental.subcontracting.doctype.subcontract_agreement.subcontract_agreement.expire_agreements",
+		"thinknxg_rental.services.subcontracting.compliance_alerts",
 	],
 }

@@ -1,0 +1,223 @@
+{
+ "actions": [],
+ "creation": "2026-11-28 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "modified": "2026-11-28 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Subcontracting",
+ "name": "Subcontracting Settings",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "links": [],
+ "field_order": [
+  "sb_bill",
+  "claim_item",
+  "compliance_alert_days",
+  "agreement_alert_days",
+  "sb_portal",
+  "portal_enabled",
+  "portal_contact_email",
+  "portal_contact_phone",
+  "portal_announcement",
+  "announcement_date",
+  "sb_score",
+  "weight_on_time",
+  "weight_quality",
+  "weight_rework",
+  "cb_w",
+  "weight_safety",
+  "weight_material",
+  "weight_response",
+  "weight_commercial"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_bill",
+   "fieldtype": "Section Break",
+   "label": "Billing control"
+  },
+  {
+   "fieldname": "claim_item",
+   "fieldtype": "Link",
+   "label": "Item for approved claims",
+   "options": "Item",
+   "description": "Service item that approved delay, shortage and other money claims are invoiced under."
+  },
+  {
+   "fieldname": "compliance_alert_days",
+   "fieldtype": "Int",
+   "label": "Warn about compliance documents expiring within (days)",
+   "default": "30"
+  },
+  {
+   "fieldname": "agreement_alert_days",
+   "fieldtype": "Int",
+   "label": "Warn about agreements ending within (days)",
+   "default": "30"
+  },
+  {
+   "fieldname": "sb_portal",
+   "fieldtype": "Section Break",
+   "label": "Subcontractor portal"
+  },
+  {
+   "fieldname": "portal_enabled",
+   "fieldtype": "Check",
+   "label": "Portal enabled",
+   "default": "1"
+  },
+  {
+   "fieldname": "portal_contact_email",
+   "fieldtype": "Data",
+   "label": "Contact email shown in the portal",
+   "options": "Email"
+  },
+  {
+   "fieldname": "portal_contact_phone",
+   "fieldtype": "Data",
+   "label": "Contact phone shown in the portal"
+  },
+  {
+   "fieldname": "portal_announcement",
+   "fieldtype": "Small Text",
+   "label": "Announcement shown to all subcontractors"
+  },
+  {
+   "fieldname": "announcement_date",
+   "fieldtype": "Date",
+   "label": "Announcement date"
+  },
+  {
+   "fieldname": "sb_score",
+   "fieldtype": "Section Break",
+   "label": "Performance scorecard weights",
+   "description": "Each indicator scores 0 to 100; the scorecard is their weighted average. A weight of 0 leaves an indicator out."
+  },
+  {
+   "fieldname": "weight_on_time",
+   "fieldtype": "Float",
+   "label": "On-time completion",
+   "default": "25"
+  },
+  {
+   "fieldname": "weight_quality",
+   "fieldtype": "Float",
+   "label": "Work quality (accepted share)",
+   "default": "25"
+  },
+  {
+   "fieldname": "weight_rework",
+   "fieldtype": "Float",
+   "label": "Rework",
+   "default": "10"
+  },
+  {
+   "fieldname": "cb_w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "weight_safety",
+   "fieldtype": "Float",
+   "label": "Safety (compliance documents valid)",
+   "default": "10"
+  },
+  {
+   "fieldname": "weight_material",
+   "fieldtype": "Float",
+   "label": "Material management (no loss)",
+   "default": "10"
+  },
+  {
+   "fieldname": "weight_response",
+   "fieldtype": "Float",
+   "label": "Response time (work order acceptance)",
+   "default": "10"
+  },
+  {
+   "fieldname": "weight_commercial",
+   "fieldtype": "Float",
+   "label": "Commercial (invoices verified first time)",
+   "default": "10"
+  }
+ ],
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "Subcontracting Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Subcontracting Executive",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Purchase Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Project Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Site Engineer",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Store Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "issingle": 1
+}

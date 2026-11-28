@@ -13,7 +13,7 @@ Item keys are also URL paths: /rental/admin/<path>, and /rental/admin/<path>/<na
 import frappe
 from frappe import _
 
-STAFF_ROLES = ("System Manager", "Rental Manager", "Rental User")
+STAFF_ROLES = ("System Manager", "Rental Manager", "Rental User", "Subcontracting Manager", "Subcontracting Executive", "Site Engineer")
 
 # ----------------------------------------------------------------------------- list views
 # kind="entry": a document of portal/entry.py ENTRY_TYPES (list here, form in the Command Center).
@@ -109,6 +109,61 @@ VIEWS = {
 			("Drafts", {"docstatus": 0}), ("All", {})]),
 }
 
+# ----------------------------------------------------------------------------- subcontracting
+_SC_OPEN = {"docstatus": 0, "status": ["in", ["Submitted", "Under Review"]]}
+
+
+def _scv(doctype, label, columns, tabs=None, date_field="creation", search=None, filters=None):
+	return dict(kind="doctype", doctype=doctype, label=label, date_field=date_field, party="supplier", columns=columns,
+		search=search or ["name", "supplier", "subcontract_work_order"], tabs=tabs, filters=filters or {})
+
+
+VIEWS.update({
+	"subcontracting/agreements": _scv("Subcontract Agreement", "Agreements & Rate Contracts", [("supplier_name", "Subcontractor"),
+		("agreement_type", "Type"), ("project", "Project"), ("start_date", "From"), ("end_date", "To"), ("contract_value", "Value"), ("status", "Status")],
+		[("Active", {"status": "Active"}), ("Awaiting approval", {"status": "Pending Approval"}), ("Drafts", {"status": "Draft"}), ("All", {})],
+		"start_date", ["name", "supplier_name", "project", "title"]),
+	"subcontracting/daily-progress": _scv("Subcontract Daily Progress", "Work Progress Reports", [("subcontract_work_order", "Work order"),
+		("supplier_name", "Subcontractor"), ("report_date", "Date"), ("labour_deployed", "Labour"), ("delay_reported", "Delay"), ("source", "From"), ("status", "Status")],
+		[("To review", {"docstatus": 0, "status": "Submitted"}), ("Approved", {"status": "Approved"}), ("All", {})], "report_date"),
+	"subcontracting/material-requests": _scv("Subcontract Material Request", "Material Requests", [("subcontract_work_order", "Work order"),
+		("supplier_name", "Subcontractor"), ("request_date", "Requested"), ("required_by", "Needed by"), ("source", "From"), ("status", "Status")],
+		[("To approve", {"docstatus": 0, "status": "Submitted"}), ("To issue", {"status": ["in", ["Approved", "Partially Issued"]]}), ("All", {})], "request_date"),
+	"subcontracting/material-issues": _scv("Subcontract Material Allocation", "Material Issues", [("subcontract_work_order", "Work order"),
+		("supplier", "Subcontractor"), ("posting_date", "Date"), ("material_request", "Request"), ("received_by_subcontractor", "Receipt confirmed"),
+		("shortage_reported", "Shortage")], [("Not confirmed", {"docstatus": 1, "received_by_subcontractor": 0}), ("Shortages", {"shortage_reported": 1}), ("All", {})],
+		"posting_date"),
+	"subcontracting/material-returns": _scv("Subcontract Material Return", "Material Returns", [("subcontract_work_order", "Work order"),
+		("supplier", "Subcontractor"), ("posting_date", "Date"), ("total_recovery", "Recovery")], None, "posting_date"),
+	"subcontracting/inspections": _scv("Subcontract Work Progress", "Work Inspections", [("subcontract_work_order", "Work order"),
+		("supplier", "Subcontractor"), ("progress_date", "Date"), ("proposed_inspection_date", "Inspection date"), ("inspector", "Inspector"),
+		("source", "From"), ("inspection_status", "Inspection")],
+		[("Pending", {"docstatus": 0, "inspection_status": ["in", ["Inspection Requested", "Under Inspection"]]}),
+			("Rework", {"inspection_status": "Rework Required"}), ("Rejected", {"inspection_status": "Rejected"}), ("All", {})], "progress_date"),
+	"subcontracting/completion": _scv("Subcontract Completion Report", "Completion Certificates", [("subcontract_work_order", "Work order"),
+		("supplier", "Subcontractor"), ("completion_date", "Completed"), ("certified_value", "Certified")], None, "completion_date"),
+	"subcontracting/supplier-invoices": _scv("Subcontractor Invoice Submission", "Supplier Invoices", [("supplier_invoice_no", "Invoice no."),
+		("supplier_name", "Subcontractor"), ("subcontract_work_order", "Work order"), ("supplier_invoice_date", "Invoice date"), ("total_claimed", "Claimed"),
+		("purchase_invoice", "Purchase Invoice"), ("status", "Status")],
+		[("To verify", {"docstatus": 0, "status": "Submitted"}), ("Verified", {"status": "Verified"}), ("Rejected", {"status": "Rejected"}), ("All", {})],
+		"supplier_invoice_date", ["name", "supplier_invoice_no", "supplier_name", "subcontract_work_order"]),
+	"subcontracting/settlements": _scv("Subcontract Settlement", "Progress Certificates & Settlements", [("subcontract_work_order", "Work order"),
+		("supplier", "Subcontractor"), ("posting_date", "Date"), ("settlement_type", "Type"), ("certified_value", "Certified"), ("retention_amount", "Retention"),
+		("final_payable", "Payable"), ("purchase_invoice", "Purchase Invoice"), ("outstanding", "Outstanding")], None, "posting_date"),
+	"subcontracting/payments": _scv("Payment Entry", "Subcontractor Payments", [("party_name", "Subcontractor"), ("subcontract_work_order", "Work order"),
+		("posting_date", "Date"), ("paid_amount", "Amount"), ("reference_no", "Reference"), ("unallocated_amount", "Unallocated (advance)")],
+		None, "posting_date", ["name", "party_name", "subcontract_work_order", "reference_no"], {"subcontract_work_order": ["is", "set"], "payment_type": "Pay"}),
+	"subcontracting/variations": _scv("Subcontract Variation", "Variations & Claims", [("subcontract_work_order", "Work order"),
+		("supplier_name", "Subcontractor"), ("variation_type", "Type"), ("request_date", "Requested"), ("value_change", "Value change"), ("source", "From"),
+		("status", "Status")], [("To decide", _SC_OPEN), ("Approved", {"status": "Approved"}), ("All", {})], "request_date"),
+	"subcontracting/portal-access": _scv("Subcontractor Portal Access", "Portal Users", [("full_name", "Name"), ("supplier_name", "Subcontractor"),
+		("email", "Email"), ("access_level", "Access"), ("enabled", "Enabled"), ("last_access", "Last access")],
+		[("Enabled", {"enabled": 1}), ("Suspended", {"enabled": 0}), ("All", {})], None, ["full_name", "email", "supplier_name"]),
+	"subcontracting/messages": _scv("Subcontract Message", "Subcontractor Messages", [("supplier", "Subcontractor"), ("subcontract_work_order", "Work order"),
+		("direction", "Direction"), ("subject", "Subject"), ("sender_name", "From"), ("read_by_staff", "Read")],
+		[("Unread", {"direction": "From Subcontractor", "read_by_staff": 0}), ("All", {})], "creation", ["supplier", "subject", "subcontract_work_order"]),
+})
+
 # ----------------------------------------------------------------------------- sidebar
 # (key, label, icon, kind of page). Icons are Lucide names (Frappe ships the sprite).
 NAV = [
@@ -157,6 +212,26 @@ NAV = [
 		("supplier-off-hire", "Supplier Off-Hire", "package-minus", "list"),
 		("supplier-bills", "Supplier Hire Bills", "receipt", "list"),
 		("supplier-position", "Supplier Position", "factory", "suppliers"),
+	]),
+	("subcontracting", "Subcontracting", [
+		("subcontracting", "Overview", "layout-dashboard", "sc-overview"),
+		("subcontracting/subcontractors", "Subcontractors", "hard-hat", "sc-subcontractors"),
+		("subcontracting/agreements", "Agreements & Rate Contracts", "signature", "list"),
+		("subcontracting/work-orders", "Work Orders", "clipboard-list", "sc-work-orders"),
+		("subcontracting/daily-progress", "Work Progress", "trending-up", "list"),
+		("subcontracting/material-requests", "Material Requests", "package-plus", "list"),
+		("subcontracting/material-issues", "Material Issues", "package-check", "list"),
+		("subcontracting/material-returns", "Material Returns", "package-minus", "list"),
+		("subcontracting/inspections", "Work Inspections", "search-check", "list"),
+		("subcontracting/completion", "Completion Certificates", "badge-check", "list"),
+		("subcontracting/settlements", "Progress Certificates", "file-check-2", "list"),
+		("subcontracting/supplier-invoices", "Supplier Invoices", "receipt", "list"),
+		("subcontracting/payments", "Payments", "wallet", "list"),
+		("subcontracting/variations", "Variations & Claims", "git-pull-request", "list"),
+		("subcontracting/messages", "Messages", "message-square", "list"),
+		("subcontracting/compare", "Performance & Comparison", "chart-bar", "sc-compare"),
+		("subcontracting/portal-access", "Portal Users", "key-round", "list"),
+		("reports/sc-register", "Subcontractor Register", "file-chart-column", "report"),
 	]),
 	("finance", "Billing & finance", [
 		("billing", "Rental Billing", "calendar-clock", "billing"),
@@ -221,6 +296,25 @@ REPORTS = {
 	"reports/advances-unutilized": "Unutilized Advance Report",
 	"reports/advance-adjustments": "Advance Adjustment Report",
 	"reports/advance-ledger": "Customer Advance Liability Ledger",
+	"reports/sc-register": "Subcontractor Register",
+	"reports/sc-work-orders": "Subcontractor Wise Work Orders",
+	"reports/sc-hoc": "HOC Wise Subcontracting",
+	"reports/sc-outstanding": "Outstanding Subcontractor Payments",
+	"reports/sc-payments": "Subcontractor Payments",
+	"reports/sc-material": "Subcontract Material Issue and Return",
+	"reports/sc-progress": "Subcontract Work Progress Report",
+	"reports/sc-pending-completion": "Pending Completion Approval",
+	"reports/sc-cost": "Subcontract Cost Analysis",
+	"reports/sc-performance": "Subcontractor Performance",
+	"reports/sc-profitability": "HOC Subcontract Profitability",
+	"reports/sc-labour": "Subcontract Labour Cost",
+	"reports/sc-equipment": "Subcontract Equipment Cost",
+	"reports/subcontract-retention": "Subcontract Retention and Advance Outstanding",
+	"reports/sc-variations": "Subcontract Variation Report",
+	"reports/sc-statement": "Subcontractor Account Statement",
+	"reports/sc-cost-monitor": "Subcontract Cost Monitor",
+	"reports/sc-delayed": "Delayed Subcontract Work Orders",
+	"reports/sc-invoices": "Subcontractor Invoice Register",
 }
 
 # The filters each report page offers (the same fields as the report's own filters in the desk).
@@ -302,6 +396,12 @@ BADGES = {
 	"jcr-billing": ("JCR Billing Schedule", {"status": "Pending"}),
 	"finance/pro-forma": ("Rental Pro Forma Invoice", {"docstatus": 0, "status": "Submitted for Approval"}),
 	"finance/deposits": ("Rental Contract Payment", {"docstatus": 0, "status": "Pending Approval"}),
+	"subcontracting/daily-progress": ("Subcontract Daily Progress", {"docstatus": 0, "status": "Submitted"}),
+	"subcontracting/material-requests": ("Subcontract Material Request", {"docstatus": 0, "status": "Submitted"}),
+	"subcontracting/inspections": ("Subcontract Work Progress", {"docstatus": 0, "inspection_status": "Inspection Requested"}),
+	"subcontracting/supplier-invoices": ("Subcontractor Invoice Submission", {"docstatus": 0, "status": "Submitted"}),
+	"subcontracting/variations": ("Subcontract Variation", {"docstatus": 0, "status": ["in", ["Submitted", "Under Review"]]}),
+	"subcontracting/messages": ("Subcontract Message", {"direction": "From Subcontractor", "read_by_staff": 0}),
 }
 
 
@@ -356,6 +456,10 @@ def can_open(key, kind):
 		return frappe.has_permission("Rental Settings", "read")
 	if kind == "tasks":
 		return frappe.has_permission("ToDo", "read")
+	if kind in ("sc-overview", "sc-work-orders"):
+		return frappe.has_permission("Subcontract Work Order", "read")
+	if kind in ("sc-subcontractors", "sc-compare"):
+		return frappe.has_permission("Supplier", "read") and frappe.has_permission("Subcontract Work Order", "read")
 	return True
 
 
@@ -415,3 +519,23 @@ def get_badges():
 		if frappe.has_permission(doctype, "read"):
 			out[key] = frappe.db.count(doctype, filters)
 	return out
+
+
+# subcontracting reports (services/subcontract_reports.py): the filters of their desk versions
+_SC_STATUS = ["", "Approved", "Sent to Subcontractor", "Accepted by Subcontractor", "Work In Progress", "Partially Completed", "Completed",
+	"Pending Final Verification", "Verified", "On Hold", "Closed"]
+_SC_F = [_f("company", "Company", "Link", "Company", "$company"), _f("supplier", "Subcontractor", "Link", "Supplier"),
+	_f("hire_order_contract", "Hire Order Contract", "Link", "Hire Order Contract"), _f("status", "Status", "Select", _SC_STATUS),
+	_f("from_date", "From", "Date"), _f("to_date", "To", "Date")]
+for _name in ("Subcontractor Wise Work Orders", "HOC Wise Subcontracting", "Outstanding Subcontractor Payments", "Subcontractor Payments",
+		"Subcontract Material Issue and Return", "Subcontract Work Progress Report", "Pending Completion Approval", "Subcontract Cost Analysis",
+		"Subcontractor Performance", "HOC Subcontract Profitability", "Subcontract Labour Cost", "Subcontract Equipment Cost",
+		"Subcontract Retention and Advance Outstanding", "Subcontract Variation Report", "Subcontractor Invoice Register"):
+	REPORT_FILTERS[_name] = _SC_F
+REPORT_FILTERS["Subcontract Cost Monitor"] = _SC_F + [_f("project", "Project", "Link", "Project")]
+REPORT_FILTERS["Delayed Subcontract Work Orders"] = [_SC_F[0], _SC_F[1], _f("project", "Project", "Link", "Project")]
+REPORT_FILTERS["Subcontractor Register"] = [_f("supplier", "Subcontractor", "Link", "Supplier"),
+	_f("status", "Approval", "Select", ["", "Pending", "Approved", "Suspended", "Blacklisted"])]
+REPORT_FILTERS["Subcontractor Account Statement"] = [_SC_F[0], _f("supplier", "Subcontractor (required)", "Link", "Supplier"),
+	_f("from_date", "From", "Date", default="$year_start"), _f("to_date", "To", "Date", default="$today")]
+del _name

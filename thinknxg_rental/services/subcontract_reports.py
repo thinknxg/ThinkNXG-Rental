@@ -50,7 +50,8 @@ def hoc_wise(f):
 		C("Subcontractors", "subcontractors", "Int", width=100), C("Work Orders", "orders", "Int", width=90), C("Estimated Cost", "estimated", "Currency", width=120),
 		C("Labour", "labour", "Currency", width=110), C("Equipment", "equipment", "Currency", width=110), C("Completion %", "completion", "Percent", width=100)]
 	rows = q(f"""select w.hire_order_contract, max(w.customer) as customer, count(*) as orders, count(distinct w.supplier) as subcontractors, sum(w.final_contract_value) as estimated,
-		sum(w.labour_cost) as labour, sum(w.equipment_cost) as equipment from `tabSubcontract Work Order` w where {w} group by w.hire_order_contract""", v)
+		sum(w.labour_cost) as labour, sum(w.equipment_cost) as equipment from `tabSubcontract Work Order` w where {w} and ifnull(w.hire_order_contract, '') != ''
+		group by w.hire_order_contract""", v)
 	from thinknxg_rental.services import subcontracting as sc
 	for r in rows:
 		s = sc.subcontract_summary(r.hire_order_contract)
@@ -214,6 +215,137 @@ REPORTS = {
 	"Subcontract Equipment Cost": (equipment_cost, "Subcontract Work Order"),
 	"Subcontract Retention and Advance Outstanding": (retention_advance, "Subcontract Work Order"),
 }
+# ----- v2 reports ---------------------------------------------------------------------------------------------------
+def register(f):
+	"""Subcontractor Register: every subcontractor with classification, approval, compliance, agreements and score."""
+	from thinknxg_rental.services import subcontracting as sc
+
+	cond, v = ["s.is_subcontractor = 1"], {}
+	if f.get("supplier"):
+		cond.append("s.name = %(supplier)s")
+		v["supplier"] = f.supplier
+	if f.get("status"):
+		cond.append("s.subcontractor_approval_status = %(status)s")
+		v["status"] = f.status
+	rows = q(f"""select s.name as supplier, s.supplier_name, s.business_classification, s.subcontractor_type, s.subcontractor_approval_status as approval,
+		s.tax_id, s.service_areas, s.disabled,
+		(select count(*) from `tabSubcontract Agreement` a where a.supplier = s.name and a.docstatus = 1 and a.status = 'Active') as agreements,
+		(select count(*) from `tabSubcontract Work Order` w where w.supplier = s.name and w.docstatus = 1) as orders,
+		(select sum(w.final_contract_value) from `tabSubcontract Work Order` w where w.supplier = s.name and w.docstatus = 1) as value
+		from `tabSupplier` s where {' and '.join(cond)} order by s.supplier_name""", v)
+	for r in rows:
+		docs = frappe.get_all("Subcontractor Compliance Document", filters={"parent": r.supplier, "parenttype": "Supplier"}, fields=["expiry_date"])
+		r.compliance = "Expired" if any(sc.compliance_status(d.expiry_date, 0) == "Expired" for d in docs) else (
+			"Expiring" if any(sc.compliance_status(d.expiry_date) == "Expiring" for d in docs) else ("Valid" if docs else "None on file"))
+		r.score = sc.scorecard(r.supplier)["score"]
+	return [C("Subcontractor", "supplier", "Link", "Supplier", 150), C("Name", "supplier_name", width=180), C("Classification", "business_classification", width=150),
+		C("Provides", "subcontractor_type", width=90), C("Approval", "approval", width=100), C("Compliance", "compliance", width=100),
+		C("Active Agreements", "agreements", "Int", width=110), C("Work Orders", "orders", "Int", width=100), C("Total Value", "value", "Currency", width=130),
+		C("Score", "score", "Float", width=80), C("Tax ID", "tax_id", width=120), C("Service Areas", "service_areas", width=180)], rows
+
+
+def variation_report(f):
+	w, v = swo_filters(f)
+	return [C("Variation", "name", "Link", "Subcontract Variation", 150), C("Work Order", "subcontract_work_order", "Link", "Subcontract Work Order", 150),
+		C("Subcontractor", "supplier", "Link", "Supplier", 150), C("Type", "variation_type", width=150), C("Requested", "request_date", "Date", width=100),
+		C("Status", "status", width=100), C("Claimed", "claimed_amount", "Currency", width=120), C("Approved Amount", "approved_amount", "Currency", width=120),
+		C("Change in Value", "value_change", "Currency", width=130), C("New Completion", "new_completion_date", "Date", width=110), C("From", "source", width=80),
+		C("Approved By", "approved_by", width=140)], q(f"""select x.name, x.subcontract_work_order, x.supplier, x.variation_type, x.request_date, x.status,
+		x.claimed_amount, x.approved_amount, x.value_change, x.new_completion_date, x.source, x.approved_by from `tabSubcontract Variation` x
+		join `tabSubcontract Work Order` w on w.name = x.subcontract_work_order where {w} and x.docstatus < 2 order by x.request_date desc""", v)
+
+
+def account_statement(f):
+	"""GL of the subcontractor (party ledger): the figures are ERPNext's own accounting entries, so they reconcile."""
+	cols = [C("Date", "posting_date", "Date", width=100), C("Voucher Type", "voucher_type", width=130), C("Voucher", "voucher_no", "Dynamic Link", "voucher_type", 160),
+		C("Work Order", "work_order", "Link", "Subcontract Work Order", 150), C("Debit (paid / deducted)", "debit", "Currency", width=140),
+		C("Credit (invoiced)", "credit", "Currency", width=130), C("Balance Payable", "balance", "Currency", width=130)]
+	if not f.get("supplier"):
+		return cols, []  # the statement is of one subcontractor: nothing until one is chosen
+	company = f.get("company") or frappe.db.get_single_value("Rental Settings", "company")
+	v = {"party": f.supplier, "company": company, "from_date": f.get("from_date") or "1900-01-01", "to_date": f.get("to_date") or frappe.utils.nowdate()}
+	opening = frappe.utils.flt(frappe.db.sql("""select sum(credit - debit) from `tabGL Entry` where party_type = 'Supplier' and party = %(party)s and company = %(company)s
+		and is_cancelled = 0 and posting_date < %(from_date)s""", v)[0][0])
+	rows = q("""select posting_date, voucher_type, voucher_no, sum(debit) as debit, sum(credit) as credit, max(against_voucher) as against_voucher
+		from `tabGL Entry` where party_type = 'Supplier' and party = %(party)s and company = %(company)s and is_cancelled = 0
+		and posting_date between %(from_date)s and %(to_date)s group by posting_date, voucher_type, voucher_no order by posting_date, min(creation)""", v)
+	bal = opening
+	out = [frappe._dict(voucher_type=_("Opening"), balance=opening)]
+	for r in rows:
+		bal += frappe.utils.flt(r.credit) - frappe.utils.flt(r.debit)
+		r.balance = bal
+		r.work_order = frappe.db.get_value(r.voucher_type, r.voucher_no, "subcontract_work_order") if r.voucher_type in ("Purchase Invoice", "Payment Entry") else None
+		out.append(r)
+	out.append(frappe._dict(voucher_type=_("Closing"), debit=sum(frappe.utils.flt(r.debit) for r in rows), credit=sum(frappe.utils.flt(r.credit) for r in rows), balance=bal))
+	return cols, out
+
+
+def cost_monitor(f):
+	from thinknxg_rental.services import subcontracting as sc
+
+	w, v = swo_filters(f)
+	rows = q(f"""select w.name, w.supplier, w.project, w.status, w.contract_amount as original, w.final_contract_value as revised,
+		(select sum(x.value_change) from `tabSubcontract Variation` x where x.subcontract_work_order = w.name and x.status = 'Approved') as variations,
+		(select sum(x.claimed_amount + x.value_change) from `tabSubcontract Variation` x where x.subcontract_work_order = w.name and x.status in ('Submitted', 'Under Review')) as pending,
+		(select sum(wi.reported_qty * wi.rate) from `tabSubcontract Work Item` wi where wi.parent = w.name) as completed,
+		(select sum(wi.accepted_qty * wi.rate) from `tabSubcontract Work Item` wi where wi.parent = w.name) as certified,
+		(select sum(s.certified_value) from `tabSubcontract Settlement` s where s.subcontract_work_order = w.name and s.docstatus = 1) as invoiced,
+		(select sum(s.retention_amount) from `tabSubcontract Settlement` s where s.subcontract_work_order = w.name and s.docstatus = 1) as retention,
+		(select sum(s.advance_recovery) from `tabSubcontract Settlement` s where s.subcontract_work_order = w.name and s.docstatus = 1) as advance_recovered,
+		(select sum(pi.grand_total - pi.outstanding_amount) from `tabPurchase Invoice` pi where pi.subcontract_work_order = w.name and pi.docstatus = 1) as paid,
+		(select sum(pi.outstanding_amount) from `tabPurchase Invoice` pi where pi.subcontract_work_order = w.name and pi.docstatus = 1) as outstanding
+		from `tabSubcontract Work Order` w where {w} and w.status != 'Cancelled' order by w.contract_date desc""", v)
+	for r in rows:
+		r.forecast = frappe.utils.flt(r.revised) + frappe.utils.flt(r.pending)
+		r.utilization = round(100 * frappe.utils.flt(r.certified) / frappe.utils.flt(r.revised), 1) if frappe.utils.flt(r.revised) else 0
+		r.advance_paid = sc.advance_paid(r.name)[0]
+	return [C("Work Order", "name", "Link", "Subcontract Work Order", 150), C("Subcontractor", "supplier", "Link", "Supplier", 140), C("Project", "project", "Link", "Project", 120),
+		C("Original", "original", "Currency", width=120), C("Approved Variations", "variations", "Currency", width=130), C("Revised", "revised", "Currency", width=120),
+		C("Completed (reported)", "completed", "Currency", width=130), C("Certified", "certified", "Currency", width=120), C("Invoiced", "invoiced", "Currency", width=120),
+		C("Paid", "paid", "Currency", width=110), C("Retention", "retention", "Currency", width=110), C("Advance Paid", "advance_paid", "Currency", width=110),
+		C("Advance Recovered", "advance_recovered", "Currency", width=120), C("Outstanding", "outstanding", "Currency", width=110),
+		C("Utilization %", "utilization", "Percent", width=100), C("Forecast Final Cost", "forecast", "Currency", width=130)], rows
+
+
+def delayed(f):
+	from thinknxg_rental.services import subcontracting as sc
+
+	w, v = swo_filters(f)
+	v.update(today=frappe.utils.nowdate(), working=sc.WORKING)
+	rows = q(f"""select w.name, w.supplier, w.project, w.status, w.expected_completion_date, datediff(%(today)s, w.expected_completion_date) as days_late,
+		w.site_engineer, (select sum(wi.accepted_qty) / nullif(sum(wi.qty), 0) * 100 from `tabSubcontract Work Item` wi where wi.parent = w.name) as progress,
+		(select max(d.report_date) from `tabSubcontract Daily Progress` d where d.subcontract_work_order = w.name and d.docstatus = 1) as last_report,
+		(select max(d.delay_reason) from `tabSubcontract Daily Progress` d where d.subcontract_work_order = w.name and d.delay_reported = 1) as delay_reason
+		from `tabSubcontract Work Order` w where {w} and w.status in %(working)s and w.expected_completion_date < %(today)s order by days_late desc""", v)
+	return [C("Work Order", "name", "Link", "Subcontract Work Order", 150), C("Subcontractor", "supplier", "Link", "Supplier", 150), C("Project", "project", "Link", "Project", 120),
+		C("Status", "status", width=130), C("Due", "expected_completion_date", "Date", width=100), C("Days Late", "days_late", "Int", width=90),
+		C("Progress %", "progress", "Percent", width=90), C("Last Report", "last_report", "Date", width=100), C("Reported Delay", "delay_reason", width=200),
+		C("Site Engineer", "site_engineer", width=150)], rows
+
+
+def invoice_register(f):
+	w, v = swo_filters(f)
+	return [C("Submission", "name", "Link", "Subcontractor Invoice Submission", 150), C("Supplier Invoice", "supplier_invoice_no", width=130),
+		C("Invoice Date", "supplier_invoice_date", "Date", width=100), C("Subcontractor", "supplier", "Link", "Supplier", 150),
+		C("Work Order", "subcontract_work_order", "Link", "Subcontract Work Order", 150), C("Bill Type", "bill_type", width=100), C("Status", "status", width=90),
+		C("Claimed", "total_claimed", "Currency", width=120), C("Purchase Invoice", "purchase_invoice", "Link", "Purchase Invoice", 150),
+		C("Invoice Total", "grand_total", "Currency", width=120), C("Outstanding", "outstanding_amount", "Currency", width=120), C("From", "source", width=80)], q(f"""
+		select x.name, x.supplier_invoice_no, x.supplier_invoice_date, x.supplier, x.subcontract_work_order, x.bill_type, x.status, x.total_claimed,
+		x.purchase_invoice, pi.grand_total, pi.outstanding_amount, x.source from `tabSubcontractor Invoice Submission` x
+		join `tabSubcontract Work Order` w on w.name = x.subcontract_work_order left join `tabPurchase Invoice` pi on pi.name = x.purchase_invoice and pi.docstatus = 1
+		where {w} and x.docstatus < 2 order by x.supplier_invoice_date desc""", v)
+
+
+REPORTS.update({
+	"Subcontractor Register": (register, "Supplier"),
+	"Subcontract Variation Report": (variation_report, "Subcontract Variation"),
+	"Subcontractor Account Statement": (account_statement, "Purchase Invoice"),
+	"Subcontract Cost Monitor": (cost_monitor, "Subcontract Work Order"),
+	"Delayed Subcontract Work Orders": (delayed, "Subcontract Work Order"),
+	"Subcontractor Invoice Register": (invoice_register, "Subcontractor Invoice Submission"),
+})
+
+
 FILTERS = ("company", "supplier", "hire_order_contract", "status", "from_date", "to_date")
 
 

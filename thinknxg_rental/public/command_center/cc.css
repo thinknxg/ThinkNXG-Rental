@@ -420,3 +420,11 @@ a.cc-kpi--hero:hover { background: var(--navy-2); }
 .cc-table--nowrap td { white-space: nowrap; }
 .cc-grid-table td .cc-value { overflow-wrap: anywhere; }
 .cc-grid-table th.cc-num { white-space: normal; }
+
+/* subcontracting pages (cc_subcontracting.js): definition lists and secondary text */
+.cc-dl { display: grid; grid-template-columns: minmax(140px, max-content) 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
+.cc-dl dt { color: var(--muted, #7a8698); }
+.cc-dl dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.cc-sub { color: var(--muted, #7a8698); font-size: 12.5px; }
+.cc-panel textarea, .cc-filters input, .cc-filters select, .cc-panel input[type="date"] { font: inherit; padding: 7px 10px; border: 1px solid var(--line-strong, #cdd5df); border-radius: 8px; background: var(--surface, #fff); }
+@media (max-width: 640px) { .cc-dl { grid-template-columns: 1fr; } .cc-dl dd { margin-bottom: 6px; } }

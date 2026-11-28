@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E1A2B">
+<title>{{ _("Subcontractor Portal") }}</title>
+<link rel="icon" href="/assets/thinknxg_rental/images/logo.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/thinknxg_rental/command_center/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/thinknxg_rental/subcontractor_portal/sp.css?v={{ asset_version }}">
+</head>
+<body>
+<a class="sp-skip" href="#sp-main">{{ _("Skip to content") }}</a>
+<div id="sp-app" class="sp" data-loading="1">
+	<div class="sp-boot"><span class="sp-boot__mark"></span><span>{{ _("Loading your subcontractor account…") }}</span></div>
+	<noscript><p class="sp-noscript">{{ _("The subcontractor portal needs JavaScript switched on.") }}</p></noscript>
+</div>
+<script>
+window.sp_boot = {{ {"company": company} | tojson }};
+window.csrf_token = {{ csrf_token | tojson }};
+</script>
+<script src="/assets/thinknxg_rental/subcontractor_portal/sp_core.js?v={{ asset_version }}"></script>
+<script src="/assets/thinknxg_rental/subcontractor_portal/sp_pages.js?v={{ asset_version }}"></script>
+<script src="/assets/thinknxg_rental/subcontractor_portal/sp_app.js?v={{ asset_version }}"></script>
+</body>
+</html>

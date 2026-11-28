@@ -3,7 +3,7 @@
  "creation": "2026-11-26 18:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "modified": "2026-11-26 18:00:00.000000",
+ "modified": "2026-11-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Subcontracting",
  "name": "Subcontract Material Allocation",
@@ -14,6 +14,7 @@
  "field_order": [
   "naming_series",
   "subcontract_work_order",
+  "material_request",
   "hire_order_contract",
   "supplier",
   "company",
@@ -24,6 +25,13 @@
   "items",
   "stock_entry",
   "remarks",
+  "sb_receipt",
+  "received_by_subcontractor",
+  "received_on",
+  "receipt_confirmed_by",
+  "cb_receipt",
+  "shortage_reported",
+  "receipt_remarks",
   "amended_from"
  ],
  "fields": [
@@ -46,6 +54,13 @@
    "in_standard_filter": 1,
    "in_list_view": 1,
    "set_only_once": 1
+  },
+  {
+   "fieldname": "material_request",
+   "fieldtype": "Link",
+   "label": "Material Request",
+   "options": "Subcontract Material Request",
+   "read_only": 1
   },
   {
    "fieldname": "hire_order_contract",
@@ -120,6 +135,57 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "sb_receipt",
+   "fieldtype": "Section Break",
+   "label": "Receipt by subcontractor",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "received_by_subcontractor",
+   "fieldtype": "Check",
+   "label": "Receipt Confirmed",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "received_on",
+   "fieldtype": "Datetime",
+   "label": "Confirmed On",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "receipt_confirmed_by",
+   "fieldtype": "Link",
+   "label": "Confirmed By",
+   "options": "User",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cb_receipt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shortage_reported",
+   "fieldtype": "Check",
+   "label": "Shortage Reported",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "receipt_remarks",
+   "fieldtype": "Small Text",
+   "label": "Receipt Remarks",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "amended_from",
