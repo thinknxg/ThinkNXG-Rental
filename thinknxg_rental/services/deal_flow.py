@@ -165,6 +165,9 @@ def make_customer_from_quotation(source_name: str):
     source.check_permission("read")
     if source.docstatus == 2:
         frappe.throw(_("Quotation {0} is cancelled.").format(source.name))
+    # with an approval workflow on Quotation, a Customer is made only from an approved (submitted) one
+    if source.docstatus != 1 and frappe.db.exists("Workflow", {"document_type": "Quotation", "is_active": 1}):
+        frappe.throw(_("Quotation {0} must be approved before a Customer is made from it.").format(source.name))
     return _get_customer(source)
 
 
